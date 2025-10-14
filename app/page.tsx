@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,14 +12,95 @@ import {
   BarChart3,
   Phone,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Users,
+  Eye,
+  TrendingUp,
+  Activity as ActivityIcon,
+  Target
 } from "lucide-react";
 import { useSettings } from "@/lib/contexts/settings-context";
 
+interface DashboardStats {
+  totalCampaigns: number;
+  totalRecipients: number;
+  totalPageViews: number;
+  totalConversions: number;
+  overallConversionRate: number;
+}
+
+interface CampaignWithStats {
+  id: string;
+  name: string;
+  created_at: string;
+  status: string;
+  totalRecipients: number;
+  uniqueVisitors: number;
+  conversionRate: number;
+}
+
+interface RecentActivity {
+  id: string;
+  type: string;
+  recipientName: string;
+  eventType?: string;
+  conversionType?: string;
+  campaignName: string;
+  createdAt: string;
+}
+
 export default function HomePage() {
   const { settings, isLoaded } = useSettings();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentCampaigns, setRecentCampaigns] = useState<CampaignWithStats[]>([]);
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   const isSetupComplete = isLoaded && settings.companyName && settings.openaiApiKey;
+
+  // Load dashboard data
+  useEffect(() => {
+    if (isSetupComplete) {
+      loadDashboardData();
+    } else {
+      setLoadingData(false);
+    }
+  }, [isSetupComplete]);
+
+  const loadDashboardData = async () => {
+    try {
+      // Load stats
+      const statsRes = await fetch("/api/analytics/overview");
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        if (statsData.success) {
+          setStats(statsData.data);
+        }
+      }
+
+      // Load recent campaigns (top 3)
+      const campaignsRes = await fetch("/api/analytics/campaigns");
+      if (campaignsRes.ok) {
+        const campaignsData = await campaignsRes.json();
+        if (campaignsData.success) {
+          setRecentCampaigns(campaignsData.data.slice(0, 3));
+        }
+      }
+
+      // Load recent activity (top 5)
+      const activityRes = await fetch("/api/analytics/recent-activity?limit=5");
+      if (activityRes.ok) {
+        const activityData = await activityRes.json();
+        if (activityData.success) {
+          setRecentActivity(activityData.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const workflow = [
     {
@@ -90,20 +172,55 @@ export default function HomePage() {
     },
   ];
 
+  const getActivityLabel = (activity: RecentActivity) => {
+    if (activity.type === "event") {
+      switch (activity.eventType) {
+        case "page_view": return "Viewed landing page";
+        case "qr_scan": return "Scanned QR code";
+        case "button_click": return "Clicked button";
+        case "form_view": return "Viewed form";
+        default: return "Activity";
+      }
+    } else {
+      switch (activity.conversionType) {
+        case "form_submission": return "Submitted form";
+        case "appointment_booked": return "Booked appointment";
+        default: return "Converted";
+      }
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString();
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {/* Hero Section */}
-      <div className="mb-12">
+      <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-slate-900">
-            AI Marketing Platform
+            {isSetupComplete && settings.companyName
+              ? `Welcome back, ${settings.companyName}!`
+              : "AI Marketing Platform"}
           </h1>
         </div>
         <p className="text-xl text-slate-600">
-          Automate your marketing with AI-powered copywriting, direct mail campaigns, and intelligent tracking
+          {isSetupComplete
+            ? "Your AI-powered marketing automation platform"
+            : "Automate your marketing with AI-powered copywriting, direct mail campaigns, and intelligent tracking"}
         </p>
       </div>
 
@@ -132,8 +249,75 @@ export default function HomePage() {
         </Card>
       )}
 
+      {/* Quick Stats Overview */}
+      {isSetupComplete && stats && stats.totalCampaigns > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">Platform Overview</h2>
+            <Link href="/analytics">
+              <Button variant="outline" size="sm" className="gap-2">
+                View Full Analytics
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Campaigns</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalCampaigns}</p>
+                  </div>
+                  <Target className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Recipients</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalRecipients}</p>
+                  </div>
+                  <Users className="h-8 w-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Page Views</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalPageViews}</p>
+                  </div>
+                  <Eye className="h-8 w-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-900">Conversions</p>
+                    <p className="text-2xl font-bold text-orange-900 mt-1">{stats.totalConversions}</p>
+                    <p className="text-xs text-orange-700 mt-0.5 font-semibold">
+                      {stats.overallConversionRate}% rate
+                    </p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-orange-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Workflow Guide */}
-      <div className="mb-12">
+      <div className="mb-8">
         <h2 className="text-2xl font-bold text-slate-900 mb-6">
           Get Started in 4 Steps
         </h2>
@@ -193,6 +377,88 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Recent Campaigns & Activity */}
+      {isSetupComplete && (recentCampaigns.length > 0 || recentActivity.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Recent Campaigns */}
+          {recentCampaigns.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Recent Campaigns</CardTitle>
+                  <Link href="/analytics?tab=campaigns">
+                    <Button variant="ghost" size="sm">
+                      View All
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {recentCampaigns.map((campaign) => (
+                    <div key={campaign.id} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{campaign.name}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-slate-600">
+                            {campaign.totalRecipients} recipients
+                          </span>
+                          <span className="text-xs text-slate-400">•</span>
+                          <span className="text-xs text-slate-600">
+                            {campaign.uniqueVisitors} visitors
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right ml-2">
+                        <p className="text-sm font-bold text-green-600">{campaign.conversionRate}%</p>
+                        <p className="text-xs text-slate-500">conversion</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recent Activity */}
+          {recentActivity.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <ActivityIcon className="h-5 w-5" />
+                    Recent Activity
+                  </CardTitle>
+                  <Link href="/analytics?tab=activity">
+                    <Button variant="ghost" size="sm">
+                      View All
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900">{activity.recipientName}</p>
+                        <p className="text-xs text-slate-600 mt-0.5">{getActivityLabel(activity)}</p>
+                        <p className="text-xs text-slate-500 mt-1">{activity.campaignName}</p>
+                      </div>
+                      <span className="text-xs text-slate-500 whitespace-nowrap">
+                        {formatTimeAgo(activity.createdAt)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div>
         <h2 className="text-2xl font-bold text-slate-900 mb-6">
@@ -222,9 +488,9 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Platform Stats */}
-      {isSetupComplete && (
-        <div className="mt-12 p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border">
+      {/* Platform Ready Status */}
+      {isSetupComplete && stats && stats.totalCampaigns === 0 && !loadingData && (
+        <div className="mt-8 p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">
               Platform Ready
