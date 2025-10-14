@@ -1,9 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter } from "lucide-react";
 import Link from "next/link";
 
 interface Campaign {
@@ -19,9 +27,15 @@ interface Campaign {
   conversionRate: number;
 }
 
+type StatusFilter = "all" | "active" | "paused" | "completed";
+type SortOption = "date-desc" | "date-asc" | "name-asc" | "name-desc" | "performance-desc";
+
 export function CampaignList() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortOption, setSortOption] = useState<SortOption>("date-desc");
 
   useEffect(() => {
     loadCampaigns();
@@ -41,6 +55,47 @@ export function CampaignList() {
       setLoading(false);
     }
   };
+
+  // Filter and sort campaigns
+  const filteredAndSortedCampaigns = useMemo(() => {
+    let filtered = [...campaigns];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (campaign) =>
+          campaign.name.toLowerCase().includes(query) ||
+          campaign.company_name.toLowerCase().includes(query) ||
+          campaign.message.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((campaign) => campaign.status === statusFilter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortOption) {
+        case "date-desc":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "date-asc":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "performance-desc":
+          return b.conversionRate - a.conversionRate;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [campaigns, searchQuery, statusFilter, sortOption]);
 
   if (loading) {
     return (
@@ -88,8 +143,97 @@ export function CampaignList() {
   };
 
   return (
-    <div className="space-y-4">
-      {campaigns.map((campaign) => (
+    <div className="space-y-6">
+      {/* Search and Filter Bar */}
+      <Card className="border-slate-200">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search campaigns by name, company, or message..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="w-full md:w-48">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+              >
+                <SelectTrigger className="w-full">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort Options */}
+            <div className="w-full md:w-56">
+              <Select
+                value={sortOption}
+                onValueChange={(value) => setSortOption(value as SortOption)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date-desc">Newest First</SelectItem>
+                  <SelectItem value="date-asc">Oldest First</SelectItem>
+                  <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                  <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                  <SelectItem value="performance-desc">Best Performance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Results Count */}
+          <div className="mt-4 text-sm text-slate-600">
+            Showing <span className="font-semibold text-slate-900">{filteredAndSortedCampaigns.length}</span>{" "}
+            of <span className="font-semibold text-slate-900">{campaigns.length}</span> campaigns
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* No Results Message */}
+      {filteredAndSortedCampaigns.length === 0 && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <Search className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">No Campaigns Found</h3>
+              <p className="text-slate-600 mb-4">
+                Try adjusting your search or filter criteria
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setSortOption("date-desc");
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Campaigns List */}
+      {filteredAndSortedCampaigns.map((campaign) => (
         <Card key={campaign.id} className="border-slate-200 hover:border-slate-300 transition-colors">
           <CardHeader>
             <div className="flex items-start justify-between">
