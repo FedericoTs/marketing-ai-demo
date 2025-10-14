@@ -170,7 +170,10 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
               <div className="flex flex-col">
                 <span className="text-xs font-medium text-purple-900">AI-Generated Copy</span>
                 <span className="text-[10px] text-purple-700">
-                  {aiCopyInfo.platform} • {aiCopyInfo.audience}
+                  Campaign: {aiCopyInfo.platform}
+                </span>
+                <span className="text-[10px] text-purple-600">
+                  {aiCopyInfo.audience}
                 </span>
               </div>
             </div>

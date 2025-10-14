@@ -131,22 +131,29 @@ MARKETING BEST PRACTICES:
 - Celebrate what customers gain, not what they've lost
 - Be specific and actionable
 
-Generate 5-6 compelling marketing variations based on the user's input. Each should be optimized for different platforms and audience segments.`;
+Generate 5-6 compelling marketing campaign variations based on the user's input. Each should have:
+1. A unique, memorable CAMPAIGN TITLE that captures the essence of the message
+2. Compelling marketing copy optimized for different audience segments
+3. Clear emotional tone and targeting
 
 IMPORTANT: Return ONLY valid JSON in this exact format:
 
 {
   "variations": [
     {
-      "content": "Compelling copy that speaks to emotions and benefits. Use real scenarios, paint vivid pictures of reconnection. Include specific Miracle-Ear differentiators when relevant.",
-      "platform": "Platform (Email Subject, Facebook Post, Google Ad, Direct Mail Headline, Print Ad, SMS, Landing Page Hero)",
+      "content": "Compelling marketing copy that speaks to emotions and benefits. Use real scenarios, paint vivid pictures of reconnection. Include specific brand differentiators when relevant. This is the actual marketing message that will be used in direct mail, emails, and landing pages.",
+      "platform": "Unique Campaign Title (e.g., 'Rediscover Family Moments', 'Hear Life Clearly Again', 'Spring Hearing Health Initiative', 'Sound Connection Campaign')",
       "audience": "Specific segment (First-time Users 55-65, Concerned Adult Children, Active Seniors, Reluctant First-Timers, Tech-Savvy Boomers, Spouse/Family Member)",
       "tone": "Emotional tone (Warm & Reassuring, Empowering & Hopeful, Urgent & Caring, Inspirational, Educational & Trustworthy)"
     }
   ]
 }
 
-Make each variation unique, emotionally compelling, and immediately actionable. Focus on transformation stories and specific life moments.`;
+Make each variation unique with:
+- A distinctive campaign title that could be used across all marketing channels
+- Emotionally compelling copy focused on transformation stories
+- Specific life moments and real scenarios
+- Clear differentiation between each campaign concept`;
 
   try {
     const completion = await openai.chat.completions.create({
