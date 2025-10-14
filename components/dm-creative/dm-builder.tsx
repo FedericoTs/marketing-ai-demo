@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, Sparkles } from "lucide-react";
 import { RecipientData, DirectMailData } from "@/types/dm-creative";
 import { toast } from "sonner";
 import { storeLandingPageData } from "@/lib/tracking";
@@ -19,8 +20,11 @@ interface DMBuilderProps {
 
 export function DMBuilder({ onGenerated }: DMBuilderProps) {
   const { settings } = useSettings();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [campaignInfo, setCampaignInfo] = useState<{id: string; name: string} | null>(null);
+  const [usingAICopy, setUsingAICopy] = useState(false);
+  const [aiCopyInfo, setAiCopyInfo] = useState<{ platform: string; audience: string } | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     lastname: "",
@@ -30,6 +34,29 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
     message: "",
     campaignName: "",
   });
+
+  // Pre-fill form from copywriting query params
+  useEffect(() => {
+    const copy = searchParams.get("copy");
+    const platform = searchParams.get("platform");
+    const audience = searchParams.get("audience");
+
+    if (copy) {
+      setFormData((prev) => ({ ...prev, message: copy }));
+      setUsingAICopy(true);
+      setAiCopyInfo({ platform: platform || "Unknown", audience: audience || "Unknown" });
+      toast.success("✨ AI-generated copy loaded from Copywriting");
+    }
+  }, [searchParams]);
+
+  // Auto-suggest campaign name based on company
+  useEffect(() => {
+    if (settings.companyName && !formData.campaignName) {
+      const date = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const suggestedName = `${settings.companyName} Campaign - ${date}`;
+      setFormData((prev) => ({ ...prev, campaignName: suggestedName }));
+    }
+  }, [settings.companyName]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -128,12 +155,27 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Direct Mail Details</CardTitle>
-        {campaignInfo && (
-          <p className="text-sm text-green-600 mt-1">
-            Campaign: {campaignInfo.name}
-          </p>
-        )}
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <CardTitle>Direct Mail Details</CardTitle>
+            {campaignInfo && (
+              <p className="text-sm text-green-600 mt-1">
+                Campaign: {campaignInfo.name}
+              </p>
+            )}
+          </div>
+          {usingAICopy && aiCopyInfo && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-full">
+              <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-purple-900">AI-Generated Copy</span>
+                <span className="text-[10px] text-purple-700">
+                  {aiCopyInfo.platform} • {aiCopyInfo.audience}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleGenerate} className="space-y-4">
