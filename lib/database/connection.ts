@@ -125,7 +125,7 @@ function initializeSchema(database: Database.Database): void {
       brand_voice TEXT,
       tone TEXT,
       key_phrases TEXT,
-      values TEXT,
+      brand_values TEXT,
       target_audience TEXT,
       industry TEXT,
       extracted_at TEXT NOT NULL DEFAULT (datetime('now')),

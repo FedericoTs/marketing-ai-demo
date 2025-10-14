@@ -421,7 +421,7 @@ export interface BrandProfile {
   brand_voice?: string;
   tone?: string;
   key_phrases?: string; // JSON string of array
-  values?: string; // JSON string of array
+  brand_values?: string; // JSON string of array
   target_audience?: string;
   industry?: string;
   extracted_at: string;
@@ -453,7 +453,7 @@ export function saveBrandProfile(data: {
     // Update existing profile
     const stmt = db.prepare(`
       UPDATE brand_profiles
-      SET brand_voice = ?, tone = ?, key_phrases = ?, values = ?,
+      SET brand_voice = ?, tone = ?, key_phrases = ?, brand_values = ?,
           target_audience = ?, industry = ?, extracted_at = ?, source_content = ?
       WHERE id = ?
     `);
@@ -475,7 +475,7 @@ export function saveBrandProfile(data: {
       brand_voice: data.brandVoice,
       tone: data.tone,
       key_phrases: data.keyPhrases ? JSON.stringify(data.keyPhrases) : undefined,
-      values: data.values ? JSON.stringify(data.values) : undefined,
+      brand_values: data.values ? JSON.stringify(data.values) : undefined,
       target_audience: data.targetAudience,
       industry: data.industry,
       extracted_at: new Date().toISOString(),
@@ -488,7 +488,7 @@ export function saveBrandProfile(data: {
 
     const stmt = db.prepare(`
       INSERT INTO brand_profiles (
-        id, company_name, brand_voice, tone, key_phrases, values,
+        id, company_name, brand_voice, tone, key_phrases, brand_values,
         target_audience, industry, extracted_at, source_content, is_active
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
@@ -513,7 +513,7 @@ export function saveBrandProfile(data: {
       brand_voice: data.brandVoice,
       tone: data.tone,
       key_phrases: data.keyPhrases ? JSON.stringify(data.keyPhrases) : undefined,
-      values: data.values ? JSON.stringify(data.values) : undefined,
+      brand_values: data.values ? JSON.stringify(data.values) : undefined,
       target_audience: data.targetAudience,
       industry: data.industry,
       extracted_at,

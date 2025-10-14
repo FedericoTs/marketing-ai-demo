@@ -101,7 +101,7 @@ ${context.targetAudience}`;
   // Add brand intelligence if available
   if (brandProfile) {
     const keyPhrases = brandProfile.key_phrases ? JSON.parse(brandProfile.key_phrases) : [];
-    const values = brandProfile.values ? JSON.parse(brandProfile.values) : [];
+    const values = brandProfile.brand_values ? JSON.parse(brandProfile.brand_values) : [];
 
     systemPrompt += `
 

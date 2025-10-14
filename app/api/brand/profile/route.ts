@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const parsedProfile = {
       ...profile,
       keyPhrases: profile.key_phrases ? JSON.parse(profile.key_phrases) : [],
-      values: profile.values ? JSON.parse(profile.values) : [],
+      values: profile.brand_values ? JSON.parse(profile.brand_values) : [],
     };
 
     return NextResponse.json({
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     const parsedProfile = {
       ...profile,
       keyPhrases: profile.key_phrases ? JSON.parse(profile.key_phrases) : [],
-      values: profile.values ? JSON.parse(profile.values) : [],
+      values: profile.brand_values ? JSON.parse(profile.brand_values) : [],
     };
 
     return NextResponse.json({
