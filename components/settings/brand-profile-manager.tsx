@@ -79,17 +79,17 @@ export function BrandProfileManager({ companyName, apiKey }: BrandProfileManager
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-slate-200 shadow-sm">
+      <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-purple-50/50 to-blue-50/50">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-purple-600" />
-          <CardTitle>Brand Intelligence (AI-Powered)</CardTitle>
+          <CardTitle className="text-xl">Brand Intelligence (AI-Powered)</CardTitle>
         </div>
         <CardDescription>
           Upload your existing marketing content and let AI extract your brand voice, tone, and key messaging
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5 pt-6">
         {/* Instructions */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
@@ -110,7 +110,7 @@ export function BrandProfileManager({ companyName, apiKey }: BrandProfileManager
 
         {/* Content Input */}
         <div className="space-y-2">
-          <Label htmlFor="brandContent">
+          <Label htmlFor="brandContent" className="text-sm font-medium">
             Your Marketing Content
           </Label>
           <Textarea
@@ -119,10 +119,10 @@ export function BrandProfileManager({ companyName, apiKey }: BrandProfileManager
             onChange={(e) => setContent(e.target.value)}
             placeholder="Paste your existing marketing materials here...&#10;&#10;Examples:&#10;- Website homepage copy&#10;- Email campaign text&#10;- Brochure descriptions&#10;- Social media posts&#10;- Product descriptions"
             rows={10}
-            className="font-mono text-sm"
+            className="font-mono text-sm resize-none"
           />
           <p className="text-xs text-slate-500">
-            Recommended: At least 200-500 words for accurate analysis
+            💡 Recommended: At least 200-500 words for accurate analysis
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export function BrandProfileManager({ companyName, apiKey }: BrandProfileManager
         <Button
           onClick={handleAnalyze}
           disabled={isAnalyzing || !content.trim()}
-          className="w-full"
+          className="w-full h-11"
           size="lg"
         >
           {isAnalyzing ? (
