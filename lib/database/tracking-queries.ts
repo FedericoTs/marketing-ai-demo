@@ -554,3 +554,165 @@ export function deactivateBrandProfile(id: string): boolean {
   const result = stmt.run(id);
   return result.changes > 0;
 }
+
+// ==================== ANALYTICS DASHBOARD ====================
+
+/**
+ * Get overall dashboard statistics
+ */
+export interface DashboardStats {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  totalRecipients: number;
+  totalPageViews: number;
+  totalConversions: number;
+  overallConversionRate: number;
+  qrScans: number;
+  formSubmissions: number;
+}
+
+export function getDashboardStats(): DashboardStats {
+  const db = getDatabase();
+
+  // Total campaigns
+  const totalCampaignsStmt = db.prepare("SELECT COUNT(*) as count FROM campaigns");
+  const { count: totalCampaigns } = totalCampaignsStmt.get() as { count: number };
+
+  // Active campaigns
+  const activeCampaignsStmt = db.prepare(
+    "SELECT COUNT(*) as count FROM campaigns WHERE status = 'active'"
+  );
+  const { count: activeCampaigns } = activeCampaignsStmt.get() as { count: number };
+
+  // Total recipients
+  const totalRecipientsStmt = db.prepare("SELECT COUNT(*) as count FROM recipients");
+  const { count: totalRecipients } = totalRecipientsStmt.get() as { count: number };
+
+  // Total page views
+  const pageViewsStmt = db.prepare(
+    "SELECT COUNT(*) as count FROM events WHERE event_type = 'page_view'"
+  );
+  const { count: totalPageViews } = pageViewsStmt.get() as { count: number };
+
+  // QR scans
+  const qrScansStmt = db.prepare(
+    "SELECT COUNT(*) as count FROM events WHERE event_type = 'qr_scan'"
+  );
+  const { count: qrScans } = qrScansStmt.get() as { count: number };
+
+  // Total conversions
+  const totalConversionsStmt = db.prepare("SELECT COUNT(*) as count FROM conversions");
+  const { count: totalConversions } = totalConversionsStmt.get() as { count: number };
+
+  // Form submissions
+  const formSubmissionsStmt = db.prepare(
+    "SELECT COUNT(*) as count FROM conversions WHERE conversion_type = 'form_submission'"
+  );
+  const { count: formSubmissions } = formSubmissionsStmt.get() as { count: number };
+
+  // Overall conversion rate
+  const overallConversionRate = totalRecipients > 0
+    ? (totalConversions / totalRecipients) * 100
+    : 0;
+
+  return {
+    totalCampaigns,
+    activeCampaigns,
+    totalRecipients,
+    totalPageViews,
+    totalConversions,
+    overallConversionRate: Math.round(overallConversionRate * 100) / 100,
+    qrScans,
+    formSubmissions,
+  };
+}
+
+/**
+ * Get all campaigns with basic analytics
+ */
+export interface CampaignWithStats extends Campaign {
+  totalRecipients: number;
+  uniqueVisitors: number;
+  totalConversions: number;
+  conversionRate: number;
+}
+
+export function getAllCampaignsWithStats(): CampaignWithStats[] {
+  const campaigns = getAllCampaigns();
+
+  return campaigns.map((campaign) => {
+    const analytics = getCampaignAnalytics(campaign.id);
+
+    return {
+      ...campaign,
+      totalRecipients: analytics?.totalRecipients || 0,
+      uniqueVisitors: analytics?.uniqueVisitors || 0,
+      totalConversions: analytics?.totalConversions || 0,
+      conversionRate: analytics?.conversionRate || 0,
+    };
+  });
+}
+
+/**
+ * Get recent activity (events and conversions combined)
+ */
+export interface RecentActivity {
+  id: string;
+  type: "event" | "conversion";
+  trackingId: string;
+  recipientName: string;
+  eventType?: Event["event_type"];
+  conversionType?: Conversion["conversion_type"];
+  campaignName: string;
+  createdAt: string;
+}
+
+export function getRecentActivity(limit: number = 20): RecentActivity[] {
+  const db = getDatabase();
+
+  // Get recent events with recipient and campaign info
+  const eventsStmt = db.prepare(`
+    SELECT
+      e.id,
+      'event' as type,
+      e.tracking_id as trackingId,
+      r.name || ' ' || r.lastname as recipientName,
+      e.event_type as eventType,
+      NULL as conversionType,
+      c.name as campaignName,
+      e.created_at as createdAt
+    FROM events e
+    JOIN recipients r ON e.tracking_id = r.tracking_id
+    JOIN campaigns c ON r.campaign_id = c.id
+    ORDER BY e.created_at DESC
+    LIMIT ?
+  `);
+
+  // Get recent conversions with recipient and campaign info
+  const conversionsStmt = db.prepare(`
+    SELECT
+      cv.id,
+      'conversion' as type,
+      cv.tracking_id as trackingId,
+      r.name || ' ' || r.lastname as recipientName,
+      NULL as eventType,
+      cv.conversion_type as conversionType,
+      c.name as campaignName,
+      cv.created_at as createdAt
+    FROM conversions cv
+    JOIN recipients r ON cv.tracking_id = r.tracking_id
+    JOIN campaigns c ON r.campaign_id = c.id
+    ORDER BY cv.created_at DESC
+    LIMIT ?
+  `);
+
+  const events = eventsStmt.all(limit) as RecentActivity[];
+  const conversions = conversionsStmt.all(limit) as RecentActivity[];
+
+  // Combine and sort by date
+  const combined = [...events, ...conversions]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
+
+  return combined;
+}
