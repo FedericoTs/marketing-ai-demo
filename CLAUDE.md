@@ -20,28 +20,65 @@ Next.js 15.5.4 marketing AI application with:
 
 ## Core Features
 
-### 1. Copywriting Tab
-- Input: Marketing idea/message/campaign
-- Output: Multiple AI-generated variations optimized for:
-  - Different audiences (B2B, B2C, enterprise, SMB)
-  - Different platforms (email, social media, web, print)
-- API: OpenAI GPT-4 or Anthropic Claude API
-- UI: Textarea input, Generate button, Cards displaying variations with copy-to-clipboard
+### 1. Home Dashboard (NEW - Phase 4)
+- Welcome section with personalized greeting
+- Quick stats overview (campaigns, recipients, conversions)
+- Recent campaigns widget
+- Quick action cards for common tasks
+- Recent activity feed preview
+- Getting started guide for new users
+- Platform status indicators
 
-### 2. DM Creative Tab
-- Input: Marketing message + recipient details
+### 2. Copywriting Tab (Enhanced - Phase 1)
+- Input: Marketing idea/message/campaign
+- Output: Multiple AI-generated campaign variations with:
+  - **Unique campaign titles** (e.g., "Rediscover Family Moments")
+  - Different audience segments (First-time Users 55-65, Adult Children, etc.)
+  - Varied emotional tones (Warm & Reassuring, Empowering, etc.)
+- **"Use in Campaign" Button**: One-click transfer to DM Creative
+- **Brand Intelligence Integration**: Uses extracted brand profile for consistency
+- API: OpenAI GPT-4o-mini
+- UI: Textarea input, Generate button, Cards with copy-to-clipboard and campaign transfer
+
+### 3. DM Creative Tab (Enhanced - Phase 1)
+- Input: Marketing message + recipient details OR AI-generated copy from Copywriting
 - Output: Professional printable Direct Mail with:
+  - AI-generated background images (DALL-E via gpt-image-1 model)
   - Personalized QR code → dedicated landing page
   - Variable fields (name, lastname, address, etc.)
   - CSV upload for batch processing
+  - Campaign tracking with unique IDs
 - Features:
+  - **Auto-fill from Copywriting**: Campaign name and message pre-populated
+  - **Auto-suggest campaign name**: "{Company} Campaign - {Month Year}"
+  - **AI-generated copy indicator**: Purple badge showing source
   - Dynamic landing page generation at `/lp/[trackingId]`
   - Tracking code embedded in URLs
   - PDF preview/download capability
   - Batch variable substitution from CSV
-- Libraries: qrcode, papaparse, react-pdf or jsPDF
+  - Client-side image composition (avoiding native module issues)
+- Libraries: qrcode, papaparse, jsPDF, browser Canvas API
 
-### 3. CC Operations Tab
+### 4. Analytics Dashboard (NEW - Phase 3)
+- **Overview Tab**:
+  - Total campaigns, recipients, page views, conversions
+  - Response rate and conversion rate metrics
+  - QR code scan tracking
+  - Form submission tracking
+  - Visual progress bars and performance indicators
+- **Campaigns Tab**:
+  - All campaigns with performance metrics
+  - Recipients, visitors, conversions per campaign
+  - Conversion rate visualization
+  - Campaign status badges (active/paused/completed)
+- **Activity Tab**:
+  - Real-time event and conversion tracking
+  - Auto-refresh every 30 seconds
+  - Page views, QR scans, button clicks, form submissions
+  - Time-based activity grouping
+- **Database Integration**: SQLite with comprehensive tracking tables
+
+### 5. CC Operations Tab
 - Input: Phone number + call objective/script
 - Output: Functional AI phone call agent
 - API: ElevenLabs Conversational AI API
@@ -50,15 +87,25 @@ Next.js 15.5.4 marketing AI application with:
   - Personalized assistance based on customer context
   - Call status monitoring
   - Demo mode with test numbers
+  - Agent configuration management
 - Note: Requires ElevenLabs API key with phone calling enabled
 
-### 4. Settings Tab
-- Company information storage:
-  - Company name, industry, brand voice, target audience
-  - API keys (OpenAI, ElevenLabs)
-  - Default templates and preferences
-- Storage: localStorage or simple JSON file (upgrade to database later)
-- Used to personalize outputs across all tabs
+### 6. Settings Tab (Enhanced - Phase 2)
+- **Two-tab interface**:
+  - **Company & Brand Tab**:
+    - Company name, industry, brand voice, target audience, tone
+    - **Brand Intelligence (AI-Powered)**:
+      - Upload marketing content for analysis
+      - AI extracts brand voice, tone, key phrases, values
+      - Auto-fills form fields with extracted data
+      - Displays AI-extracted elements as chips
+      - Profile loaded indicator badge
+    - **Persistent storage**: Database + localStorage
+  - **Integrations Tab**:
+    - API keys (OpenAI, ElevenLabs)
+    - ElevenLabs agent management
+    - Phone number configuration
+- Used to personalize outputs across all features
 
 ## Technology Stack
 
@@ -68,6 +115,10 @@ Next.js 15.5.4 marketing AI application with:
 npm install openai @anthropic-ai/sdk @elevenlabs/elevenlabs-js
 # Note: Uses ElevenLabs JS SDK for both API calls and ConvAI widget
 
+# Database (Phase 2 & 3)
+npm install better-sqlite3
+npm install --save-dev @types/better-sqlite3
+
 # QR Code Generation
 npm install qrcode @types/qrcode
 
@@ -75,7 +126,10 @@ npm install qrcode @types/qrcode
 npm install papaparse @types/papaparse
 
 # PDF Generation & Image Composition
-npm install jspdf html2canvas canvas sharp nanoid
+npm install jspdf html2canvas nanoid
+
+# Charts & Visualization (Phase 3)
+npm install recharts
 
 # Form Handling & Validation
 npm install zod react-hook-form @hookform/resolvers
