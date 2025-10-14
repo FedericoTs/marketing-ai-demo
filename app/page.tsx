@@ -17,7 +17,8 @@ import {
   Eye,
   TrendingUp,
   Activity as ActivityIcon,
-  Target
+  Target,
+  X
 } from "lucide-react";
 import { useSettings } from "@/lib/contexts/settings-context";
 
@@ -55,8 +56,21 @@ export default function HomePage() {
   const [recentCampaigns, setRecentCampaigns] = useState<CampaignWithStats[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [isGuideDismissed, setIsGuideDismissed] = useState(false);
 
   const isSetupComplete = isLoaded && settings.companyName && settings.openaiApiKey;
+
+  // Load guide dismiss state from localStorage
+  useEffect(() => {
+    const dismissed = localStorage.getItem("getStartedGuideDismissed");
+    setIsGuideDismissed(dismissed === "true");
+  }, []);
+
+  // Handle dismiss guide
+  const handleDismissGuide = () => {
+    setIsGuideDismissed(true);
+    localStorage.setItem("getStartedGuideDismissed", "true");
+  };
 
   // Load dashboard data
   useEffect(() => {
@@ -105,8 +119,8 @@ export default function HomePage() {
   const workflow = [
     {
       step: 1,
-      title: "Setup Your Brand",
-      description: "Configure company information and brand voice",
+      title: "Setup",
+      description: "Configure brand & API keys",
       icon: Settings,
       href: "/settings",
       completed: isSetupComplete,
@@ -114,8 +128,8 @@ export default function HomePage() {
     },
     {
       step: 2,
-      title: "Generate Copy",
-      description: "Create AI-powered marketing copy variations",
+      title: "Copy",
+      description: "Generate AI content",
       icon: FileText,
       href: "/copywriting",
       completed: false,
@@ -123,8 +137,8 @@ export default function HomePage() {
     },
     {
       step: 3,
-      title: "Create Direct Mail",
-      description: "Design personalized DMs with QR codes",
+      title: "Campaign",
+      description: "Create direct mail",
       icon: Mail,
       href: "/dm-creative",
       completed: false,
@@ -132,43 +146,12 @@ export default function HomePage() {
     },
     {
       step: 4,
-      title: "Track Performance",
-      description: "Monitor campaigns and analyze results",
+      title: "Track",
+      description: "Monitor performance",
       icon: BarChart3,
       href: "/analytics",
       completed: false,
       color: "green",
-    },
-  ];
-
-  const quickActions = [
-    {
-      title: "AI Copywriting",
-      description: "Generate marketing copy variations",
-      icon: FileText,
-      href: "/copywriting",
-      color: "bg-purple-50 text-purple-600",
-    },
-    {
-      title: "Direct Mail Campaign",
-      description: "Create personalized direct mail",
-      icon: Mail,
-      href: "/dm-creative",
-      color: "bg-orange-50 text-orange-600",
-    },
-    {
-      title: "View Analytics",
-      description: "Check campaign performance",
-      icon: BarChart3,
-      href: "/analytics",
-      color: "bg-green-50 text-green-600",
-    },
-    {
-      title: "Phone AI Agent",
-      description: "Initiate AI-powered calls",
-      icon: Phone,
-      href: "/cc-operations",
-      color: "bg-blue-50 text-blue-600",
     },
   ];
 
@@ -316,66 +299,63 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Workflow Guide */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">
-          Get Started in 4 Steps
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {workflow.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <Card
-                key={item.step}
-                className={`relative overflow-hidden transition-all hover:shadow-lg ${
-                  item.completed ? 'border-green-200 bg-green-50' : ''
-                }`}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`p-2 rounded-lg ${
-                      item.color === 'blue' ? 'bg-blue-100' :
-                      item.color === 'purple' ? 'bg-purple-100' :
-                      item.color === 'orange' ? 'bg-orange-100' :
-                      'bg-green-100'
-                    }`}>
-                      <Icon className={`h-5 w-5 ${
-                        item.color === 'blue' ? 'text-blue-600' :
-                        item.color === 'purple' ? 'text-purple-600' :
-                        item.color === 'orange' ? 'text-orange-600' :
-                        'text-green-600'
-                      }`} />
-                    </div>
-                    {item.completed && (
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    )}
-                  </div>
-                  <div className="text-xs font-semibold text-slate-500 mb-1">
-                    STEP {item.step}
-                  </div>
-                  <CardTitle className="text-lg">{item.title}</CardTitle>
-                  <CardDescription className="text-sm">
-                    {item.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button asChild variant="outline" size="sm" className="w-full">
-                    <Link href={item.href}>
-                      {item.completed ? 'Review' : 'Start'}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+      {/* Compact Get Started Guide (Dismissible) */}
+      {!isGuideDismissed && (
+        <Card className="mb-8 border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Get Started in 4 Steps</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDismissGuide}
+                    className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-4 w-4" />
                   </Button>
-                </CardContent>
-                {index < workflow.length - 1 && (
-                  <div className="hidden lg:block absolute -right-6 top-1/2 -translate-y-1/2 z-10">
-                    <ArrowRight className="h-6 w-6 text-slate-300" />
-                  </div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {workflow.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link key={item.step} href={item.href}>
+                        <div className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${
+                          item.completed ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}>
+                          <div className={`p-1.5 rounded-md flex-shrink-0 ${
+                            item.color === 'blue' ? 'bg-blue-100' :
+                            item.color === 'purple' ? 'bg-purple-100' :
+                            item.color === 'orange' ? 'bg-orange-100' :
+                            'bg-green-100'
+                          }`}>
+                            <Icon className={`h-4 w-4 ${
+                              item.color === 'blue' ? 'text-blue-600' :
+                              item.color === 'purple' ? 'text-purple-600' :
+                              item.color === 'orange' ? 'text-orange-600' :
+                              'text-green-600'
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-slate-900">{item.step}. {item.title}</span>
+                              {item.completed && (
+                                <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-600 truncate">{item.description}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Campaigns & Activity */}
       {isSetupComplete && (recentCampaigns.length > 0 || recentActivity.length > 0) && (
@@ -458,35 +438,6 @@ export default function HomePage() {
           )}
         </div>
       )}
-
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link key={action.title} href={action.href}>
-                <Card className="h-full transition-all hover:shadow-lg hover:scale-105 cursor-pointer">
-                  <CardContent className="pt-6">
-                    <div className={`p-3 rounded-lg ${action.color} w-fit mb-3`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <h3 className="font-semibold text-slate-900 mb-1">
-                      {action.title}
-                    </h3>
-                    <p className="text-sm text-slate-600">
-                      {action.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Platform Ready Status */}
       {isSetupComplete && stats && stats.totalCampaigns === 0 && !loadingData && (
