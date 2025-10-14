@@ -42,10 +42,15 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
     const audience = searchParams.get("audience");
 
     if (copy) {
-      setFormData((prev) => ({ ...prev, message: copy }));
+      setFormData((prev) => ({
+        ...prev,
+        message: copy,
+        // Pre-fill campaign name with the campaign title from copywriting
+        campaignName: platform || prev.campaignName
+      }));
       setUsingAICopy(true);
       setAiCopyInfo({ platform: platform || "Unknown", audience: audience || "Unknown" });
-      toast.success("✨ AI-generated copy loaded from Copywriting");
+      toast.success("✨ AI-generated copy and campaign name loaded");
     }
   }, [searchParams]);
 
