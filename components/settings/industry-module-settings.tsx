@@ -254,44 +254,44 @@ export function IndustryModuleSettings() {
                   </div>
                 </div>
 
-                {/* Advanced AI Features */}
+                {/* Advanced AI Features - NOW AVAILABLE! */}
                 <div>
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     Advanced AI Features
-                    <Badge variant="secondary">Phase 8D+</Badge>
+                    <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+                      ✨ Now Available
+                    </Badge>
                   </h4>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
                     <div className="flex gap-2">
-                      <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div className="text-sm text-amber-900">
-                        <p className="font-medium">These features will be enabled in future phases</p>
-                        <p className="text-amber-700 mt-1">
-                          AI-powered features require historical campaign data (30+ campaigns recommended)
+                      <Info className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm text-purple-900">
+                        <p className="font-medium">AI-Powered Intelligence Layer (Phase 10)</p>
+                        <p className="text-purple-700 mt-1">
+                          Smart campaign optimization, pattern recognition, and AI insights now ready to use.
+                          Works with your existing campaign data.
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-4 opacity-60">
+                  <div className="space-y-4">
                     <FeatureToggle
                       label="AI Recommendations"
-                      description="Get AI-powered suggestions for store-creative pairings"
+                      description="Get AI-powered store recommendations for optimal campaign deployment (uses GPT-4o)"
                       checked={settings.retail.enableAIRecommendations}
                       onCheckedChange={(checked) => handleFeatureToggle('enableAIRecommendations', checked)}
-                      disabled
                     />
                     <FeatureToggle
                       label="Pattern Recognition"
-                      description="Automatically extract success patterns from campaigns"
+                      description="Statistical analysis to identify performance patterns across stores and demographics"
                       checked={settings.retail.enablePatternRecognition}
                       onCheckedChange={(checked) => handleFeatureToggle('enablePatternRecognition', checked)}
-                      disabled
                     />
                     <FeatureToggle
                       label="Auto-Optimization"
-                      description="Let AI generate optimized creative variants automatically"
+                      description="AI-generated insights and recommendations for campaign improvement (uses GPT-4o-mini)"
                       checked={settings.retail.enableAutoOptimization}
                       onCheckedChange={(checked) => handleFeatureToggle('enableAutoOptimization', checked)}
-                      disabled
                     />
                   </div>
                 </div>

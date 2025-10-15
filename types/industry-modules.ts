@@ -39,9 +39,9 @@ export const defaultRetailConfig: RetailModuleConfig = {
   enableMultiStore: true,
   enableAgeTargeting: true,
   enableCreativeVariants: true,
-  enableAIRecommendations: false, // Requires data
-  enablePatternRecognition: false, // Requires data
-  enableAutoOptimization: false, // Requires data
+  enableAIRecommendations: true, // ✅ Now implemented
+  enablePatternRecognition: true, // ✅ Now implemented
+  enableAutoOptimization: true, // ✅ Now implemented
 };
 
 export const defaultHealthcareConfig: HealthcareModuleConfig = {

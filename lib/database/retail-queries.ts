@@ -787,7 +787,11 @@ export function getRegionalPerformance(): any[] {
       SUM(agg.recipients_count) as total_recipients,
       SUM(agg.visitors_count) as total_visitors,
       SUM(agg.conversions_count) as total_conversions,
-      AVG(agg.conversion_rate) as avg_conversion_rate
+      CASE
+        WHEN SUM(agg.recipients_count) > 0
+        THEN CAST(SUM(agg.conversions_count) AS FLOAT) / SUM(agg.recipients_count) * 100
+        ELSE 0
+      END as avg_conversion_rate
     FROM retail_stores s
     LEFT JOIN retail_store_performance_aggregates agg
       ON s.id = agg.store_id AND agg.time_period = 'all_time'
@@ -816,13 +820,17 @@ export function getOverallRetailStats() {
   const deploymentsStmt = db.prepare('SELECT COUNT(*) as count FROM retail_campaign_deployments');
   const { count: totalDeployments } = deploymentsStmt.get() as { count: number };
 
-  // Aggregate metrics
+  // Aggregate metrics - calculate conversion rate correctly from totals
   const metricsStmt = db.prepare(`
     SELECT
       SUM(recipients_count) as total_recipients,
       SUM(visitors_count) as total_visitors,
       SUM(conversions_count) as total_conversions,
-      AVG(conversion_rate) as avg_conversion_rate
+      CASE
+        WHEN SUM(recipients_count) > 0
+        THEN CAST(SUM(conversions_count) AS FLOAT) / SUM(recipients_count) * 100
+        ELSE 0
+      END as avg_conversion_rate
     FROM retail_store_performance_aggregates
     WHERE time_period = 'all_time'
   `);
@@ -850,4 +858,131 @@ export function getOverallRetailStats() {
     totalConversions: metrics.total_conversions || 0,
     avgConversionRate: metrics.avg_conversion_rate || 0,
   };
+}
+
+/**
+ * Get engagement timing metrics for a specific store
+ * Returns average times in seconds
+ */
+export function getStoreEngagementMetrics(storeId: string) {
+  ensureRetailModuleEnabled();
+  const db = getDatabase();
+
+  // Calculate average time to first page view for this store's recipients
+  const timeToFirstViewStmt = db.prepare(`
+    SELECT
+      AVG(
+        (julianday(e.first_view) - julianday(r.created_at)) * 86400
+      ) as avg_time_to_first_view_seconds,
+      COUNT(DISTINCT r.id) as recipients_with_views
+    FROM retail_campaign_deployments d
+    JOIN retail_deployment_recipients dr ON d.id = dr.deployment_id
+    JOIN recipients r ON dr.recipient_id = r.id
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_view
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY tracking_id
+    ) e ON r.tracking_id = e.tracking_id
+    WHERE d.store_id = ? AND e.first_view IS NOT NULL
+  `);
+
+  const timeToFirstView = timeToFirstViewStmt.get(storeId) as any;
+
+  // Calculate average time from first view to conversion for this store
+  const timeToConversionStmt = db.prepare(`
+    SELECT
+      AVG(
+        (julianday(c.created_at) - julianday(e.first_view)) * 86400
+      ) as avg_time_to_conversion_seconds,
+      COUNT(DISTINCT c.id) as conversions_count
+    FROM retail_campaign_deployments d
+    JOIN retail_deployment_recipients dr ON d.id = dr.deployment_id
+    JOIN recipients r ON dr.recipient_id = r.id
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_view
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY tracking_id
+    ) e ON r.tracking_id = e.tracking_id
+    JOIN conversions c ON r.tracking_id = c.tracking_id
+    WHERE d.store_id = ?
+  `);
+
+  const timeToConversion = timeToConversionStmt.get(storeId) as any;
+
+  // Calculate total time from recipient creation to conversion
+  const totalTimeStmt = db.prepare(`
+    SELECT
+      AVG(
+        (julianday(c.created_at) - julianday(r.created_at)) * 86400
+      ) as avg_total_time_seconds
+    FROM retail_campaign_deployments d
+    JOIN retail_deployment_recipients dr ON d.id = dr.deployment_id
+    JOIN recipients r ON dr.recipient_id = r.id
+    JOIN conversions c ON r.tracking_id = c.tracking_id
+    WHERE d.store_id = ?
+  `);
+
+  const totalTime = totalTimeStmt.get(storeId) as any;
+
+  return {
+    avgTimeToFirstView: timeToFirstView.avg_time_to_first_view_seconds || null,
+    recipientsWithViews: timeToFirstView.recipients_with_views || 0,
+    avgTimeToConversion: timeToConversion.avg_time_to_conversion_seconds || null,
+    conversionsCount: timeToConversion.conversions_count || 0,
+    avgTotalTimeToConversion: totalTime.avg_total_time_seconds || null,
+  };
+}
+
+/**
+ * Get engagement metrics for all stores with deployments
+ */
+export function getAllStoresEngagementMetrics() {
+  ensureRetailModuleEnabled();
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT
+      s.id,
+      s.store_number,
+      s.name as store_name,
+      s.region,
+      AVG(
+        CASE
+          WHEN e.first_view IS NOT NULL
+          THEN (julianday(e.first_view) - julianday(r.created_at)) * 86400
+          ELSE NULL
+        END
+      ) as avg_time_to_first_view_seconds,
+      AVG(
+        CASE
+          WHEN c.first_conversion IS NOT NULL AND e.first_view IS NOT NULL
+          THEN (julianday(c.first_conversion) - julianday(e.first_view)) * 86400
+          ELSE NULL
+        END
+      ) as avg_time_to_conversion_seconds,
+      COUNT(DISTINCT CASE WHEN e.first_view IS NOT NULL THEN r.id END) as recipients_with_views,
+      COUNT(DISTINCT CASE WHEN c.first_conversion IS NOT NULL THEN r.id END) as recipients_with_conversions
+    FROM retail_stores s
+    JOIN retail_campaign_deployments d ON s.id = d.store_id
+    JOIN retail_deployment_recipients dr ON d.id = dr.deployment_id
+    JOIN recipients r ON dr.recipient_id = r.id
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_view
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY tracking_id
+    ) e ON r.tracking_id = e.tracking_id
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_conversion
+      FROM conversions
+      GROUP BY tracking_id
+    ) c ON r.tracking_id = c.tracking_id
+    WHERE s.is_active = 1
+    GROUP BY s.id, s.store_number, s.name, s.region
+    ORDER BY recipients_with_conversions DESC, avg_time_to_first_view_seconds ASC
+  `);
+
+  return stmt.all();
 }

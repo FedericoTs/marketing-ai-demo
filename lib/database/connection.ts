@@ -217,7 +217,7 @@ function initializeSchema(database: Database.Database): void {
       campaign_id TEXT NOT NULL,
       store_id TEXT NOT NULL,
       age_group_id TEXT,
-      creative_variant_id TEXT NOT NULL,
+      creative_variant_id TEXT,
       scheduled_date TEXT,
       sent_date TEXT,
       status TEXT NOT NULL DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'sending', 'sent', 'completed')),

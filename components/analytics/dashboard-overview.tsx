@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock } from "lucide-react";
+import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock, BarChart3 } from "lucide-react";
 import { DateRangePicker } from "./date-range-picker";
 
 interface EngagementMetric {
@@ -101,6 +101,24 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
+      {/* Data Scope Banner */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <BarChart3 className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-semibold text-blue-900 mb-1">
+                Platform-Wide Analytics (All Campaigns)
+              </h4>
+              <p className="text-xs text-blue-700">
+                This view shows metrics across <strong>all campaign types</strong> (Direct Mail, Retail Deployments, etc.).
+                For retail-specific insights, see <a href="/retail/performance" className="underline font-medium">Retail Performance</a> or <a href="/retail/insights" className="underline font-medium">AI Insights</a>.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Date Range Filter */}
       <Card>
         <CardContent className="pt-6">
@@ -198,6 +216,9 @@ export function DashboardOverview() {
                 <p className="text-xs text-orange-700 mt-1 font-semibold">
                   {stats.overallConversionRate}% conversion rate
                 </p>
+                <p className="text-[10px] text-orange-600 mt-0.5">
+                  = Conversions ÷ Recipients
+                </p>
               </div>
               <TrendingUp className="h-10 w-10 text-orange-600" />
             </div>
@@ -261,6 +282,9 @@ export function DashboardOverview() {
               {stats.totalPageViews > 0
                 ? ((stats.formSubmissions / stats.totalPageViews) * 100).toFixed(1)
                 : "0.0"}% of page views
+            </p>
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              Visitor engagement (Forms ÷ Views)
             </p>
           </CardContent>
         </Card>

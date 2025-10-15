@@ -9,6 +9,15 @@ import {
   DirectMailData,
 } from "@/types/dm-creative";
 
+// Dynamic import of retail queries (optional feature)
+function getRetailQueries() {
+  try {
+    return require("@/lib/database/retail-queries");
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -54,6 +63,52 @@ export async function POST(request: NextRequest) {
 
     const trackingId = dbRecipient.tracking_id;
     console.log(`Recipient created with tracking ID: ${trackingId}`);
+
+    // Handle retail store deployment if storeNumber is provided
+    if (recipient.storeNumber) {
+      const retail = getRetailQueries();
+
+      if (retail) {
+        try {
+          // Look up store by store number
+          const store = retail.getRetailStoreByNumber(recipient.storeNumber);
+
+          if (store) {
+            console.log(`Store found: ${store.store_number} - ${store.name}`);
+
+            // Check if deployment already exists for this campaign+store combo
+            const existingDeployments = retail.getCampaignDeployments(campaign.id);
+            let deployment = existingDeployments.find((d: any) => d.store_id === store.id);
+
+            if (!deployment) {
+              // Create new deployment
+              const deploymentResult = retail.createCampaignDeployment({
+                campaignId: campaign.id,
+                storeId: store.id,
+              });
+              console.log(`Created deployment: ${deploymentResult.id} for campaign ${campaign.id} at store ${store.store_number}`);
+              deployment = { id: deploymentResult.id, recipients_count: 0 };
+            } else {
+              console.log(`Using existing deployment: ${deployment.id}`);
+            }
+
+            // Link recipient to deployment
+            retail.linkRecipientToDeployment(deployment.id, dbRecipient.id);
+            console.log(`Linked recipient ${dbRecipient.id} to deployment ${deployment.id}`);
+
+            // Update recipient count
+            const newCount = (deployment.recipients_count || 0) + 1;
+            retail.updateDeploymentRecipientCount(deployment.id, newCount);
+            console.log(`Updated deployment ${deployment.id} recipient count to ${newCount}`);
+          } else {
+            console.warn(`Store not found for storeNumber: ${recipient.storeNumber}`);
+          }
+        } catch (error) {
+          console.error("Error creating retail deployment:", error);
+          // Don't fail the whole request, just log the error
+        }
+      }
+    }
 
     // Generate landing page URL
     const baseUrl =

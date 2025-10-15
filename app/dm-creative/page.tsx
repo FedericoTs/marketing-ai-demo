@@ -5,25 +5,41 @@ import { DMBuilder } from "@/components/dm-creative/dm-builder";
 import { QRPreview } from "@/components/dm-creative/qr-preview";
 import { CSVUploader } from "@/components/dm-creative/csv-uploader";
 import { BatchResults } from "@/components/dm-creative/batch-results";
+import { SmartCampaignOptimizer } from "@/components/retail/smart-campaign-optimizer";
 import { DirectMailData } from "@/types/dm-creative";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { QrCode, MapPin, BarChart3 } from "lucide-react";
+import { useIndustryModule } from "@/lib/contexts/industry-module-context";
 
 export default function DMCreativePage() {
   const [generatedDM, setGeneratedDM] = useState<DirectMailData | null>(null);
   const [batchDMs, setBatchDMs] = useState<DirectMailData[]>([]);
   const [batchMessage, setBatchMessage] = useState("");
+  const industryModule = useIndustryModule();
+
+  // Check if retail module and AI features are enabled
+  const isRetailModuleEnabled = industryModule.isModuleEnabled() && industryModule.getModuleType() === 'retail';
+  const isAIEnabled = isRetailModuleEnabled && industryModule.isFeatureEnabled('enableAIRecommendations');
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Direct Mail Creative</h1>
-        <p className="text-slate-600 mb-6">
-          Create personalized direct mail with QR codes and dedicated landing pages
-        </p>
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold mb-2">Direct Mail Creative</h1>
+            <p className="text-slate-600">
+              Create personalized direct mail with QR codes and dedicated landing pages
+            </p>
+          </div>
+          {isAIEnabled && (
+            <div className="ml-4">
+              <SmartCampaignOptimizer />
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card>

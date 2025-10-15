@@ -217,6 +217,24 @@ export default function PerformancePage() {
         </p>
       </div>
 
+      {/* Data Scope Banner */}
+      <Card className="border-purple-200 bg-purple-50 mb-8">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <Store className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-semibold text-purple-900 mb-1">
+                Retail Module Analytics (Store Deployments Only)
+              </h4>
+              <p className="text-xs text-purple-700">
+                This view shows metrics for <strong>retail store campaigns only</strong>. Conversion rate calculated as: (Total Conversions / Total Recipients) × 100.
+                For platform-wide analytics across all campaign types, see <a href="/analytics" className="underline font-medium">Analytics Dashboard</a>.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
