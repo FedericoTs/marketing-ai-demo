@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useIndustryModule } from "@/lib/contexts/industry-module-context";
-import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell, Store, Target, TrendingUp, Brain } from "lucide-react";
+import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell, Store, Target, TrendingUp, Brain, Menu, X } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home, section: "main" },
@@ -34,6 +35,7 @@ const retailNavigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const industryModule = useIndustryModule();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Build navigation items based on active modules
   const allNavigation = [...navigation];
@@ -55,8 +57,36 @@ export function Sidebar() {
     activeSections.push({ id: "retail", label: "🏪 Retail Module" });
   }
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-slate-50">
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg hover:bg-slate-800 transition-colors"
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? (
+          <X className="h-6 w-6" />
+        ) : (
+          <Menu className="h-6 w-6" />
+        )}
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={closeMobileMenu}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={cn(
+        "fixed lg:static inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r bg-slate-50 transition-transform duration-300 ease-in-out",
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
       <div className="flex h-16 items-center border-b px-6">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
@@ -83,6 +113,7 @@ export function Sidebar() {
                     <Link
                       key={item.name}
                       href={item.href}
+                      onClick={closeMobileMenu}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         isActive
@@ -106,5 +137,6 @@ export function Sidebar() {
         </p>
       </div>
     </div>
+    </>
   );
 }

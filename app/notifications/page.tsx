@@ -117,7 +117,10 @@ export default function NotificationsPage() {
           <NotificationSettingsComponent
             settings={settings}
             onSave={handleSaveSettings}
-            onPreview={() => document.querySelector('[value="preview"]')?.click()}
+            onPreview={() => {
+              const previewTab = document.querySelector('[value="preview"]') as HTMLElement;
+              previewTab?.click();
+            }}
           />
         </TabsContent>
 

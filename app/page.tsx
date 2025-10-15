@@ -18,9 +18,12 @@ import {
   TrendingUp,
   Activity as ActivityIcon,
   Target,
-  X
+  X,
+  Store as StoreIcon,
+  Award
 } from "lucide-react";
 import { useSettings } from "@/lib/contexts/settings-context";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardStats {
   totalCampaigns: number;
@@ -50,11 +53,41 @@ interface RecentActivity {
   createdAt: string;
 }
 
+interface RetailStats {
+  totalStores: number;
+  storesWithDeployments: number;
+  totalDeployments: number;
+  totalConversions: number;
+  avgConversionRate: number;
+}
+
+interface TopStore {
+  id: string;
+  store_number: string;
+  store_name: string;
+  city: string;
+  state: string;
+  conversion_rate: number;
+  conversions_count: number;
+}
+
+interface RecentCampaignWithStores {
+  id: string;
+  name: string;
+  status: string;
+  created_at: string;
+  storeCount?: number;
+  recipientCount?: number;
+}
+
 export default function HomePage() {
   const { settings, isLoaded } = useSettings();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentCampaigns, setRecentCampaigns] = useState<CampaignWithStats[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [retailStats, setRetailStats] = useState<RetailStats | null>(null);
+  const [topStores, setTopStores] = useState<TopStore[]>([]);
+  const [recentRetailCampaigns, setRecentRetailCampaigns] = useState<RecentCampaignWithStores[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isGuideDismissed, setIsGuideDismissed] = useState(false);
 
@@ -108,6 +141,61 @@ export default function HomePage() {
         if (activityData.success) {
           setRecentActivity(activityData.data);
         }
+      }
+
+      // Try to load retail stats (optional module)
+      try {
+        const retailStatsRes = await fetch("/api/retail/performance/stats");
+        if (retailStatsRes.ok) {
+          const retailStatsData = await retailStatsRes.json();
+          if (retailStatsData.success && retailStatsData.data.totalStores > 0) {
+            setRetailStats(retailStatsData.data);
+
+            // Load top 3 stores
+            const topStoresRes = await fetch("/api/retail/performance/top-stores?limit=3");
+            if (topStoresRes.ok) {
+              const topStoresData = await topStoresRes.json();
+              if (topStoresData.success) {
+                setTopStores(topStoresData.data);
+              }
+            }
+
+            // Load recent campaigns with deployments
+            const deploymentsRes = await fetch("/api/retail/deployments");
+            if (deploymentsRes.ok) {
+              const deploymentsData = await deploymentsRes.json();
+              if (deploymentsData.success && deploymentsData.data.length > 0) {
+                // Group by campaign and get unique campaigns
+                const campaignMap = new Map<string, RecentCampaignWithStores>();
+                deploymentsData.data.forEach((deployment: any) => {
+                  if (!campaignMap.has(deployment.campaign_id)) {
+                    campaignMap.set(deployment.campaign_id, {
+                      id: deployment.campaign_id,
+                      name: deployment.campaign_name,
+                      status: deployment.campaign_status,
+                      created_at: deployment.campaign_created_at,
+                      storeCount: 1,
+                      recipientCount: deployment.recipients_count,
+                    });
+                  } else {
+                    const existing = campaignMap.get(deployment.campaign_id)!;
+                    existing.storeCount! += 1;
+                    existing.recipientCount! += deployment.recipients_count;
+                  }
+                });
+
+                // Get most recent 3 campaigns
+                const recentCampaigns = Array.from(campaignMap.values())
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .slice(0, 3);
+
+                setRecentRetailCampaigns(recentCampaigns);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        // Retail module not available or not enabled - silently ignore
       }
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
@@ -295,12 +383,20 @@ export default function HomePage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-900">Platform Overview</h2>
-            <Link href="/analytics">
-              <Button variant="outline" size="sm" className="gap-2">
-                View Full Analytics
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/dm-creative">
+                <Button variant="default" size="sm" className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Mail className="h-4 w-4" />
+                  Create Campaign
+                </Button>
+              </Link>
+              <Link href="/analytics">
+                <Button variant="outline" size="sm" className="gap-2">
+                  View Full Analytics
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
@@ -355,6 +451,137 @@ export default function HomePage() {
             </Card>
           </div>
         </div>
+      )}
+
+      {/* Retail Module Widget */}
+      {isSetupComplete && retailStats && retailStats.totalStores > 0 && (
+        <Card className="mb-8 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <StoreIcon className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    Retail Module
+                    <Badge className="bg-blue-600 text-white px-2 py-0.5 text-xs">Active</Badge>
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    {retailStats.totalStores} stores • {retailStats.totalDeployments} deployments
+                  </CardDescription>
+                </div>
+              </div>
+              <Link href="/retail">
+                <Button variant="outline" size="sm" className="gap-2">
+                  View Retail Dashboard
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Recent Campaigns with Deployments */}
+            {recentRetailCampaigns.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="h-5 w-5 text-blue-600" />
+                  <h4 className="font-semibold text-slate-900">Recent Campaigns</h4>
+                </div>
+                <div className="space-y-2">
+                  {recentRetailCampaigns.map((campaign) => (
+                    <Link href={`/campaigns/${campaign.id}`} key={campaign.id}>
+                      <div className="p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-900 text-sm">{campaign.name}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-xs text-slate-600">
+                                <StoreIcon className="h-3 w-3 inline mr-1" />
+                                {campaign.storeCount} stores
+                              </span>
+                              <span className="text-xs text-slate-400">•</span>
+                              <span className="text-xs text-slate-600">
+                                {campaign.recipientCount} recipients
+                              </span>
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {campaign.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Top Performing Stores */}
+            {topStores.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <Award className="h-5 w-5 text-yellow-600" />
+                  <h4 className="font-semibold text-slate-900">Top Performing Stores</h4>
+                </div>
+                <div className="space-y-3">
+                  {topStores.map((store, index) => (
+                    <div
+                      key={store.id}
+                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-xl font-bold text-slate-400">
+                          {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">
+                            Store #{store.store_number}
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            {store.store_name} • {store.city}, {store.state}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-green-600">
+                          {store.conversion_rate.toFixed(1)}%
+                        </p>
+                        <p className="text-xs text-slate-500">{store.conversions_count} conversions</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex gap-3">
+                  <Link href="/retail/performance" className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      View Performance
+                    </Button>
+                  </Link>
+                  <Link href="/retail/stores" className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full gap-2">
+                      <StoreIcon className="h-4 w-4" />
+                      Manage Stores
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-600 mb-3">
+                  No performance data yet. Deploy campaigns to your stores to see insights!
+                </p>
+                <Link href="/dm-creative">
+                  <Button size="sm" className="gap-2">
+                    <Mail className="h-4 w-4" />
+                    Create Campaign
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Recent Campaigns & Activity */}
@@ -441,7 +668,41 @@ export default function HomePage() {
 
       {/* Platform Ready Status */}
       {isSetupComplete && stats && stats.totalCampaigns === 0 && !loadingData && (
-        <div className="mt-8 p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border">
+        <div className="mt-8 p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-slate-50 rounded-xl border-2 border-blue-200">
+          <div className="text-center max-w-2xl mx-auto">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full">
+                <Mail className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">
+              Platform Ready!
+            </h3>
+            <p className="text-base text-slate-600 mb-6">
+              Your AI marketing platform is configured and ready. Create your first campaign to start engaging customers with personalized direct mail.
+            </p>
+            <div className="flex justify-center gap-3">
+              <Button asChild size="lg" className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <Link href="/dm-creative">
+                  <Mail className="h-4 w-4" />
+                  Create Your First Campaign
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/copywriting">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Copy First
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legacy Start Creating Button */}
+      {isSetupComplete && stats && stats.totalCampaigns === 0 && !loadingData && false && (
+        <div className="mt-8 p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border" style={{display: 'none'}}>
           <div className="text-center">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">
               Platform Ready

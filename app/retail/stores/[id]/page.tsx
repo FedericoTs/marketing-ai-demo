@@ -55,7 +55,7 @@ export default function StoreDetailPage({ params }: { params: Promise<{ id: stri
     }
 
     try {
-      const response = await fetch(`/api/retail/stores/${params.id}`, {
+      const response = await fetch(`/api/retail/stores/${id}`, {
         method: 'DELETE',
       });
       const result = await response.json();

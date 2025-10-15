@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getAllCampaignsExportData } from "@/lib/database/tracking-queries";
+import { getAllCampaignsWithStats } from "@/lib/database/tracking-queries";
 import { generateAllCampaignsCSV } from "@/lib/export/csv-exporter";
 
 // GET: Export all campaigns overview
 export async function GET() {
   try {
-    const campaigns = getAllCampaignsExportData();
+    const campaigns = getAllCampaignsWithStats();
     const csvContent = generateAllCampaignsCSV(campaigns);
     const filename = `all_campaigns_${new Date().toISOString().split("T")[0]}.csv`;
 

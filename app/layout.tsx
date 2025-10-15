@@ -36,7 +36,7 @@ export default function RootLayout({
           <IndustryModuleProvider>
             <div className="flex h-screen">
               <Sidebar />
-              <main className="flex-1 overflow-auto bg-white">
+              <main className="flex-1 overflow-auto bg-white pt-16 lg:pt-0">
                 {children}
               </main>
             </div>

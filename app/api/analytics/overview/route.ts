@@ -1,13 +1,30 @@
-import { NextResponse } from "next/server";
-import { getDashboardStats } from "@/lib/database/tracking-queries";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getDashboardStats,
+  getOverallEngagementMetrics,
+} from "@/lib/database/tracking-queries";
+import { formatEngagementTime } from "@/lib/format-time";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const stats = getDashboardStats();
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get("startDate") || undefined;
+    const endDate = searchParams.get("endDate") || undefined;
+
+    const stats = getDashboardStats(startDate, endDate);
+    const engagementMetrics = getOverallEngagementMetrics(startDate, endDate);
 
     return NextResponse.json({
       success: true,
-      data: stats,
+      data: {
+        ...stats,
+        engagementMetrics: {
+          avgTimeToFirstView: formatEngagementTime(engagementMetrics.avg_time_to_first_view_seconds),
+          avgTimeToConversion: formatEngagementTime(engagementMetrics.avg_time_to_conversion_seconds),
+          avgTotalTimeToConversion: formatEngagementTime(engagementMetrics.avg_total_time_seconds),
+          avgTimeToAppointment: formatEngagementTime(engagementMetrics.avg_time_to_appointment_seconds),
+        },
+      },
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);

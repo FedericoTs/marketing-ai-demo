@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2 } from "lucide-react";
+import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock } from "lucide-react";
+import { DateRangePicker } from "./date-range-picker";
+
+interface EngagementMetric {
+  value: number;
+  unit: string;
+  display: string;
+  seconds: number;
+}
 
 interface DashboardStats {
   totalCampaigns: number;
@@ -13,19 +21,34 @@ interface DashboardStats {
   overallConversionRate: number;
   qrScans: number;
   formSubmissions: number;
+  engagementMetrics?: {
+    avgTimeToFirstView: EngagementMetric | null;
+    avgTimeToConversion: EngagementMetric | null;
+    avgTotalTimeToConversion: EngagementMetric | null;
+    avgTimeToAppointment: EngagementMetric | null;
+  };
 }
 
 export function DashboardOverview() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({});
 
   useEffect(() => {
     loadStats();
   }, []);
 
-  const loadStats = async () => {
+  const loadStats = async (startDate?: string, endDate?: string) => {
+    setLoading(true);
     try {
-      const response = await fetch("/api/analytics/overview");
+      const params = new URLSearchParams();
+      if (startDate && endDate) {
+        params.set("startDate", startDate);
+        params.set("endDate", endDate);
+      }
+
+      const url = `/api/analytics/overview${params.toString() ? `?${params.toString()}` : ""}`;
+      const response = await fetch(url);
       const result = await response.json();
 
       if (result.success) {
@@ -38,11 +61,26 @@ export function DashboardOverview() {
     }
   };
 
+  const handleDateRangeChange = (start: string, end: string) => {
+    setDateRange({ start, end });
+    loadStats(start, end);
+  };
+
+  const handleResetDateRange = () => {
+    setDateRange({});
+    loadStats();
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400 mb-4" />
+            <p className="text-slate-600">Loading analytics...</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -63,6 +101,35 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
+      {/* Date Range Filter */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                {dateRange.start && dateRange.end ? "Filtered Overview" : "Overall Performance"}
+              </h3>
+              <p className="text-sm text-slate-600">
+                {dateRange.start && dateRange.end
+                  ? `Showing metrics for ${dateRange.start} to ${dateRange.end}`
+                  : "Select a date range to filter metrics"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <DateRangePicker onRangeChange={handleDateRangeChange} defaultDays={30} />
+              {dateRange.start && dateRange.end && (
+                <button
+                  onClick={handleResetDateRange}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium whitespace-nowrap"
+                >
+                  Show All Time
+                </button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Campaigns */}
@@ -198,6 +265,117 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Engagement Metrics */}
+      {stats.engagementMetrics && (
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              Engagement Timing Metrics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Time to First Visit */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <Eye className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Avg. Time to First Visit</p>
+                  </div>
+                </div>
+                {stats.engagementMetrics.avgTimeToFirstView ? (
+                  <>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {stats.engagementMetrics.avgTimeToFirstView.display}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      From mail sent to landing page view
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-400 mt-2">No data yet</p>
+                )}
+              </div>
+
+              {/* Time to Conversion (from first view) */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-green-50 rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Avg. Time to Conversion</p>
+                  </div>
+                </div>
+                {stats.engagementMetrics.avgTimeToConversion ? (
+                  <>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {stats.engagementMetrics.avgTimeToConversion.display}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      From first view to form submission
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-400 mt-2">No data yet</p>
+                )}
+              </div>
+
+              {/* Total Time to Conversion */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-orange-50 rounded-lg">
+                    <CheckCircle className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Total Time to Convert</p>
+                  </div>
+                </div>
+                {stats.engagementMetrics.avgTotalTimeToConversion ? (
+                  <>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {stats.engagementMetrics.avgTotalTimeToConversion.display}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      From mail sent to conversion
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-400 mt-2">No data yet</p>
+                )}
+              </div>
+
+              {/* Time to Appointment */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <CheckCircle className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Avg. Time to Appointment</p>
+                  </div>
+                </div>
+                {stats.engagementMetrics.avgTimeToAppointment ? (
+                  <>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {stats.engagementMetrics.avgTimeToAppointment.display}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      From mail sent to appointment booking
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-400 mt-2">No data yet</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Performance Summary */}
       <Card className="border-slate-200">

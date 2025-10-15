@@ -643,44 +643,67 @@ export interface DashboardStats {
   formSubmissions: number;
 }
 
-export function getDashboardStats(): DashboardStats {
+export function getDashboardStats(startDate?: string, endDate?: string): DashboardStats {
   const db = getDatabase();
 
-  // Total campaigns
+  // Build date filter clause
+  const hasDateFilter = startDate && endDate;
+  const recipientDateFilter = hasDateFilter ? "WHERE DATE(created_at) BETWEEN ? AND ?" : "";
+  const eventDateFilter = hasDateFilter
+    ? "WHERE event_type = 'page_view' AND DATE(created_at) BETWEEN ? AND ?"
+    : "WHERE event_type = 'page_view'";
+  const qrDateFilter = hasDateFilter
+    ? "WHERE event_type = 'qr_scan' AND DATE(created_at) BETWEEN ? AND ?"
+    : "WHERE event_type = 'qr_scan'";
+  const conversionDateFilter = hasDateFilter ? "WHERE DATE(created_at) BETWEEN ? AND ?" : "";
+  const formDateFilter = hasDateFilter
+    ? "WHERE conversion_type = 'form_submission' AND DATE(created_at) BETWEEN ? AND ?"
+    : "WHERE conversion_type = 'form_submission'";
+
+  // Total campaigns (no date filter - all campaigns)
   const totalCampaignsStmt = db.prepare("SELECT COUNT(*) as count FROM campaigns");
   const { count: totalCampaigns } = totalCampaignsStmt.get() as { count: number };
 
-  // Active campaigns
+  // Active campaigns (no date filter - current active)
   const activeCampaignsStmt = db.prepare(
     "SELECT COUNT(*) as count FROM campaigns WHERE status = 'active'"
   );
   const { count: activeCampaigns } = activeCampaignsStmt.get() as { count: number };
 
   // Total recipients
-  const totalRecipientsStmt = db.prepare("SELECT COUNT(*) as count FROM recipients");
-  const { count: totalRecipients } = totalRecipientsStmt.get() as { count: number };
+  const recipientQuery = `SELECT COUNT(*) as count FROM recipients ${recipientDateFilter}`;
+  const totalRecipientsStmt = db.prepare(recipientQuery);
+  const { count: totalRecipients } = (hasDateFilter
+    ? totalRecipientsStmt.get(startDate, endDate)
+    : totalRecipientsStmt.get()) as { count: number };
 
   // Total page views
-  const pageViewsStmt = db.prepare(
-    "SELECT COUNT(*) as count FROM events WHERE event_type = 'page_view'"
-  );
-  const { count: totalPageViews } = pageViewsStmt.get() as { count: number };
+  const pageViewQuery = `SELECT COUNT(*) as count FROM events ${eventDateFilter}`;
+  const pageViewsStmt = db.prepare(pageViewQuery);
+  const { count: totalPageViews } = (hasDateFilter
+    ? pageViewsStmt.get(startDate, endDate)
+    : pageViewsStmt.get()) as { count: number };
 
   // QR scans
-  const qrScansStmt = db.prepare(
-    "SELECT COUNT(*) as count FROM events WHERE event_type = 'qr_scan'"
-  );
-  const { count: qrScans } = qrScansStmt.get() as { count: number };
+  const qrQuery = `SELECT COUNT(*) as count FROM events ${qrDateFilter}`;
+  const qrScansStmt = db.prepare(qrQuery);
+  const { count: qrScans } = (hasDateFilter
+    ? qrScansStmt.get(startDate, endDate)
+    : qrScansStmt.get()) as { count: number };
 
   // Total conversions
-  const totalConversionsStmt = db.prepare("SELECT COUNT(*) as count FROM conversions");
-  const { count: totalConversions } = totalConversionsStmt.get() as { count: number };
+  const conversionQuery = `SELECT COUNT(*) as count FROM conversions ${conversionDateFilter}`;
+  const totalConversionsStmt = db.prepare(conversionQuery);
+  const { count: totalConversions } = (hasDateFilter
+    ? totalConversionsStmt.get(startDate, endDate)
+    : totalConversionsStmt.get()) as { count: number };
 
   // Form submissions
-  const formSubmissionsStmt = db.prepare(
-    "SELECT COUNT(*) as count FROM conversions WHERE conversion_type = 'form_submission'"
-  );
-  const { count: formSubmissions } = formSubmissionsStmt.get() as { count: number };
+  const formQuery = `SELECT COUNT(*) as count FROM conversions ${formDateFilter}`;
+  const formSubmissionsStmt = db.prepare(formQuery);
+  const { count: formSubmissions } = (hasDateFilter
+    ? formSubmissionsStmt.get(startDate, endDate)
+    : formSubmissionsStmt.get()) as { count: number };
 
   // Overall conversion rate
   const overallConversionRate = totalRecipients > 0
@@ -705,6 +728,7 @@ export function getDashboardStats(): DashboardStats {
 export interface CampaignWithStats extends Campaign {
   totalRecipients: number;
   uniqueVisitors: number;
+  totalPageViews: number;
   totalConversions: number;
   conversionRate: number;
 }
@@ -719,6 +743,7 @@ export function getAllCampaignsWithStats(): CampaignWithStats[] {
       ...campaign,
       totalRecipients: analytics?.totalRecipients || 0,
       uniqueVisitors: analytics?.uniqueVisitors || 0,
+      totalPageViews: analytics?.totalPageViews || 0,
       totalConversions: analytics?.totalConversions || 0,
       conversionRate: analytics?.conversionRate || 0,
     };
@@ -1269,4 +1294,185 @@ export function getCampaignsComparisonData(campaignIds: string[]) {
       conversionRate,
     };
   }).filter(Boolean);
+}
+
+// ==================== ENGAGEMENT METRICS ====================
+
+/**
+ * Get time-to-engagement metrics for a campaign
+ * Returns average times in seconds
+ */
+export function getEngagementMetricsForCampaign(campaignId: string) {
+  const db = getDatabase();
+
+  // Calculate average time to first page view (in seconds)
+  const timeToFirstViewStmt = db.prepare(`
+    SELECT
+      AVG(
+        (julianday(e.first_view) - julianday(r.created_at)) * 86400
+      ) as avg_time_to_first_view_seconds,
+      COUNT(DISTINCT r.id) as recipients_with_views
+    FROM recipients r
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_view
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY tracking_id
+    ) e ON r.tracking_id = e.tracking_id
+    WHERE r.campaign_id = ? AND e.first_view IS NOT NULL
+  `);
+
+  const timeToFirstView = timeToFirstViewStmt.get(campaignId) as any;
+
+  // Calculate average time from first view to conversion (in seconds)
+  const timeToConversionStmt = db.prepare(`
+    SELECT
+      AVG(
+        (julianday(c.created_at) - julianday(e.first_view)) * 86400
+      ) as avg_time_to_conversion_seconds,
+      COUNT(DISTINCT c.id) as conversions_count
+    FROM conversions c
+    JOIN recipients r ON c.tracking_id = r.tracking_id
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_view
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY tracking_id
+    ) e ON r.tracking_id = e.tracking_id
+    WHERE r.campaign_id = ?
+  `);
+
+  const timeToConversion = timeToConversionStmt.get(campaignId) as any;
+
+  // Calculate total time from recipient creation to conversion (in seconds)
+  const totalTimeStmt = db.prepare(`
+    SELECT
+      AVG(
+        (julianday(c.created_at) - julianday(r.created_at)) * 86400
+      ) as avg_total_time_seconds
+    FROM conversions c
+    JOIN recipients r ON c.tracking_id = r.tracking_id
+    WHERE r.campaign_id = ?
+  `);
+
+  const totalTime = totalTimeStmt.get(campaignId) as any;
+
+  return {
+    avgTimeToFirstView: timeToFirstView.avg_time_to_first_view_seconds || null,
+    recipientsWithViews: timeToFirstView.recipients_with_views || 0,
+    avgTimeToConversion: timeToConversion.avg_time_to_conversion_seconds || null,
+    conversionsCount: timeToConversion.conversions_count || 0,
+    avgTotalTimeToConversion: totalTime.avg_total_time_seconds || null,
+  };
+}
+
+/**
+ * Get engagement metrics for a specific recipient
+ */
+export function getEngagementMetricsForRecipient(trackingId: string) {
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT
+      r.created_at as recipient_created,
+      e.first_view,
+      c.first_conversion,
+      CASE
+        WHEN e.first_view IS NOT NULL
+        THEN (julianday(e.first_view) - julianday(r.created_at)) * 86400
+        ELSE NULL
+      END as time_to_first_view_seconds,
+      CASE
+        WHEN c.first_conversion IS NOT NULL AND e.first_view IS NOT NULL
+        THEN (julianday(c.first_conversion) - julianday(e.first_view)) * 86400
+        ELSE NULL
+      END as time_to_conversion_seconds,
+      CASE
+        WHEN c.first_conversion IS NOT NULL
+        THEN (julianday(c.first_conversion) - julianday(r.created_at)) * 86400
+        ELSE NULL
+      END as total_time_seconds
+    FROM recipients r
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_view
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY tracking_id
+    ) e ON r.tracking_id = e.tracking_id
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_conversion
+      FROM conversions
+      GROUP BY tracking_id
+    ) c ON r.tracking_id = c.tracking_id
+    WHERE r.tracking_id = ?
+  `);
+
+  return stmt.get(trackingId) as any;
+}
+
+/**
+ * Get engagement metrics for all campaigns (for analytics overview)
+ */
+export function getOverallEngagementMetrics(startDate?: string, endDate?: string) {
+  const db = getDatabase();
+
+  const hasDateFilter = startDate && endDate;
+  const recipientFilter = hasDateFilter ? "WHERE DATE(r.created_at) BETWEEN ? AND ?" : "";
+
+  const query = `
+    SELECT
+      AVG(
+        CASE
+          WHEN e.first_view IS NOT NULL
+          THEN (julianday(e.first_view) - julianday(r.created_at)) * 86400
+          ELSE NULL
+        END
+      ) as avg_time_to_first_view_seconds,
+      AVG(
+        CASE
+          WHEN c.first_conversion IS NOT NULL AND e.first_view IS NOT NULL
+          THEN (julianday(c.first_conversion) - julianday(e.first_view)) * 86400
+          ELSE NULL
+        END
+      ) as avg_time_to_conversion_seconds,
+      AVG(
+        CASE
+          WHEN c.first_conversion IS NOT NULL
+          THEN (julianday(c.first_conversion) - julianday(r.created_at)) * 86400
+          ELSE NULL
+        END
+      ) as avg_total_time_seconds,
+      AVG(
+        CASE
+          WHEN ca.first_appointment IS NOT NULL
+          THEN (julianday(ca.first_appointment) - julianday(r.created_at)) * 86400
+          ELSE NULL
+        END
+      ) as avg_time_to_appointment_seconds,
+      COUNT(DISTINCT CASE WHEN e.first_view IS NOT NULL THEN r.id END) as recipients_with_views,
+      COUNT(DISTINCT CASE WHEN c.first_conversion IS NOT NULL THEN r.id END) as recipients_with_conversions,
+      COUNT(DISTINCT CASE WHEN ca.first_appointment IS NOT NULL THEN r.id END) as recipients_with_appointments
+    FROM recipients r
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_view
+      FROM events
+      WHERE event_type = 'page_view'
+      GROUP BY tracking_id
+    ) e ON r.tracking_id = e.tracking_id
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_conversion
+      FROM conversions
+      GROUP BY tracking_id
+    ) c ON r.tracking_id = c.tracking_id
+    LEFT JOIN (
+      SELECT tracking_id, MIN(created_at) as first_appointment
+      FROM conversions
+      WHERE conversion_type = 'appointment_booked'
+      GROUP BY tracking_id
+    ) ca ON r.tracking_id = ca.tracking_id
+    ${recipientFilter}
+  `;
+
+  const stmt = db.prepare(query);
+  return (hasDateFilter ? stmt.get(startDate, endDate) : stmt.get()) as any;
 }

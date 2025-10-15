@@ -3,10 +3,10 @@ import { getCampaignAnalytics, getRecipientsByCampaign, getRecipientJourney } fr
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Get campaign analytics
     const analytics = getCampaignAnalytics(id);
