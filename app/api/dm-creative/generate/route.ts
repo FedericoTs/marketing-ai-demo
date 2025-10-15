@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateQRCode } from "@/lib/qr-generator";
 import { generateDMCreativeImage } from "@/lib/ai/openai";
 import { createCampaign, createRecipient } from "@/lib/database/tracking-queries";
+import { saveAsset } from "@/lib/database/asset-management";
 // Note: Image composition moved to client-side to avoid native module issues
 import {
   DMGenerateRequest,
@@ -129,6 +130,44 @@ export async function POST(request: NextRequest) {
 
     console.log("AI background image generated successfully");
     console.log("Note: Final composition will be done client-side");
+
+    // Save assets to database for template previews and campaign details
+    try {
+      // Save background image as asset
+      const backgroundBuffer = Buffer.from(backgroundImage.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      saveAsset({
+        assetType: 'background_image',
+        assetName: `${finalCampaignName} - Background`,
+        fileData: backgroundBuffer,
+        campaignId: campaign.id,
+        mimeType: 'image/png',
+        metadata: {
+          generatedBy: 'dall-e',
+          prompt: message,
+          recipientName: `${recipient.name} ${recipient.lastname}`,
+        },
+      });
+      console.log("Background image saved as asset");
+
+      // Save QR code as asset
+      const qrBuffer = Buffer.from(qrCodeDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      saveAsset({
+        assetType: 'qr_code',
+        assetName: `${finalCampaignName} - QR Code`,
+        fileData: qrBuffer,
+        campaignId: campaign.id,
+        mimeType: 'image/png',
+        metadata: {
+          generatedBy: 'qr-generator',
+          qrData: landingPageUrl,
+          trackingId: trackingId,
+        },
+      });
+      console.log("QR code saved as asset");
+    } catch (error) {
+      console.error("Error saving assets:", error);
+      // Don't fail the request, just log the error
+    }
 
     // Create direct mail data
     // Note: creativeImageUrl will be composed on client-side to avoid canvas native module issues

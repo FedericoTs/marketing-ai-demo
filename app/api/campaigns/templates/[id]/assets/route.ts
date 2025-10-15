@@ -7,10 +7,10 @@ import { getTemplateAssets, getAssetPublicUrl } from '@/lib/database/asset-manag
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const templateId = params.id;
+    const { id: templateId } = await params;
     const assets = getTemplateAssets(templateId);
 
     // Add public URLs to each asset

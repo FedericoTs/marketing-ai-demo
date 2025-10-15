@@ -7,10 +7,10 @@ import { updateCampaignStatus } from '@/lib/database/campaign-management';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
     const body = await request.json();
     const { status } = body;
 
