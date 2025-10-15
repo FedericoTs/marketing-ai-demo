@@ -600,3 +600,254 @@ export function getDeploymentStats(campaignId: string) {
 
   return stmt.all(campaignId);
 }
+
+// ==================== PERFORMANCE AGGREGATION ====================
+
+/**
+ * Calculate and aggregate performance metrics for a specific store
+ * This populates the retail_store_performance_aggregates table
+ */
+export function aggregateStorePerformance(storeId: string, timePeriod: string = 'all_time'): void {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+
+  // Calculate metrics from raw data
+  const metricsStmt = db.prepare(`
+    SELECT
+      COUNT(DISTINCT d.id) as campaigns_count,
+      COUNT(DISTINCT dr.recipient_id) as recipients_count,
+      COUNT(DISTINCT CASE WHEN e.event_type = 'page_view' THEN e.tracking_id END) as visitors_count,
+      COUNT(DISTINCT c.id) as conversions_count
+    FROM retail_campaign_deployments d
+    LEFT JOIN retail_deployment_recipients dr ON d.id = dr.deployment_id
+    LEFT JOIN recipients r ON dr.recipient_id = r.id
+    LEFT JOIN events e ON r.tracking_id = e.tracking_id
+    LEFT JOIN conversions c ON r.tracking_id = c.tracking_id
+    WHERE d.store_id = ?
+  `);
+
+  const metrics = metricsStmt.get(storeId) as {
+    campaigns_count: number;
+    recipients_count: number;
+    visitors_count: number;
+    conversions_count: number;
+  };
+
+  // Calculate conversion rate
+  const conversion_rate = metrics.recipients_count > 0
+    ? (metrics.conversions_count / metrics.recipients_count) * 100
+    : 0;
+
+  // Check if aggregate exists
+  const existingStmt = db.prepare(`
+    SELECT id FROM retail_store_performance_aggregates
+    WHERE store_id = ? AND time_period = ?
+  `);
+  const existing = existingStmt.get(storeId, timePeriod) as { id: string } | undefined;
+
+  const updated_at = new Date().toISOString();
+
+  if (existing) {
+    // Update existing aggregate
+    const updateStmt = db.prepare(`
+      UPDATE retail_store_performance_aggregates
+      SET campaigns_count = ?,
+          recipients_count = ?,
+          visitors_count = ?,
+          conversions_count = ?,
+          conversion_rate = ?,
+          updated_at = ?
+      WHERE id = ?
+    `);
+
+    updateStmt.run(
+      metrics.campaigns_count,
+      metrics.recipients_count,
+      metrics.visitors_count,
+      metrics.conversions_count,
+      conversion_rate,
+      updated_at,
+      existing.id
+    );
+  } else {
+    // Create new aggregate
+    const id = nanoid(16);
+    const insertStmt = db.prepare(`
+      INSERT INTO retail_store_performance_aggregates (
+        id, store_id, time_period, campaigns_count, recipients_count,
+        visitors_count, conversions_count, conversion_rate, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertStmt.run(
+      id,
+      storeId,
+      timePeriod,
+      metrics.campaigns_count,
+      metrics.recipients_count,
+      metrics.visitors_count,
+      metrics.conversions_count,
+      conversion_rate,
+      updated_at
+    );
+  }
+}
+
+/**
+ * Aggregate performance for all stores
+ */
+export function aggregateAllStoresPerformance(timePeriod: string = 'all_time'): void {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+
+  // Get all stores
+  const stores = db.prepare('SELECT id FROM retail_stores WHERE is_active = 1').all() as Array<{ id: string }>;
+
+  // Use transaction for bulk aggregation
+  const aggregate = db.transaction((stores) => {
+    for (const store of stores) {
+      try {
+        aggregateStorePerformance(store.id, timePeriod);
+      } catch (error) {
+        console.error(`Error aggregating store ${store.id}:`, error);
+      }
+    }
+  });
+
+  aggregate(stores);
+}
+
+/**
+ * Get performance aggregates for a store
+ */
+export function getStorePerformanceAggregate(storeId: string, timePeriod: string = 'all_time') {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT * FROM retail_store_performance_aggregates
+    WHERE store_id = ? AND time_period = ?
+  `);
+
+  return stmt.get(storeId, timePeriod);
+}
+
+/**
+ * Get top performing stores
+ */
+export function getTopPerformingStores(
+  limit: number = 10,
+  sortBy: 'conversion_rate' | 'conversions_count' | 'recipients_count' = 'conversion_rate'
+): any[] {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT
+      s.id,
+      s.store_number,
+      s.name as store_name,
+      s.city,
+      s.state,
+      s.region,
+      agg.campaigns_count,
+      agg.recipients_count,
+      agg.visitors_count,
+      agg.conversions_count,
+      agg.conversion_rate
+    FROM retail_stores s
+    LEFT JOIN retail_store_performance_aggregates agg
+      ON s.id = agg.store_id AND agg.time_period = 'all_time'
+    WHERE s.is_active = 1
+      AND agg.recipients_count > 0
+    ORDER BY agg.${sortBy} DESC
+    LIMIT ?
+  `);
+
+  return stmt.all(limit);
+}
+
+/**
+ * Get regional performance summary
+ */
+export function getRegionalPerformance(): any[] {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT
+      s.region,
+      COUNT(DISTINCT s.id) as stores_count,
+      SUM(agg.campaigns_count) as total_campaigns,
+      SUM(agg.recipients_count) as total_recipients,
+      SUM(agg.visitors_count) as total_visitors,
+      SUM(agg.conversions_count) as total_conversions,
+      AVG(agg.conversion_rate) as avg_conversion_rate
+    FROM retail_stores s
+    LEFT JOIN retail_store_performance_aggregates agg
+      ON s.id = agg.store_id AND agg.time_period = 'all_time'
+    WHERE s.is_active = 1
+      AND s.region IS NOT NULL
+    GROUP BY s.region
+    ORDER BY avg_conversion_rate DESC
+  `);
+
+  return stmt.all();
+}
+
+/**
+ * Get overall retail dashboard stats
+ */
+export function getOverallRetailStats() {
+  ensureRetailModuleEnabled();
+
+  const db = getDatabase();
+
+  // Total stores
+  const storesStmt = db.prepare('SELECT COUNT(*) as count FROM retail_stores WHERE is_active = 1');
+  const { count: totalStores } = storesStmt.get() as { count: number };
+
+  // Total deployments
+  const deploymentsStmt = db.prepare('SELECT COUNT(*) as count FROM retail_campaign_deployments');
+  const { count: totalDeployments } = deploymentsStmt.get() as { count: number };
+
+  // Aggregate metrics
+  const metricsStmt = db.prepare(`
+    SELECT
+      SUM(recipients_count) as total_recipients,
+      SUM(visitors_count) as total_visitors,
+      SUM(conversions_count) as total_conversions,
+      AVG(conversion_rate) as avg_conversion_rate
+    FROM retail_store_performance_aggregates
+    WHERE time_period = 'all_time'
+  `);
+
+  const metrics = metricsStmt.get() as {
+    total_recipients: number | null;
+    total_visitors: number | null;
+    total_conversions: number | null;
+    avg_conversion_rate: number | null;
+  };
+
+  // Stores with deployments
+  const activeStoresStmt = db.prepare(`
+    SELECT COUNT(DISTINCT store_id) as count
+    FROM retail_campaign_deployments
+  `);
+  const { count: storesWithDeployments } = activeStoresStmt.get() as { count: number };
+
+  return {
+    totalStores,
+    storesWithDeployments,
+    totalDeployments,
+    totalRecipients: metrics.total_recipients || 0,
+    totalVisitors: metrics.total_visitors || 0,
+    totalConversions: metrics.total_conversions || 0,
+    avgConversionRate: metrics.avg_conversion_rate || 0,
+  };
+}
