@@ -2,12 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Target, Activity, TrendingUp, Library } from "lucide-react";
+import { BarChart3, Target, Activity, TrendingUp } from "lucide-react";
 import { DashboardOverview } from "@/components/analytics/dashboard-overview";
 import { CampaignList } from "@/components/analytics/campaign-list";
 import { RecentActivityFeed } from "@/components/analytics/recent-activity-feed";
 import { ChartsView } from "@/components/analytics/charts-view";
-import { TemplateLibrary } from "@/components/analytics/template-library";
 
 export default function AnalyticsPage() {
   return (
@@ -20,7 +19,7 @@ export default function AnalyticsPage() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full max-w-4xl grid-cols-5 h-auto p-1">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4 h-auto p-1">
           <TabsTrigger value="overview" className="gap-2 py-3">
             <BarChart3 className="h-4 w-4" />
             <span className="font-medium">Overview</span>
@@ -28,10 +27,6 @@ export default function AnalyticsPage() {
           <TabsTrigger value="campaigns" className="gap-2 py-3">
             <Target className="h-4 w-4" />
             <span className="font-medium">Campaigns</span>
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="gap-2 py-3">
-            <Library className="h-4 w-4" />
-            <span className="font-medium">Templates</span>
           </TabsTrigger>
           <TabsTrigger value="charts" className="gap-2 py-3">
             <TrendingUp className="h-4 w-4" />
@@ -49,10 +44,6 @@ export default function AnalyticsPage() {
 
         <TabsContent value="campaigns" className="space-y-6">
           <CampaignList />
-        </TabsContent>
-
-        <TabsContent value="templates" className="space-y-6">
-          <TemplateLibrary />
         </TabsContent>
 
         <TabsContent value="charts" className="space-y-6">
