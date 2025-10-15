@@ -52,6 +52,35 @@ function initializeSchema(database: Database.Database): void {
     );
   `);
 
+  // Campaign Assets table (Phase 11A - Asset Management)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS campaign_assets (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT,
+      template_id TEXT,
+      asset_type TEXT NOT NULL CHECK(asset_type IN ('background_image', 'qr_code', 'logo', 'custom_image', 'pdf')),
+      asset_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_size INTEGER,
+      mime_type TEXT,
+      metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+      FOREIGN KEY (template_id) REFERENCES campaign_templates(id) ON DELETE CASCADE
+    );
+  `);
+
+  // Create index for fast asset lookups
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_assets_campaign_id
+    ON campaign_assets(campaign_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_assets_template_id
+    ON campaign_assets(template_id);
+  `);
+
   // Recipients table
   database.exec(`
     CREATE TABLE IF NOT EXISTS recipients (

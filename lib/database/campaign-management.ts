@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { getDatabase } from "./connection";
 import { Campaign, getCampaignById } from "./tracking-queries";
+import { copyAssets, getTemplateAssets, getCampaignAssets } from "./asset-management";
 
 // ==================== TYPES ====================
 
@@ -186,7 +187,7 @@ export function updateTemplate(id: string, data: {
 // ==================== CAMPAIGN OPERATIONS ====================
 
 /**
- * Duplicate a campaign
+ * Duplicate a campaign (including all assets)
  */
 export function duplicateCampaign(campaignId: string): Campaign | null {
   const original = getCampaignById(campaignId);
@@ -203,6 +204,17 @@ export function duplicateCampaign(campaignId: string): Campaign | null {
   `);
 
   stmt.run(id, name, original.message, original.company_name, created_at);
+
+  // Copy all campaign assets (QR codes, backgrounds, etc.)
+  try {
+    copyAssets({
+      sourceCampaignId: campaignId,
+      targetCampaignId: id,
+    });
+  } catch (error) {
+    console.error('Error copying campaign assets:', error);
+    // Continue anyway - campaign is created, just without assets
+  }
 
   return {
     id,
