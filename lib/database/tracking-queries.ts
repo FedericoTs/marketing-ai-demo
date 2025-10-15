@@ -1445,7 +1445,7 @@ export function getOverallEngagementMetrics(startDate?: string, endDate?: string
       AVG(
         CASE
           WHEN ca.first_appointment IS NOT NULL
-          THEN (julianday(ca.first_appointment) - julianday(r.created_at)) * 86400
+          THEN (julianday(ca.first_appointment) - julianday(camp.created_at)) * 86400
           ELSE NULL
         END
       ) as avg_time_to_appointment_seconds,
@@ -1453,6 +1453,7 @@ export function getOverallEngagementMetrics(startDate?: string, endDate?: string
       COUNT(DISTINCT CASE WHEN c.first_conversion IS NOT NULL THEN r.id END) as recipients_with_conversions,
       COUNT(DISTINCT CASE WHEN ca.first_appointment IS NOT NULL THEN r.id END) as recipients_with_appointments
     FROM recipients r
+    JOIN campaigns camp ON r.campaign_id = camp.id
     LEFT JOIN (
       SELECT tracking_id, MIN(created_at) as first_view
       FROM events
