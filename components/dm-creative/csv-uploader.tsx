@@ -4,11 +4,12 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Download, FileText, Loader2, CheckCircle2 } from "lucide-react";
-import { parseCSV, generateSampleCSV } from "@/lib/csv-processor";
+import { parseCSV, generateSampleCSV, analyzeStoreDistribution } from "@/lib/csv-processor";
 import { RecipientData, DirectMailData } from "@/types/dm-creative";
 import { toast } from "sonner";
 import { storeLandingPageData } from "@/lib/tracking";
 import { useSettings } from "@/lib/contexts/settings-context";
+import { StoreDistributionPreview } from "@/components/dm-creative/store-distribution-preview";
 
 interface CSVUploaderProps {
   onBatchGenerated: (dmDataList: DirectMailData[]) => void;
@@ -19,6 +20,7 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
   const { settings } = useSettings();
   const [recipients, setRecipients] = useState<RecipientData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [storeDistribution, setStoreDistribution] = useState<ReturnType<typeof analyzeStoreDistribution> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,6 +44,18 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
       }
 
       setRecipients(result.recipients);
+
+      // PHASE 8C: Analyze store distribution
+      if (result.recipients.length > 0) {
+        const distribution = analyzeStoreDistribution(result.recipients);
+        setStoreDistribution(distribution);
+
+        if (distribution.hasStoreNumbers) {
+          toast.info(
+            `Store deployment detected: ${distribution.uniqueStores.length} store${distribution.uniqueStores.length === 1 ? '' : 's'}`
+          );
+        }
+      }
     } catch (error) {
       console.error("Error processing CSV:", error);
       toast.error("Failed to process CSV file");
@@ -177,7 +191,7 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
         </div>
 
         {recipients.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-green-600">
               <CheckCircle2 className="h-4 w-4" />
               <span>{recipients.length} recipients loaded</span>
@@ -210,6 +224,11 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
                 </tbody>
               </table>
             </div>
+
+            {/* PHASE 8C: Show store distribution preview if store numbers detected */}
+            {storeDistribution && storeDistribution.hasStoreNumbers && (
+              <StoreDistributionPreview distribution={storeDistribution} />
+            )}
 
             <Button
               onClick={handleGenerateBatch}

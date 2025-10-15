@@ -14,6 +14,7 @@ import {
 import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2, Download } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { CampaignStoreStats } from "@/components/analytics/campaign-store-stats";
 
 interface Campaign {
   id: string;
@@ -445,6 +446,11 @@ export function CampaignList() {
             {/* Campaign Message Preview */}
             <div className="pt-4 border-t border-slate-200">
               <p className="text-sm text-slate-600 line-clamp-2">{campaign.message}</p>
+            </div>
+
+            {/* PHASE 8C: Store Deployment Analytics */}
+            <div className="pt-4">
+              <CampaignStoreStats campaignId={campaign.id} />
             </div>
 
             {/* Action Buttons */}
