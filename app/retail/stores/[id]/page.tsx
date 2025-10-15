@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,18 +20,19 @@ import {
   CheckCircle,
 } from 'lucide-react';
 
-export default function StoreDetailPage({ params }: { params: { id: string } }) {
+export default function StoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadStore();
-  }, [params.id]);
+  }, [id]);
 
   async function loadStore() {
     try {
-      const response = await fetch(`/api/retail/stores/${params.id}`);
+      const response = await fetch(`/api/retail/stores/${id}`);
       const result = await response.json();
 
       if (result.success) {

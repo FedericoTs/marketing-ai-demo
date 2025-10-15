@@ -8,10 +8,10 @@ import {
 // GET: Get store by ID
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const store = getRetailStoreById(id);
 
@@ -38,10 +38,10 @@ export async function GET(
 // PATCH: Update store
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     // Check if store exists
@@ -107,10 +107,10 @@ export async function PATCH(
 // DELETE: Delete store
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if store exists
     const store = getRetailStoreById(id);
