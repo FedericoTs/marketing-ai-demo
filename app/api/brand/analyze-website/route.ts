@@ -40,76 +40,72 @@ export async function POST(request: NextRequest) {
     // Step 1: Fetch website HTML
     const htmlResponse = await fetch(websiteUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
 
     if (!htmlResponse.ok) {
       return NextResponse.json(
-        { success: false, error: 'Failed to fetch website' },
+        { success: false, error: `Failed to fetch website (${htmlResponse.status})` },
         { status: 500 }
       );
     }
 
     const htmlContent = await htmlResponse.text();
+    console.log('✅ HTML fetched successfully');
 
-    // Step 2: Take screenshot using screenshot API
-    const screenshotUrl = await captureWebsiteScreenshot(websiteUrl);
-
-    // Step 3: Extract company name from HTML title/meta
+    // Step 2: Extract company name from HTML title/meta
     const companyName = extractCompanyName(htmlContent, url.hostname);
+    console.log(`📛 Company name: ${companyName}`);
 
-    // Step 4: Analyze with GPT-4o Vision
+    // Step 3: Extract colors from CSS/HTML
+    const colors = extractColorsFromHTML(htmlContent);
+    console.log(`🎨 Colors extracted:`, colors);
+
+    // Step 4: Extract fonts from CSS
+    const fonts = extractFontsFromHTML(htmlContent);
+    console.log(`📝 Fonts extracted:`, fonts);
+
+    // Step 5: Extract logo URL from HTML
+    const logoUrl = extractLogoUrl(htmlContent, url.origin);
+    console.log(`🖼️ Logo URL: ${logoUrl}`);
+
+    // Step 6: Analyze brand voice with GPT-4 (text only - no screenshot needed!)
     const openai = new OpenAI({ apiKey });
 
-    const analysisPrompt = `Analyze this website screenshot and extract the brand identity:
+    // Extract visible text content from HTML
+    const textContent = extractTextContent(htmlContent);
 
-1. **Logo**: Describe the logo location and appearance
-2. **Primary Color**: Main brand color (hex code)
-3. **Secondary Color**: Supporting color (hex code)
-4. **Accent Color**: Call-to-action/highlight color (hex code)
-5. **Heading Font**: Font family for headings
-6. **Body Font**: Font family for body text
-7. **Brand Voice**: Tone and personality (warm, professional, playful, etc.)
-8. **Industry**: Business category
-9. **Recommended Template**: One of: professional, healthcare, retail, modern, classic
+    const analysisPrompt = `Analyze this website's text content and determine:
 
-Return ONLY a JSON object with these exact keys:
+1. **Brand Voice**: The overall tone and personality (e.g., "warm and reassuring", "professional and authoritative", "playful and energetic")
+2. **Industry**: The business category (e.g., "healthcare", "retail", "technology", "finance")
+3. **Recommended Template**: Best landing page template (choose one: professional, healthcare, retail, modern, classic)
+
+Website: ${url.hostname}
+Company: ${companyName}
+
+Text Content Sample:
+${textContent.slice(0, 2000)}
+
+Return ONLY a JSON object:
 {
-  "logoDescription": "description",
-  "primaryColor": "#hex",
-  "secondaryColor": "#hex",
-  "accentColor": "#hex",
-  "headingFont": "font name",
-  "bodyFont": "font name",
   "brandVoice": "description",
   "industry": "category",
   "recommendedTemplate": "template name"
 }`;
 
-    console.log('🤖 Calling GPT-4o Vision for analysis...');
+    console.log('🤖 Calling GPT-4 for brand voice analysis...');
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4-turbo-preview",
       messages: [
         {
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: analysisPrompt
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: screenshotUrl,
-                detail: "high"
-              }
-            }
-          ]
+          content: analysisPrompt
         }
       ],
-      max_tokens: 1000,
+      max_tokens: 300,
       temperature: 0.3,
     });
 
@@ -124,14 +120,13 @@ Return ONLY a JSON object with these exact keys:
       brandData = JSON.parse(jsonMatch ? jsonMatch[0] : analysisText);
     } catch (e) {
       console.error('Failed to parse AI response:', e);
-      return NextResponse.json(
-        { success: false, error: 'Failed to parse AI analysis' },
-        { status: 500 }
-      );
+      // Provide defaults if parsing fails
+      brandData = {
+        brandVoice: 'Professional and trustworthy',
+        industry: 'General',
+        recommendedTemplate: 'professional'
+      };
     }
-
-    // Step 5: Extract logo URL from HTML
-    const logoUrl = await extractLogoUrl(htmlContent, url.origin);
 
     // Return extracted brand data
     return NextResponse.json({
@@ -139,17 +134,15 @@ Return ONLY a JSON object with these exact keys:
       data: {
         companyName,
         logoUrl,
-        logoDescription: brandData.logoDescription,
-        primaryColor: brandData.primaryColor || '#1E3A8A',
-        secondaryColor: brandData.secondaryColor || '#FF6B35',
-        accentColor: brandData.accentColor || '#10B981',
-        headingFont: brandData.headingFont || 'Inter',
-        bodyFont: brandData.bodyFont || 'Open Sans',
-        brandVoice: brandData.brandVoice || '',
-        industry: brandData.industry || '',
+        primaryColor: colors.primary || '#1E3A8A',
+        secondaryColor: colors.secondary || '#FF6B35',
+        accentColor: colors.accent || '#10B981',
+        headingFont: fonts.heading || 'Inter',
+        bodyFont: fonts.body || 'Open Sans',
+        brandVoice: brandData.brandVoice || 'Professional and trustworthy',
+        industry: brandData.industry || 'General',
         landingPageTemplate: brandData.recommendedTemplate || 'professional',
         websiteUrl,
-        screenshotUrl,
       },
       message: 'Website analyzed successfully',
     });
@@ -167,19 +160,115 @@ Return ONLY a JSON object with these exact keys:
 }
 
 /**
- * Capture website screenshot using screenshot API
+ * Extract colors from HTML/CSS
  */
-async function captureWebsiteScreenshot(url: string): Promise<string> {
-  // Using screenshot.one API (free tier: 100 screenshots/month)
-  // Alternative: screenshotapi.net, apiflash.com
-  const apiKey = process.env.SCREENSHOT_API_KEY || 'demo';
+function extractColorsFromHTML(html: string): { primary: string; secondary: string; accent: string } {
+  const colors: string[] = [];
 
-  // For demo/development, use a simple service
-  const screenshotUrl = `https://api.screenshotone.com/take?access_key=${apiKey}&url=${encodeURIComponent(url)}&viewport_width=1920&viewport_height=1080&device_scale_factor=1&format=png&block_ads=true&block_cookie_banners=true&block_banners_by_heuristics=false&block_trackers=true&delay=3&timeout=60`;
+  // Extract hex colors from inline styles and CSS
+  const hexPattern = /#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})/g;
+  const matches = html.match(hexPattern) || [];
 
-  console.log('📸 Screenshot URL:', screenshotUrl);
+  // Normalize 3-digit hex to 6-digit
+  const normalizedColors = matches.map(color => {
+    if (color.length === 4) {
+      // #RGB -> #RRGGBB
+      const r = color[1];
+      const g = color[2];
+      const b = color[3];
+      return `#${r}${r}${g}${g}${b}${b}`;
+    }
+    return color.toUpperCase();
+  });
 
-  return screenshotUrl;
+  // Count frequency
+  const colorCount: { [key: string]: number } = {};
+  normalizedColors.forEach(color => {
+    colorCount[color] = (colorCount[color] || 0) + 1;
+  });
+
+  // Sort by frequency
+  const sortedColors = Object.entries(colorCount)
+    .sort(([, a], [, b]) => b - a)
+    .map(([color]) => color)
+    .filter(color => {
+      // Filter out white, black, and very light/dark colors
+      const hex = color.substring(1);
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const brightness = (r + g + b) / 3;
+      return brightness > 30 && brightness < 225; // Not too dark or light
+    });
+
+  return {
+    primary: sortedColors[0] || '#1E3A8A',
+    secondary: sortedColors[1] || '#FF6B35',
+    accent: sortedColors[2] || '#10B981',
+  };
+}
+
+/**
+ * Extract fonts from HTML/CSS
+ */
+function extractFontsFromHTML(html: string): { heading: string; body: string } {
+  const fonts: string[] = [];
+
+  // Extract from font-family CSS properties
+  const fontFamilyPattern = /font-family:\s*([^;}]+)/gi;
+  let match;
+
+  while ((match = fontFamilyPattern.exec(html)) !== null) {
+    const fontFamily = match[1].trim();
+    // Clean up quotes and fallback fonts
+    const cleanFont = fontFamily
+      .split(',')[0] // Take first font only
+      .replace(/['"]/g, '') // Remove quotes
+      .trim();
+
+    if (cleanFont && !cleanFont.includes('sans-serif') && !cleanFont.includes('serif')) {
+      fonts.push(cleanFont);
+    }
+  }
+
+  // Common font names to prioritize
+  const commonFonts = [
+    'Inter', 'Roboto', 'Open Sans', 'Montserrat', 'Poppins', 'Lato',
+    'Raleway', 'Playfair Display', 'Merriweather', 'Source Sans Pro'
+  ];
+
+  const foundCommonFont = fonts.find(font =>
+    commonFonts.some(common => font.toLowerCase().includes(common.toLowerCase()))
+  );
+
+  return {
+    heading: foundCommonFont || fonts[0] || 'Inter',
+    body: fonts[1] || foundCommonFont || 'Open Sans',
+  };
+}
+
+/**
+ * Extract visible text content from HTML
+ */
+function extractTextContent(html: string): string {
+  // Remove script and style tags
+  let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+
+  // Remove HTML tags
+  text = text.replace(/<[^>]+>/g, ' ');
+
+  // Decode HTML entities
+  text = text.replace(/&nbsp;/g, ' ');
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&quot;/g, '"');
+
+  // Clean up whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+
+  return text;
 }
 
 /**
@@ -217,7 +306,7 @@ function extractCompanyName(html: string, hostname: string): string {
 /**
  * Extract logo URL from HTML
  */
-async function extractLogoUrl(html: string, origin: string): Promise<string> {
+function extractLogoUrl(html: string, origin: string): string {
   // Common logo selectors
   const logoPatterns = [
     /<link\s+rel=["']icon["']\s+href=["']([^"']+)["']/i,
