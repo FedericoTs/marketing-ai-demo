@@ -579,6 +579,19 @@ export interface BrandProfile {
   extracted_at: string;
   source_content?: string;
   is_active: number; // 1 or 0 (boolean in SQLite)
+  // Phase 12: Brand DNA
+  logo_url?: string;
+  logo_asset_id?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  accent_color?: string;
+  background_color?: string;
+  text_color?: string;
+  heading_font?: string;
+  body_font?: string;
+  landing_page_template?: string;
+  website_url?: string;
+  last_updated_at?: string;
 }
 
 /**
@@ -695,6 +708,72 @@ export function getAllBrandProfiles(): BrandProfile[] {
     "SELECT * FROM brand_profiles WHERE is_active = 1 ORDER BY extracted_at DESC"
   );
   return stmt.all() as BrandProfile[];
+}
+
+/**
+ * Update brand kit (visual identity) for existing profile
+ * Phase 12: Brand DNA
+ */
+export function updateBrandKit(data: {
+  companyName: string;
+  logoUrl?: string;
+  logoAssetId?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  headingFont?: string;
+  bodyFont?: string;
+  landingPageTemplate?: string;
+  websiteUrl?: string;
+}): BrandProfile | null {
+  const db = getDatabase();
+
+  // Get existing profile or create one
+  let profile = getBrandProfile(data.companyName);
+
+  if (!profile) {
+    // Create minimal profile if doesn't exist
+    profile = saveBrandProfile({ companyName: data.companyName });
+  }
+
+  // Update brand kit fields
+  const stmt = db.prepare(`
+    UPDATE brand_profiles
+    SET logo_url = COALESCE(?, logo_url),
+        logo_asset_id = COALESCE(?, logo_asset_id),
+        primary_color = COALESCE(?, primary_color),
+        secondary_color = COALESCE(?, secondary_color),
+        accent_color = COALESCE(?, accent_color),
+        background_color = COALESCE(?, background_color),
+        text_color = COALESCE(?, text_color),
+        heading_font = COALESCE(?, heading_font),
+        body_font = COALESCE(?, body_font),
+        landing_page_template = COALESCE(?, landing_page_template),
+        website_url = COALESCE(?, website_url),
+        last_updated_at = ?
+    WHERE id = ?
+  `);
+
+  stmt.run(
+    data.logoUrl || null,
+    data.logoAssetId || null,
+    data.primaryColor || null,
+    data.secondaryColor || null,
+    data.accentColor || null,
+    data.backgroundColor || null,
+    data.textColor || null,
+    data.headingFont || null,
+    data.bodyFont || null,
+    data.landingPageTemplate || null,
+    data.websiteUrl || null,
+    new Date().toISOString(),
+    profile.id
+  );
+
+  // Return updated profile
+  return getBrandProfile(data.companyName);
 }
 
 /**

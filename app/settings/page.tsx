@@ -10,9 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentManager } from "@/components/settings/agent-manager";
 import { BrandProfileManager } from "@/components/settings/brand-profile-manager";
+import { BrandKitManager } from "@/components/settings/brand-kit-manager";
 import { IndustryModuleSettings } from "@/components/settings/industry-module-settings";
 import { toast } from "sonner";
-import { Save, Building2, Key, Check, Sparkles, Layers } from "lucide-react";
+import { Save, Building2, Key, Check, Sparkles, Layers, Palette } from "lucide-react";
 import { ElevenLabsAgent } from "@/types/settings";
 
 interface ExtractedProfile {
@@ -139,10 +140,14 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSubmit}>
         <Tabs defaultValue="company" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3 h-auto p-1">
+          <TabsList className="grid w-full max-w-4xl grid-cols-4 h-auto p-1">
             <TabsTrigger value="company" className="gap-2 py-3">
               <Building2 className="h-4 w-4" />
               <span className="font-medium">Company & Brand</span>
+            </TabsTrigger>
+            <TabsTrigger value="brandkit" className="gap-2 py-3">
+              <Palette className="h-4 w-4" />
+              <span className="font-medium">Brand Kit</span>
             </TabsTrigger>
             <TabsTrigger value="integrations" className="gap-2 py-3">
               <Key className="h-4 w-4" />
@@ -335,7 +340,20 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
 
-          {/* Tab 2: Integrations */}
+          {/* Tab 2: Brand Kit */}
+          <TabsContent value="brandkit" className="space-y-6 mt-6">
+            <div className="space-y-4 mb-6">
+              <h2 className="text-2xl font-bold">Brand Kit</h2>
+              <p className="text-slate-600">
+                Customize your brand identity with logo, colors, and fonts.
+                All marketing materials will automatically use these settings.
+              </p>
+            </div>
+
+            <BrandKitManager companyName={formData.companyName || "Your Company"} />
+          </TabsContent>
+
+          {/* Tab 3: Integrations */}
           <TabsContent value="integrations" className="space-y-6 mt-6">
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100 bg-slate-50/50">
@@ -434,7 +452,7 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
 
-          {/* Tab 3: Industry Modules */}
+          {/* Tab 4: Industry Modules */}
           <TabsContent value="industry" className="space-y-6 mt-6">
             <IndustryModuleSettings />
           </TabsContent>

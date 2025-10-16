@@ -188,7 +188,7 @@ function initializeSchema(database: Database.Database): void {
     ON conversions(conversion_type);
   `);
 
-  // Brand Profiles table (Phase 2: Brand Intelligence)
+  // Brand Profiles table (Phase 2: Brand Intelligence + Phase 12: Brand DNA)
   database.exec(`
     CREATE TABLE IF NOT EXISTS brand_profiles (
       id TEXT PRIMARY KEY,
@@ -201,7 +201,19 @@ function initializeSchema(database: Database.Database): void {
       industry TEXT,
       extracted_at TEXT NOT NULL DEFAULT (datetime('now')),
       source_content TEXT,
-      is_active INTEGER NOT NULL DEFAULT 1
+      is_active INTEGER NOT NULL DEFAULT 1,
+      logo_url TEXT,
+      logo_asset_id TEXT,
+      primary_color TEXT DEFAULT '#1E3A8A',
+      secondary_color TEXT DEFAULT '#FF6B35',
+      accent_color TEXT DEFAULT '#10B981',
+      background_color TEXT DEFAULT '#FFFFFF',
+      text_color TEXT DEFAULT '#1F2937',
+      heading_font TEXT DEFAULT 'Inter',
+      body_font TEXT DEFAULT 'Open Sans',
+      landing_page_template TEXT DEFAULT 'professional',
+      website_url TEXT,
+      last_updated_at TEXT
     );
   `);
 
