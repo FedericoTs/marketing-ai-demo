@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSettings } from "@/lib/contexts/settings-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentManager } from "@/components/settings/agent-manager";
 import { BrandProfileManager } from "@/components/settings/brand-profile-manager";
-import { BrandKitManager } from "@/components/settings/brand-kit-manager";
+import { BrandKitManager, BrandKitManagerRef } from "@/components/settings/brand-kit-manager";
+import { WebsiteAnalyzer } from "@/components/settings/website-analyzer";
 import { IndustryModuleSettings } from "@/components/settings/industry-module-settings";
 import { toast } from "sonner";
-import { Save, Building2, Key, Check, Sparkles, Layers, Palette } from "lucide-react";
+import { Save, Building2, Key, Check, Sparkles, Layers, Palette, Loader2 } from "lucide-react";
 import { ElevenLabsAgent } from "@/types/settings";
 
 interface ExtractedProfile {
@@ -22,41 +23,59 @@ interface ExtractedProfile {
   keyPhrases: string[];
   values: string[];
   targetAudience: string;
+  communicationStyleNotes?: string[];
   industry?: string;
   profileId?: string;
   extractedAt?: string;
+}
+
+interface BrandKitData {
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  headingFont?: string;
+  bodyFont?: string;
+  landingPageTemplate?: string;
 }
 
 export default function SettingsPage() {
   const { settings, updateSettings, isLoaded } = useSettings();
   const [formData, setFormData] = useState(settings);
   const [brandProfile, setBrandProfile] = useState<ExtractedProfile | null>(null);
+  const [brandKitData, setBrandKitData] = useState<BrandKitData | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const brandKitRef = useRef<BrandKitManagerRef>(null);
 
+  // Load settings ONCE when they first become available
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && !profileLoaded) {
       setFormData(settings);
     }
-  }, [settings, isLoaded]);
+  }, [isLoaded, profileLoaded, settings]);
 
-  // Load brand profile from database when page mounts
+  // Load brand profile from database ONCE when page mounts
   useEffect(() => {
-    if (isLoaded && formData.companyName && formData.openaiApiKey) {
-      loadBrandProfile(formData.companyName);
+    if (isLoaded && settings.companyName && settings.openaiApiKey && !profileLoaded) {
+      loadBrandProfile(settings.companyName);
+      setProfileLoaded(true);
     }
-  }, [isLoaded, formData.companyName, formData.openaiApiKey]);
+  }, [isLoaded, settings.companyName, settings.openaiApiKey, profileLoaded]);
 
   async function loadBrandProfile(companyName: string) {
     setIsLoadingProfile(true);
     try {
-      const response = await fetch(
+      // Load brand profile (voice, tone, etc.)
+      const profileResponse = await fetch(
         `/api/brand/profile?companyName=${encodeURIComponent(companyName)}`
       );
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          const profile = result.data;
+      if (profileResponse.ok) {
+        const profileResult = await profileResponse.json();
+        if (profileResult.success && profileResult.data) {
+          const profile = profileResult.data;
           setBrandProfile({
             brandVoice: profile.brand_voice || profile.brandVoice,
             tone: profile.tone,
@@ -67,7 +86,7 @@ export default function SettingsPage() {
             extractedAt: profile.extracted_at || profile.extractedAt,
           });
 
-          // Auto-fill form with profile data (only if fields are empty or match defaults)
+          // Auto-fill form with profile data
           setFormData(prev => ({
             ...prev,
             brandVoice: profile.brand_voice || profile.brandVoice || prev.brandVoice,
@@ -79,18 +98,82 @@ export default function SettingsPage() {
           console.log("✅ Brand profile loaded from database");
         }
       }
+
+      // Load brand kit (colors, fonts, logo)
+      const kitResponse = await fetch(
+        `/api/brand/config?companyName=${encodeURIComponent(companyName)}`
+      );
+
+      if (kitResponse.ok) {
+        const kitResult = await kitResponse.json();
+        if (kitResult.success && kitResult.data) {
+          const kit = kitResult.data;
+          setBrandKitData({
+            logoUrl: kit.logo_url || '',
+            primaryColor: kit.primary_color || '#1E3A8A',
+            secondaryColor: kit.secondary_color || '#FF6B35',
+            accentColor: kit.accent_color || '#10B981',
+            headingFont: kit.heading_font || 'Inter',
+            bodyFont: kit.body_font || 'Open Sans',
+            landingPageTemplate: kit.landing_page_template || 'professional',
+          });
+
+          console.log("✅ Brand kit loaded from database");
+        }
+      }
     } catch (error) {
-      console.error("Error loading brand profile:", error);
+      console.error("Error loading brand data:", error);
     } finally {
       setIsLoadingProfile(false);
     }
   }
 
+  const handleWebsiteAnalyzed = (data: any) => {
+    // Mark that profile has been loaded so useEffect doesn't override
+    setProfileLoaded(true);
+
+    // Update company profile
+    setBrandProfile({
+      brandVoice: data.brandVoice,
+      tone: data.tone,
+      keyPhrases: data.keyPhrases || [],
+      values: data.brandValues || [],
+      communicationStyleNotes: data.communicationStyleNotes || [],
+      targetAudience: data.targetAudience,
+      industry: data.industry,
+      extractedAt: new Date().toISOString(),
+    });
+
+    // Auto-fill company profile form fields (merging with existing, not replacing)
+    setFormData(prev => ({
+      ...prev,
+      companyName: data.companyName || prev.companyName,
+      industry: data.industry || prev.industry,
+      brandVoice: data.brandVoice || prev.brandVoice,
+      tone: data.tone || prev.tone,
+      targetAudience: data.targetAudience || prev.targetAudience,
+    }));
+
+    // Update brand kit data (will be passed to BrandKitManager)
+    setBrandKitData({
+      logoUrl: data.logoUrl,
+      primaryColor: data.primaryColor,
+      secondaryColor: data.secondaryColor,
+      accentColor: data.accentColor,
+      headingFont: data.headingFont,
+      bodyFont: data.bodyFont,
+      landingPageTemplate: data.landingPageTemplate,
+    });
+  };
+
   const handleProfileExtracted = (profile: ExtractedProfile) => {
+    // Mark that profile has been loaded
+    setProfileLoaded(true);
+
     // Update brand profile state
     setBrandProfile(profile);
 
-    // Auto-fill form fields
+    // Auto-fill form fields (merging with existing, not replacing)
     setFormData(prev => ({
       ...prev,
       brandVoice: profile.brandVoice || prev.brandVoice,
@@ -99,18 +182,63 @@ export default function SettingsPage() {
       industry: profile.industry || prev.industry,
     }));
 
-    toast.info("✨ Form auto-filled with brand intelligence! Review and save changes.");
+    toast.success("✨ Company profile auto-filled with brand intelligence!");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.companyName) {
+      toast.error("Company name is required");
+      return;
+    }
+
+    setIsSaving(true);
+
     try {
+      // 1. Save Company Profile to database
+      const profileResponse = await fetch('/api/brand/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: formData.companyName,
+          brandVoice: formData.brandVoice || '',
+          tone: formData.tone || '',
+          keyPhrases: brandProfile?.keyPhrases || [],
+          values: brandProfile?.values || [],
+          targetAudience: formData.targetAudience || '',
+          industry: formData.industry || '',
+        }),
+      });
+
+      const profileResult = await profileResponse.json();
+
+      if (!profileResult.success) {
+        toast.error(profileResult.error || 'Failed to save company profile');
+        setIsSaving(false);
+        return;
+      }
+
+      // 2. Save Brand Kit to database (via BrandKitManager ref)
+      if (brandKitRef.current) {
+        const brandKitSaved = await brandKitRef.current.save();
+        if (!brandKitSaved) {
+          // Brand kit save failed, but company profile was saved
+          toast.error('Company profile saved, but brand kit failed to save');
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      // 3. Save settings to localStorage (for API keys)
       updateSettings(formData);
-      toast.success("Settings saved successfully!");
+
+      toast.success("✅ All settings saved successfully!");
     } catch (error) {
       toast.error("Failed to save settings. Please try again.");
       console.error("Error saving settings:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -139,15 +267,11 @@ export default function SettingsPage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <Tabs defaultValue="company" className="space-y-6">
-          <TabsList className="grid w-full max-w-4xl grid-cols-4 h-auto p-1">
-            <TabsTrigger value="company" className="gap-2 py-3">
-              <Building2 className="h-4 w-4" />
-              <span className="font-medium">Company & Brand</span>
-            </TabsTrigger>
-            <TabsTrigger value="brandkit" className="gap-2 py-3">
-              <Palette className="h-4 w-4" />
-              <span className="font-medium">Brand Kit</span>
+        <Tabs defaultValue="brand" className="space-y-6">
+          <TabsList className="grid w-full max-w-4xl grid-cols-3 h-auto p-1">
+            <TabsTrigger value="brand" className="gap-2 py-3">
+              <Sparkles className="h-4 w-4" />
+              <span className="font-medium">Brand Intelligence</span>
             </TabsTrigger>
             <TabsTrigger value="integrations" className="gap-2 py-3">
               <Key className="h-4 w-4" />
@@ -159,15 +283,32 @@ export default function SettingsPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab 1: Company & Brand */}
-          <TabsContent value="company" className="space-y-6 mt-6">
+          {/* Tab 1: Brand Intelligence (Unified) */}
+          <TabsContent value="brand" className="space-y-6 mt-6">
+            {/* AI Website Analyzer - Always show at the top */}
+            {formData.openaiApiKey ? (
+              <WebsiteAnalyzer onBrandDataExtracted={handleWebsiteAnalyzed} />
+            ) : (
+              <Card className="border-2 border-orange-200 bg-orange-50">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-orange-900">
+                    ⚠️ <strong>OpenAI API Key Required:</strong> Please add your OpenAI API key in the Integrations tab to enable AI Website Analysis.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Section 1: Company Profile */}
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="border-b border-slate-100 bg-slate-50/50">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl">Company Information</CardTitle>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Building2 className="h-5 w-5" />
+                      Company Profile
+                    </CardTitle>
                     <CardDescription>
-                      This information will be used to personalize AI-generated content across all features
+                      Define your company identity and brand voice for AI-generated content
                     </CardDescription>
                   </div>
 
@@ -269,17 +410,39 @@ export default function SettingsPage() {
                 </div>
 
                 {/* AI-Extracted Brand Elements */}
-                {brandProfile && (brandProfile.keyPhrases.length > 0 || brandProfile.values.length > 0) && (
+                {brandProfile && (brandProfile.keyPhrases.length > 0 || brandProfile.values.length > 0 || (brandProfile.communicationStyleNotes && brandProfile.communicationStyleNotes.length > 0)) && (
                   <div className="pt-4 border-t border-slate-200 space-y-4">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-purple-600" />
-                      <h4 className="text-sm font-semibold text-slate-900">AI-Extracted Brand Elements</h4>
+                      <h4 className="text-sm font-semibold text-slate-900">AI-Extracted Brand Guidelines</h4>
                       {brandProfile.extractedAt && (
                         <span className="text-xs text-slate-500">
                           • Updated {new Date(brandProfile.extractedAt).toLocaleDateString()}
                         </span>
                       )}
                     </div>
+
+                    {brandProfile.communicationStyleNotes && brandProfile.communicationStyleNotes.length > 0 && (
+                      <div className="space-y-2 bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 bg-amber-100 rounded">
+                            <Sparkles className="h-3.5 w-3.5 text-amber-700" />
+                          </div>
+                          <Label className="text-sm font-semibold text-amber-900">Communication Style Guidelines</Label>
+                        </div>
+                        <ul className="space-y-2 text-sm text-slate-700">
+                          {brandProfile.communicationStyleNotes.map((note, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-amber-600 mt-1">▸</span>
+                              <span>{note}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-amber-700 italic mt-2">
+                          💡 These guidelines will be used to generate marketing campaigns in your brand's voice
+                        </p>
+                      </div>
+                    )}
 
                     {brandProfile.keyPhrases.length > 0 && (
                       <div className="space-y-2">
@@ -323,34 +486,41 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Brand Intelligence - Only show if company name and API key are set */}
-            {formData.companyName && formData.openaiApiKey && (
-              <BrandProfileManager
-                companyName={formData.companyName}
-                apiKey={formData.openaiApiKey}
-                onProfileExtracted={handleProfileExtracted}
-              />
-            )}
+            {/* Section 2: Visual Brand Kit */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="border-b border-slate-100 bg-slate-50/50">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Palette className="h-5 w-5" />
+                  Visual Brand Kit
+                </CardTitle>
+                <CardDescription>
+                  Customize your brand identity with logo, colors, and fonts. All marketing materials will automatically use these settings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <BrandKitManager
+                  ref={brandKitRef}
+                  companyName={formData.companyName || "Your Company"}
+                  extractedBrandKit={brandKitData}
+                />
+              </CardContent>
+            </Card>
 
             <div className="flex justify-end pt-2">
-              <Button type="submit" size="lg" className="gap-2 px-8">
-                <Save className="h-4 w-4" />
-                Save Changes
+              <Button type="submit" size="lg" className="gap-2 px-8" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Save All Changes
+                  </>
+                )}
               </Button>
             </div>
-          </TabsContent>
-
-          {/* Tab 2: Brand Kit */}
-          <TabsContent value="brandkit" className="space-y-6 mt-6">
-            <div className="space-y-4 mb-6">
-              <h2 className="text-2xl font-bold">Brand Kit</h2>
-              <p className="text-slate-600">
-                Customize your brand identity with logo, colors, and fonts.
-                All marketing materials will automatically use these settings.
-              </p>
-            </div>
-
-            <BrandKitManager companyName={formData.companyName || "Your Company"} />
           </TabsContent>
 
           {/* Tab 3: Integrations */}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQRCode } from "@/lib/qr-generator";
 import { generateDMCreativeImage } from "@/lib/ai/openai";
+import { generateDMCreativeImageV2, ImageQuality, ImageSize } from "@/lib/ai/openai-v2";
 import { createCampaign, createRecipient, saveLandingPage } from "@/lib/database/tracking-queries";
 import { saveAsset } from "@/lib/database/asset-management";
 // Note: Image composition moved to client-side to avoid native module issues
@@ -22,7 +23,22 @@ function getRetailQueries() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { recipient, message, companyContext, apiKey, campaignName } = body;
+    const {
+      recipient,
+      message,
+      companyContext,
+      apiKey,
+      campaignName,
+      phoneNumber, // NEW: 24/7 phone number from form
+      sceneDescription, // NEW: Custom scene description for AI image generation
+      // V2 Image Generation Parameters (optional - backward compatible)
+      imageQuality,
+      imageAspectRatio,
+      layoutTemplate, // Layout template for template-aware image generation
+      // Template reuse parameters
+      skipImageGeneration, // Skip DALL-E generation when using existing template
+      existingBackgroundImage, // Use this background instead of generating new one
+    } = body;
 
     if (!recipient || !message) {
       return NextResponse.json(
@@ -119,17 +135,119 @@ export async function POST(request: NextRequest) {
     // Generate QR code
     const qrCodeDataUrl = await generateQRCode(landingPageUrl);
 
-    console.log("Generating AI creative image with DALL-E...");
+    let backgroundImage: string;
+    let imageMetadata: any = null;
 
-    // Generate AI background image with DALL-E
-    const backgroundImage = await generateDMCreativeImage(
-      message,
-      companyContext,
-      apiKey
-    );
+    // TEMPLATE REUSE: Skip image generation if using existing template
+    if (skipImageGeneration && existingBackgroundImage) {
+      console.log("📋 Using existing template background (skipping AI generation)");
+      backgroundImage = existingBackgroundImage;
+      imageMetadata = {
+        source: 'template_reuse',
+        skipped_generation: true,
+        cost: 0,
+      };
+    } else {
+      // STANDARD FLOW: Generate new AI background
+      console.log("Generating AI creative image with DALL-E...");
+
+      // Check if V2 image generation should be used
+      const useV2 = process.env.IMAGE_GEN_VERSION === 'v2' && imageQuality && imageAspectRatio;
+
+      if (useV2) {
+      console.log(`Using V2 image generation: ${imageQuality} quality, ${imageAspectRatio} size`);
+
+      // Fetch brand configuration for brand-aware image generation
+      let brandConfig = null;
+      try {
+        const { getBrandProfile } = require("@/lib/database/tracking-queries");
+        const profile = getBrandProfile(companyName);
+
+        if (profile) {
+          brandConfig = {
+            primaryColor: profile.primary_color,
+            secondaryColor: profile.secondary_color,
+            accentColor: profile.accent_color,
+            logoUrl: profile.logo_url,
+            industry: profile.industry,
+          };
+          console.log(`✅ Brand config loaded for enhanced image generation`);
+        }
+      } catch (err) {
+        console.log("Brand config not found, using defaults");
+      }
+
+      try {
+        const result = await generateDMCreativeImageV2({
+          message,
+          context: companyContext,
+          apiKey,
+          quality: imageQuality as ImageQuality,
+          size: imageAspectRatio as ImageSize,
+          brandConfig: brandConfig || undefined,
+          layoutTemplate, // Pass layout for template-aware image generation
+          noLogoStrength: 10, // ALWAYS MAX - prevents logo generation in AI images
+          customSceneDescription: sceneDescription, // Use scene description from form
+        });
+
+        backgroundImage = result.imageUrl;
+        imageMetadata = result.metadata;
+
+        console.log(`✅ V2 image generated: ${imageMetadata.quality} quality, cost: $${imageMetadata.estimatedCost.toFixed(3)}`);
+      } catch (error) {
+        console.error("❌ V2 image generation failed, falling back to V1 with dall-e-3:", error);
+
+        // Fallback to V1 but maintain V2 settings (use dall-e-3 instead of gpt-image-1)
+        try {
+          const { generateDMCreativeImageV1Fallback } = require("@/lib/ai/openai-v2");
+          const result = await generateDMCreativeImageV1Fallback({
+            message,
+            context: companyContext,
+            apiKey,
+            quality: imageQuality as ImageQuality,
+            size: imageAspectRatio as ImageSize,
+            brandConfig,
+            layoutTemplate, // Pass layout to fallback too
+            noLogoStrength: 10, // ALWAYS MAX
+            customSceneDescription: sceneDescription, // Use scene description
+          });
+
+          backgroundImage = result.imageUrl;
+          imageMetadata = result.metadata;
+          console.log(`✅ Fallback to dall-e-3 successful: ${imageMetadata.quality} quality`);
+        } catch (fallbackError) {
+          console.error("❌ dall-e-3 fallback also failed:", fallbackError);
+          // Last resort: use old V1 function
+          backgroundImage = await generateDMCreativeImage(
+            message,
+            companyContext,
+            apiKey,
+            sceneDescription // Pass scene description
+          );
+          console.log("✅ Final fallback to legacy V1 successful");
+        }
+      }
+    } else {
+      // Use V1 (existing system)
+      console.log("Using V1 image generation (legacy/default)");
+      backgroundImage = await generateDMCreativeImage(
+        message,
+        companyContext,
+        apiKey,
+        sceneDescription // Pass scene description to V1 as well
+      );
+    }
 
     console.log("AI background image generated successfully");
     console.log("Note: Final composition will be done client-side");
+    } // End of image generation conditional (skipImageGeneration check)
+
+    // Log final background source
+    if (skipImageGeneration) {
+      console.log("✅ Using template background (no API cost)");
+    } else {
+      console.log("✅ AI background image generated");
+    }
 
     // Save landing page data to database
     try {
@@ -214,6 +332,7 @@ export async function POST(request: NextRequest) {
       data: dmData,
       campaignId: campaign.id, // Include campaign ID for reference
       campaignName: campaign.name,
+      imageMetadata, // Include V2 image metadata (cost, quality, size) if available
     };
 
     return NextResponse.json(response);

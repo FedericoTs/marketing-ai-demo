@@ -76,22 +76,48 @@ export async function POST(request: NextRequest) {
     // Extract visible text content from HTML
     const textContent = extractTextContent(htmlContent);
 
-    const analysisPrompt = `Analyze this website's text content and determine:
+    const analysisPrompt = `You are a brand strategist analyzing this website to extract comprehensive brand guidelines for marketing campaign creation.
 
-1. **Brand Voice**: The overall tone and personality (e.g., "warm and reassuring", "professional and authoritative", "playful and energetic")
-2. **Industry**: The business category (e.g., "healthcare", "retail", "technology", "finance")
-3. **Recommended Template**: Best landing page template (choose one: professional, healthcare, retail, modern, classic)
+Analyze the website content and provide detailed brand intelligence:
 
-Website: ${url.hostname}
-Company: ${companyName}
+**Website:** ${url.hostname}
+**Company:** ${companyName}
 
-Text Content Sample:
-${textContent.slice(0, 2000)}
+**Text Content Sample:**
+${textContent.slice(0, 4000)}
 
-Return ONLY a JSON object:
+Extract the following information for marketing campaign use:
+
+1. **Brand Voice** (2-3 detailed sentences): Describe the complete communication style, personality, and approach. Include specific characteristics like formality level, energy, expertise positioning, and relationship with audience. Be detailed enough that a copywriter could replicate this voice.
+
+2. **Tone** (1-2 sentences): The emotional quality and feeling of communications - warm/professional/authoritative/friendly/empathetic/confident etc.
+
+3. **Target Audience** (1-2 sentences): Primary customer demographic with specifics - age ranges, life situations, pain points, and what they're seeking.
+
+4. **Industry**: Business category (healthcare/retail/technology/finance/professional services/etc.)
+
+5. **Key Phrases** (3-7 phrases): Distinctive phrases, taglines, or word patterns the brand consistently uses. These will be incorporated into campaigns.
+
+6. **Brand Values** (3-5 values): Core values evident in messaging - what the brand stands for.
+
+7. **Communication Style Notes** (2-3 bullet points): Specific guidance for marketing copy:
+   - Word choices to use/avoid
+   - Sentence structure preferences (short & punchy vs. detailed & explanatory)
+   - Level of formality
+   - Use of technical terms vs. plain language
+   - Emotional appeal approach
+
+8. **Recommended Template**: Best landing page template (professional/healthcare/retail/modern/classic)
+
+Return ONLY a JSON object with this exact structure:
 {
-  "brandVoice": "description",
+  "brandVoice": "detailed 2-3 sentence description of complete communication style",
+  "tone": "emotional quality description",
+  "targetAudience": "detailed demographic with specifics",
   "industry": "category",
+  "keyPhrases": ["phrase1", "phrase2", "phrase3", "phrase4", "phrase5"],
+  "brandValues": ["value1", "value2", "value3", "value4"],
+  "communicationStyleNotes": ["note1", "note2", "note3"],
   "recommendedTemplate": "template name"
 }`;
 
@@ -101,12 +127,17 @@ Return ONLY a JSON object:
       model: "gpt-4-turbo-preview",
       messages: [
         {
+          role: "system",
+          content: "You are an expert brand strategist who analyzes websites to extract detailed brand guidelines for marketing campaigns. You MUST provide comprehensive, detailed descriptions (2-3 full sentences minimum) for brandVoice. You MUST include communicationStyleNotes array with 3 specific bullet points. Always return valid JSON only with ALL required fields."
+        },
+        {
           role: "user",
           content: analysisPrompt
         }
       ],
-      max_tokens: 300,
-      temperature: 0.3,
+      max_tokens: 1000,
+      temperature: 0.5,
+      response_format: { type: "json_object" }
     });
 
     const analysisText = response.choices[0].message.content || '{}';
@@ -122,8 +153,17 @@ Return ONLY a JSON object:
       console.error('Failed to parse AI response:', e);
       // Provide defaults if parsing fails
       brandData = {
-        brandVoice: 'Professional and trustworthy',
+        brandVoice: 'Professional and trustworthy communication style with balanced formality. Focuses on building credibility through expertise while maintaining approachability.',
+        tone: 'Warm and reassuring with professional confidence',
+        targetAudience: 'General consumers seeking quality products or services',
         industry: 'General',
+        keyPhrases: [],
+        brandValues: [],
+        communicationStyleNotes: [
+          'Use clear, jargon-free language',
+          'Balance professionalism with warmth',
+          'Focus on customer benefits'
+        ],
         recommendedTemplate: 'professional'
       };
     }
@@ -132,19 +172,26 @@ Return ONLY a JSON object:
     return NextResponse.json({
       success: true,
       data: {
+        // Company Profile
         companyName,
+        industry: brandData.industry || 'General',
+        brandVoice: brandData.brandVoice || 'Professional and trustworthy',
+        tone: brandData.tone || 'Warm and reassuring',
+        targetAudience: brandData.targetAudience || 'General consumers',
+        keyPhrases: brandData.keyPhrases || [],
+        brandValues: brandData.brandValues || [],
+        communicationStyleNotes: brandData.communicationStyleNotes || [],
+        websiteUrl,
+        // Visual Brand Kit
         logoUrl,
         primaryColor: colors.primary || '#1E3A8A',
         secondaryColor: colors.secondary || '#FF6B35',
         accentColor: colors.accent || '#10B981',
         headingFont: fonts.heading || 'Inter',
         bodyFont: fonts.body || 'Open Sans',
-        brandVoice: brandData.brandVoice || 'Professional and trustworthy',
-        industry: brandData.industry || 'General',
         landingPageTemplate: brandData.recommendedTemplate || 'professional',
-        websiteUrl,
       },
-      message: 'Website analyzed successfully',
+      message: 'Website analyzed successfully - comprehensive brand guidelines extracted',
     });
 
   } catch (error) {

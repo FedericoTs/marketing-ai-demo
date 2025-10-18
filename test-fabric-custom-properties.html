@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fabric.js v6 Custom Properties Test</title>
+  <script type="module">
+    import { Canvas, FabricImage, Textbox } from 'https://cdn.jsdelivr.net/npm/fabric@6/dist/index.mjs';
+
+    console.log('🧪 Testing Fabric.js v6 custom properties...');
+
+    // Create canvas
+    const canvas = new Canvas(document.getElementById('canvas'), {
+      width: 800,
+      height: 600,
+      backgroundColor: '#ffffff'
+    });
+
+    // Add text with custom property
+    const text = new Textbox('Test Message', {
+      left: 50,
+      top: 50,
+      fontSize: 20,
+      variableType: 'message', // Custom property
+    });
+    canvas.add(text);
+
+    // Add another text with different custom property
+    const name = new Textbox('John Doe', {
+      left: 50,
+      top: 100,
+      fontSize: 16,
+      variableType: 'recipientName', // Custom property
+      isReusable: false, // Another custom property
+    });
+    canvas.add(name);
+
+    console.log('✅ Objects added to canvas');
+
+    // Verify properties on canvas objects
+    console.log('🔍 Properties on canvas objects:');
+    canvas.getObjects().forEach((obj, idx) => {
+      console.log(`   Object ${idx}:`, {
+        type: obj.type,
+        text: obj.text,
+        variableType: obj.variableType,
+        isReusable: obj.isReusable
+      });
+    });
+
+    // Export to JSON with custom properties
+    const json = canvas.toJSON(['variableType', 'isReusable']);
+    console.log('📦 Exported JSON:');
+    console.log(JSON.stringify(json, null, 2));
+
+    // Verify properties in JSON
+    console.log('🔍 Properties in JSON:');
+    json.objects.forEach((obj, idx) => {
+      console.log(`   Object ${idx}:`, {
+        type: obj.type,
+        text: obj.text,
+        variableType: obj.variableType,
+        isReusable: obj.isReusable
+      });
+    });
+
+    // Create new canvas and load from JSON
+    const canvas2 = new Canvas(document.getElementById('canvas2'), {
+      width: 800,
+      height: 600,
+      backgroundColor: '#f0f0f0'
+    });
+
+    canvas2.loadFromJSON(json).then(() => {
+      console.log('✅ JSON loaded into new canvas');
+
+      // Verify properties were restored
+      console.log('🔍 Properties after loadFromJSON:');
+      canvas2.getObjects().forEach((obj, idx) => {
+        console.log(`   Object ${idx}:`, {
+          type: obj.type,
+          text: obj.text,
+          variableType: obj.variableType,
+          isReusable: obj.isReusable
+        });
+      });
+
+      // Summary
+      console.log('\n=== SUMMARY ===');
+      const allHaveVariableType = canvas2.getObjects().every(obj => obj.variableType !== undefined);
+      if (allHaveVariableType) {
+        console.log('✅ SUCCESS: All objects have variableType after loadFromJSON');
+      } else {
+        console.log('❌ FAILED: Some objects missing variableType after loadFromJSON');
+      }
+    });
+  </script>
+</head>
+<body>
+  <h1>Fabric.js v6 Custom Properties Test</h1>
+  <h2>Original Canvas</h2>
+  <canvas id="canvas"></canvas>
+  <h2>Canvas After loadFromJSON</h2>
+  <canvas id="canvas2"></canvas>
+  <p>Open browser console to see test results</p>
+</body>
+</html>

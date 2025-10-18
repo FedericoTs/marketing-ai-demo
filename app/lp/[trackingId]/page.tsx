@@ -8,6 +8,7 @@ import { LandingPageData } from "@/types/dm-creative";
 import { HearingQuestionnaire, QuestionnaireResults } from "@/components/landing/hearing-questionnaire";
 import { AppointmentForm } from "@/components/landing/appointment-form";
 import { CheckCircle2, Heart, Users, Award } from "lucide-react";
+import { generateBrandCSS, BrandConfig } from "@/lib/brand-css-generator";
 
 export default function LandingPage() {
   const params = useParams();
@@ -16,6 +17,8 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [showQuestionnaire, setShowQuestionnaire] = useState(true);
   const [questionnaireResults, setQuestionnaireResults] = useState<QuestionnaireResults | null>(null);
+  const [brandCSS, setBrandCSS] = useState<string>("");
+  const [fontImports, setFontImports] = useState<string>("");
 
   useEffect(() => {
     const loadLandingPage = async () => {
@@ -72,6 +75,58 @@ export default function LandingPage() {
 
     loadLandingPage();
   }, [trackingId]);
+
+  // Load brand CSS after page data is available
+  useEffect(() => {
+    const loadBrandCSS = async () => {
+      if (!pageData?.companyName) return;
+
+      try {
+        const response = await fetch(`/api/brand/config?companyName=${encodeURIComponent(pageData.companyName)}`);
+
+        if (!response.ok) {
+          console.log('No brand config found, using default styles');
+          const defaultCSS = generateBrandCSS();
+          setBrandCSS(defaultCSS.cssVariables);
+          setFontImports(defaultCSS.fontImports);
+          return;
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const brandConfig: BrandConfig = {
+            primaryColor: result.data.primary_color,
+            secondaryColor: result.data.secondary_color,
+            accentColor: result.data.accent_color,
+            backgroundColor: result.data.background_color,
+            textColor: result.data.text_color,
+            headingFont: result.data.heading_font,
+            bodyFont: result.data.body_font,
+          };
+
+          const generatedCSS = generateBrandCSS(brandConfig);
+          setBrandCSS(generatedCSS.cssVariables);
+          setFontImports(generatedCSS.fontImports);
+
+          console.log('✅ Brand CSS loaded for landing page:', pageData.companyName);
+        } else {
+          // No brand config, use defaults
+          const defaultCSS = generateBrandCSS();
+          setBrandCSS(defaultCSS.cssVariables);
+          setFontImports(defaultCSS.fontImports);
+        }
+      } catch (error) {
+        console.error('Error loading brand CSS:', error);
+        // Fallback to defaults
+        const defaultCSS = generateBrandCSS();
+        setBrandCSS(defaultCSS.cssVariables);
+        setFontImports(defaultCSS.fontImports);
+      }
+    };
+
+    loadBrandCSS();
+  }, [pageData]);
 
   /**
    * Check if the page is being accessed externally (should track)
@@ -148,12 +203,29 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header - Miracle-Ear Style */}
-      <header className="bg-white border-b border-slate-200">
+    <>
+      {/* Inject Google Fonts */}
+      {fontImports && (
+        <>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link href={fontImports} rel="stylesheet" />
+        </>
+      )}
+
+      {/* Inject Brand CSS Variables */}
+      {brandCSS && (
+        <style dangerouslySetInnerHTML={{ __html: brandCSS }} />
+      )}
+
+      <div className="min-h-screen bg-white">
+        {/* Header - Miracle-Ear Style */}
+        <header className="bg-white border-b border-slate-200">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-blue-900">{pageData.companyName}</h1>
+            <h1 className="text-2xl font-bold brand-primary-text" style={{ color: 'var(--brand-primary)' }}>
+              {pageData.companyName}
+            </h1>
             <div className="text-sm text-slate-600">
               75+ Years of Excellence
             </div>
@@ -165,10 +237,10 @@ export default function LandingPage() {
       <section className="bg-gradient-to-br from-blue-50 to-white py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-4xl md:text-5xl font-bold text-blue-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--brand-primary)' }}>
               Welcome, {pageData.recipient.name}!
             </h2>
-            <div className="w-20 h-1 bg-orange-500 mx-auto mb-6"></div>
+            <div className="w-20 h-1 mx-auto mb-6" style={{ backgroundColor: 'var(--brand-secondary)' }}></div>
             <p className="text-xl md:text-2xl text-slate-700 leading-relaxed">
               {pageData.message}
             </p>
@@ -183,8 +255,8 @@ export default function LandingPage() {
             {/* Left Column - Benefits & Info */}
             <div className="space-y-8">
               <div>
-                <h3 className="text-3xl font-bold text-blue-900 mb-6">
-                  Why Choose Miracle-Ear?
+                <h3 className="text-3xl font-bold mb-6" style={{ color: 'var(--brand-primary)' }}>
+                  Why Choose {pageData.companyName}?
                 </h3>
 
                 <div className="space-y-4">
@@ -231,10 +303,10 @@ export default function LandingPage() {
               </div>
 
               {/* Trust Indicators */}
-              <div className="bg-blue-900 text-white p-6 rounded-lg">
-                <h4 className="text-xl font-bold mb-4">Trusted Since 1948</h4>
-                <p className="text-blue-100 leading-relaxed">
-                  For over 75 years, Miracle-Ear has been helping people reconnect with the sounds that matter most. Join millions who have rediscovered the joy of hearing.
+              <div className="text-white p-6 rounded-lg" style={{ backgroundColor: 'var(--brand-primary)' }}>
+                <h4 className="text-xl font-bold mb-4">Trusted Excellence</h4>
+                <p className="leading-relaxed opacity-90">
+                  For over 75 years, {pageData.companyName} has been helping people reconnect with the sounds that matter most. Join millions who have rediscovered the joy of hearing.
                 </p>
               </div>
             </div>
@@ -265,6 +337,7 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

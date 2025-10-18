@@ -16,8 +16,9 @@ export interface DirectMailData {
   message: string;
   qrCodeDataUrl: string;
   landingPageUrl: string;
-  createdAt: Date;
+  createdAt: string | Date;
   creativeImageUrl?: string; // AI-generated DM creative image
+  companyName?: string;
 }
 
 export interface LandingPageData {
@@ -25,7 +26,7 @@ export interface LandingPageData {
   recipient: RecipientData;
   message: string;
   companyName: string;
-  createdAt: Date;
+  createdAt: string | Date;
   visits: number;
 }
 
@@ -40,4 +41,5 @@ export interface DMGenerateResponse {
   error?: string;
   campaignId?: string;
   campaignName?: string;
+  imageMetadata?: any;
 }

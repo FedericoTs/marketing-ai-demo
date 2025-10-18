@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateCopyVariations } from "@/lib/ai/openai";
 import { getBrandProfile } from "@/lib/database/tracking-queries";
-import { CopywritingRequest, CopywritingResponse } from "@/types/copywriting";
+import { CopywritingRequest, CopywritingResponse, BrandMetadata } from "@/types/copywriting";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,10 +30,25 @@ export async function POST(request: NextRequest) {
 
     // Check if brand profile exists for enhanced copywriting
     let brandProfile = null;
+    let brandMetadata: BrandMetadata = {
+      brandVoiceApplied: false,
+    };
+
     try {
       brandProfile = getBrandProfile(companyContext.companyName);
       if (brandProfile) {
         console.log(`✨ Using brand profile for ${companyContext.companyName}`);
+
+        // Parse brand data to create metadata
+        const keyPhrases = brandProfile.key_phrases ? JSON.parse(brandProfile.key_phrases) : [];
+        const values = brandProfile.brand_values ? JSON.parse(brandProfile.brand_values) : [];
+
+        brandMetadata = {
+          brandVoiceApplied: true,
+          tone: brandProfile.tone || undefined,
+          keyPhrasesCount: keyPhrases.length,
+          valuesCount: values.length,
+        };
       }
     } catch (error) {
       console.log("No brand profile found, using basic context");
@@ -49,6 +64,7 @@ export async function POST(request: NextRequest) {
     const response: CopywritingResponse = {
       success: true,
       variations,
+      brandMetadata,
     };
 
     return NextResponse.json(response);

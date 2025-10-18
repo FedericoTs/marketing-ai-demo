@@ -21,6 +21,68 @@ export function getDatabase(): Database.Database {
 }
 
 /**
+ * Migrate brand_profiles table to add brand kit columns if they don't exist
+ * @param database Database instance
+ */
+function migrateBrandProfiles(database: Database.Database): void {
+  try {
+    // Check if logo_url column exists
+    const columns = database.prepare("PRAGMA table_info(brand_profiles)").all() as Array<{ name: string }>;
+    const columnNames = columns.map((col) => col.name);
+
+    if (!columnNames.includes('logo_url')) {
+      console.log('🔄 Migrating brand_profiles table to add brand kit columns...');
+
+      // SQLite doesn't support adding multiple columns in one statement
+      // We need to add them one by one
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN logo_url TEXT;
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN logo_asset_id TEXT;
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN primary_color TEXT DEFAULT '#1E3A8A';
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN secondary_color TEXT DEFAULT '#FF6B35';
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN accent_color TEXT DEFAULT '#10B981';
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN background_color TEXT DEFAULT '#FFFFFF';
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN text_color TEXT DEFAULT '#1F2937';
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN heading_font TEXT DEFAULT 'Inter';
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN body_font TEXT DEFAULT 'Open Sans';
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN landing_page_template TEXT DEFAULT 'professional';
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN website_url TEXT;
+      `);
+      database.exec(`
+        ALTER TABLE brand_profiles ADD COLUMN last_updated_at TEXT;
+      `);
+
+      console.log('✅ Brand profiles table migrated successfully - all brand kit columns added');
+    } else {
+      console.log('✅ Brand profiles table already has brand kit columns - no migration needed');
+    }
+  } catch (error) {
+    console.error('❌ Migration error:', error);
+    // Don't throw - allow app to continue even if migration fails
+  }
+}
+
+/**
  * Initialize database schema (SQLite-compatible, Supabase-ready)
  * @param database Database instance
  */
@@ -222,6 +284,9 @@ function initializeSchema(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_brand_profiles_company
     ON brand_profiles(company_name);
   `);
+
+  // Migrate brand_profiles table to add brand kit columns if missing
+  migrateBrandProfiles(database);
 
   // ==================== RETAIL MODULE TABLES (Phase 8A) ====================
   // These tables are created but inactive until retail module is enabled in settings

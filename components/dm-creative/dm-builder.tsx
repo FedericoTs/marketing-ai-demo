@@ -128,7 +128,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
         companyName: settings.companyName,
       };
 
-      onGenerated(dmData);
+      onGenerated?.(dmData);
       toast.success("✨ Premium DM created successfully!");
 
       // Reset states
@@ -655,143 +655,161 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
         )}
 
         <form onSubmit={handleGenerate} className="space-y-6">
-          {/* Campaign Information Section */}
-          <div className="space-y-4 pb-6 border-b">
-            <h3 className="text-lg font-semibold text-slate-900">Campaign Information</h3>
+          {/* Two Column Layout */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Left Column - Campaign & Recipient Info */}
+            <div className="space-y-6">
+              {/* Campaign Information Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-blue-600" />
+                    Campaign Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="campaignName">Campaign Name (Optional)</Label>
+                    <Input
+                      id="campaignName"
+                      name="campaignName"
+                      value={formData.campaignName}
+                      onChange={handleChange}
+                      placeholder="e.g., Summer 2025 Hearing Aid Promo"
+                      className="text-base"
+                    />
+                    <p className="text-xs text-slate-500">
+                      Leave empty to auto-generate
+                    </p>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="campaignName">Campaign Name (Optional)</Label>
-              <Input
-                id="campaignName"
-                name="campaignName"
-                value={formData.campaignName}
-                onChange={handleChange}
-                placeholder="e.g., Summer 2025 Hearing Aid Promo"
-                className="text-base"
-              />
-              <p className="text-xs text-slate-500">
-                Leave empty to auto-generate campaign name
-              </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">Contact Phone Number</Label>
+                    <Input
+                      id="phoneNumber"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handleChange}
+                      placeholder="+1 (800) 555-1234"
+                      className="text-base"
+                    />
+                    <p className="text-xs text-slate-500">
+                      Appears on all direct mail pieces
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recipient Details Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Recipient Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">First Name *</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="John"
+                        required
+                        className="text-base"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="lastname">Last Name *</Label>
+                      <Input
+                        id="lastname"
+                        name="lastname"
+                        value={formData.lastname}
+                        onChange={handleChange}
+                        placeholder="Doe"
+                        required
+                        className="text-base"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Street Address</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      placeholder="123 Main Street"
+                      className="text-base"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleChange}
+                        placeholder="New York"
+                        className="text-base"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="zip">ZIP Code</Label>
+                      <Input
+                        id="zip"
+                        name="zip"
+                        value={formData.zip}
+                        onChange={handleChange}
+                        placeholder="10001"
+                        className="text-base"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Contact Phone Number</Label>
-              <Input
-                id="phoneNumber"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                placeholder="+1 (800) 555-1234"
-                className="text-base"
-              />
-              <p className="text-xs text-slate-500">
-                This number will appear on all direct mail pieces
-              </p>
-            </div>
-          </div>
+            {/* Right Column - Content & AI Settings */}
+            <div className="space-y-6">
+              {/* Marketing Content Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Marketing Content</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Label htmlFor="message">Marketing Message *</Label>
+                  <Textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    placeholder="Enter your personalized marketing message..."
+                    rows={8}
+                    required
+                    className="text-base resize-none"
+                  />
+                  <p className="text-xs text-slate-500">
+                    This message will appear in both the direct mail and landing page
+                  </p>
+                </CardContent>
+              </Card>
 
-          {/* Recipient Details Section */}
-          <div className="space-y-4 pb-6 border-b">
-            <h3 className="text-lg font-semibold text-slate-900">Recipient Details</h3>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">First Name *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="John"
-                  required
-                  className="text-base"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastname">Last Name *</Label>
-                <Input
-                  id="lastname"
-                  name="lastname"
-                  value={formData.lastname}
-                  onChange={handleChange}
-                  placeholder="Doe"
-                  required
-                  className="text-base"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Street Address</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="123 Main Street"
-                className="text-base"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="New York"
-                  className="text-base"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="zip">ZIP Code</Label>
-                <Input
-                  id="zip"
-                  name="zip"
-                  value={formData.zip}
-                  onChange={handleChange}
-                  placeholder="10001"
-                  className="text-base"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Marketing Content Section */}
-          <div className="space-y-4 pb-6 border-b">
-            <h3 className="text-lg font-semibold text-slate-900">Marketing Content</h3>
-
-            <div className="space-y-2">
-              <Label htmlFor="message">Marketing Message *</Label>
-              <Textarea
-                id="message"
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Enter your personalized marketing message..."
-                rows={6}
-                required
-                className="text-base resize-none"
-              />
-              <p className="text-xs text-slate-500">
-                This message will appear in both the direct mail and landing page
-              </p>
-            </div>
-          </div>
-
-          {/* AI Image Generation Section - Only show if NO template loaded */}
-          {!loadedTemplate?.hasDesign && (
-            <div className="space-y-4 pb-6">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                <h3 className="text-lg font-semibold text-slate-900">AI Image Generation</h3>
-              </div>
-
-              <div className="space-y-4 bg-purple-50/50 border-2 border-purple-200 rounded-lg p-4">
+              {/* AI Image Generation Section - Only show if NO template loaded */}
+              {!loadedTemplate?.hasDesign && (
+                <Card className="border-2 border-purple-200 bg-purple-50/30">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-600" />
+                      AI Image Generation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="sceneDescription" className="font-medium text-purple-900">
                     Scene Description
@@ -923,10 +941,13 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
                     onSelect={setLayoutTemplate}
                   />
                 </div>
-              </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-          )}
+          </div>
 
+          {/* Submit Button - Full Width Below Grid */}
           <Button
             type="submit"
             disabled={isLoading}

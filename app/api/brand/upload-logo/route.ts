@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     // Update brand profile with logo
     const updatedProfile = updateBrandKit({
       companyName,
-      logoUrl,
+      logoUrl: logoUrl ?? undefined,
       logoAssetId: asset.id,
     });
 

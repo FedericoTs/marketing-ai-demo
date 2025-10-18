@@ -16,8 +16,17 @@ export interface CopywritingRequest {
   };
 }
 
+export interface BrandMetadata {
+  brandVoiceApplied: boolean;
+  tone?: string;
+  keyPhrasesCount?: number;
+  valuesCount?: number;
+  styleNotesCount?: number;
+}
+
 export interface CopywritingResponse {
   variations: CopyVariation[];
   success: boolean;
   error?: string;
+  brandMetadata?: BrandMetadata;
 }

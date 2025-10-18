@@ -12,12 +12,32 @@ export interface CompanyContext {
 export async function generateDMCreativeImage(
   message: string,
   context: CompanyContext,
-  apiKey: string
+  apiKey: string,
+  sceneDescription?: string // NEW: Optional scene description from form
 ): Promise<string> {
   const openai = new OpenAI({ apiKey });
 
-  // Miracle-Ear brand colors: Deep blue (#003E7E), Warm orange (#FF6B35), Clean white
-  const imagePrompt = `A horizontal advertisement poster, flat graphic style, vibrant colors.
+  // Build prompt based on whether scene description is provided
+  let imagePrompt: string;
+
+  if (sceneDescription) {
+    // Use custom scene description from user
+    console.log('🎨 Using custom scene description for image generation');
+    imagePrompt = `A horizontal advertisement poster, flat graphic style, vibrant colors.
+
+Left third: solid deep navy blue panel (#003E7E color).
+
+Right two-thirds: ${sceneDescription}
+
+Style: professional healthcare advertisement, clean modern graphic, flat design, digital poster format, NO TEXT OVERLAYS, NO LOGOS, vivid photography on right, solid color block on left.
+
+Flat vector advertisement style, sharp division between blue panel and photograph, horizontal layout, contemporary marketing aesthetic, simple clean composition.
+
+CRITICAL: NO company logos, NO brand marks, NO text or typography of any kind. Photography ONLY.`;
+  } else {
+    // Use default prompt
+    console.log('🎨 Using default scene description');
+    imagePrompt = `A horizontal advertisement poster, flat graphic style, vibrant colors.
 
 Left third: solid deep navy blue panel (#003E7E color).
 
@@ -28,6 +48,7 @@ Theme: ${message}
 Style: professional healthcare advertisement, clean modern graphic, flat design, digital poster format, no text overlays, vivid photography on right, solid color block on left.
 
 Flat vector advertisement style, sharp division between blue panel and photograph, horizontal layout, contemporary marketing aesthetic, simple clean composition.`;
+  }
 
   try {
     // Try minimal parameters first - gpt-image-1 doesn't support response_format
@@ -81,6 +102,94 @@ Flat vector advertisement style, sharp division between blue panel and photograp
   }
 }
 
+/**
+ * Legacy V1 function WITH size parameter support
+ * Used as final fallback when all V2 attempts fail
+ */
+export async function generateDMCreativeImageWithSize(
+  message: string,
+  context: CompanyContext,
+  apiKey: string,
+  size: string = "1024x1024"
+): Promise<{ imageUrl: string; promptUsed: string; metadata: any }> {
+  const openai = new OpenAI({ apiKey });
+
+  const imagePrompt = `A ${size.includes('1536x1024') ? 'horizontal' : size.includes('1024x1536') ? 'vertical' : 'square'} advertisement poster, flat graphic style, vibrant colors.
+
+Left third: solid deep navy blue panel (#003E7E color).
+
+Right two-thirds: warm photograph showing a joyful senior adult smiling, natural lighting, closeup portrait, emotional moment of connection and happiness.
+
+Theme: ${message}
+
+Style: professional healthcare advertisement, clean modern graphic, flat design, digital poster format, no text overlays, vivid photography on right, solid color block on left.
+
+Flat vector advertisement style, sharp division between blue panel and photograph, ${size.includes('1536x1024') ? 'horizontal' : size.includes('1024x1536') ? 'vertical' : 'square'} layout, contemporary marketing aesthetic, simple clean composition.`;
+
+  try {
+    const response = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: imagePrompt,
+      n: 1,
+      size: size as "1024x1024" | "1536x1024" | "1024x1536",
+    });
+
+    console.log("gpt-image-1 API Response structure:", {
+      hasData: !!response.data,
+      dataLength: response.data?.length,
+      firstItem: response.data?.[0] ? Object.keys(response.data[0]) : null
+    });
+
+    // Check if response has URL (like DALL-E 3) or b64_json
+    const firstItem = response.data?.[0];
+    if (!firstItem) {
+      console.error("No data in response:", response);
+      throw new Error("No image data returned from gpt-image-1");
+    }
+
+    let imageUrl: string;
+
+    // Try URL first (most common)
+    if (firstItem.url) {
+      console.log("Got image URL from gpt-image-1");
+      const imageResponse = await fetch(firstItem.url);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64Image = Buffer.from(imageBuffer).toString("base64");
+      imageUrl = `data:image/png;base64,${base64Image}`;
+    }
+    // Try b64_json
+    else if (firstItem.b64_json) {
+      console.log("Got base64 image from gpt-image-1");
+      imageUrl = `data:image/png;base64,${firstItem.b64_json}`;
+    }
+    else {
+      console.error("Unknown response format:", firstItem);
+      throw new Error("Unexpected response format from gpt-image-1");
+    }
+
+    return {
+      imageUrl,
+      promptUsed: imagePrompt,
+      metadata: {
+        quality: 'standard',
+        size: size,
+        model: 'gpt-image-1',
+        generatedAt: new Date().toISOString(),
+      }
+    };
+  } catch (error) {
+    console.error("Error generating DM creative image with gpt-image-1:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+    throw error;
+  }
+}
+
 export async function generateCopyVariations(
   prompt: string,
   context: CompanyContext,
@@ -109,16 +218,19 @@ ${context.targetAudience}`;
 
 Brand Voice: ${brandProfile.brand_voice || 'Professional and engaging'}
 Tone: ${brandProfile.tone || 'Trustworthy and approachable'}
+Industry: ${brandProfile.industry || context.industry}
 
-${keyPhrases.length > 0 ? `Key Brand Phrases to Incorporate:
-${keyPhrases.map((p: string) => `- "${p}"`).join('\n')}` : ''}
+${keyPhrases.length > 0 ? `Key Brand Phrases to Incorporate Naturally:
+${keyPhrases.map((p: string) => `• "${p}"`).join('\n')}
+` : ''}
 
-${values.length > 0 ? `Core Brand Values:
-${values.map((v: string) => `- ${v}`).join('\n')}` : ''}
+${values.length > 0 ? `Core Brand Values to Reflect:
+${values.map((v: string) => `• ${v}`).join('\n')}
+` : ''}
 
-${brandProfile.target_audience ? `Target Audience: ${brandProfile.target_audience}` : ''}
+${brandProfile.target_audience ? `Primary Target Audience: ${brandProfile.target_audience}` : ''}
 
-IMPORTANT: Use these brand-specific phrases, tone, and values consistently across all variations.`;
+CRITICAL: Generate copy that EMBODIES this brand voice authentically.`;
   }
 
   systemPrompt += `

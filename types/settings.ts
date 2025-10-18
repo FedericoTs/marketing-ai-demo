@@ -16,6 +16,7 @@ export interface CompanySettings {
   elevenlabsAgentId?: string;
   elevenlabsPhoneNumberId?: string;
   elevenlabsAgents?: ElevenLabsAgent[];
+  phoneNumber?: string;
 }
 
 export const defaultSettings: CompanySettings = {

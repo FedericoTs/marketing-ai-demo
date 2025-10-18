@@ -43,6 +43,7 @@ interface Template {
   created_at: string;
   updated_at: string;
   assets?: TemplateAsset[];
+  dmTemplate?: DMTemplateData; // NEW: Linked DM template design
 }
 
 interface TemplateAsset {
@@ -51,6 +52,19 @@ interface TemplateAsset {
   asset_name: string;
   publicUrl: string;
   metadata: any;
+}
+
+interface DMTemplateData {
+  id: string;
+  campaignId: string;
+  canvasSessionId?: string;
+  name: string;
+  canvasJSON: string;
+  backgroundImage: string;
+  canvasWidth: number;
+  canvasHeight: number;
+  previewImage?: string;
+  variableMappings?: string;
 }
 
 type CategoryFilter = "all" | "general" | "retail" | "seasonal" | "promotional";
@@ -72,25 +86,31 @@ export function TemplateLibrary() {
       const result = await response.json();
 
       if (result.success) {
-        // Fetch assets for each template
-        const templatesWithAssets = await Promise.all(
+        // Fetch assets and DM templates for each template
+        const templatesWithData = await Promise.all(
           result.data.map(async (template: Template) => {
             try {
+              // Fetch assets (background images, QR codes)
               const assetsResponse = await fetch(`/api/campaigns/templates/${template.id}/assets`);
               const assetsResult = await assetsResponse.json();
+
+              // Fetch linked DM template design
+              const dmTemplateResponse = await fetch(`/api/dm-template?campaignTemplateId=${template.id}`);
+              const dmTemplateResult = await dmTemplateResponse.json();
 
               return {
                 ...template,
                 assets: assetsResult.success ? assetsResult.data : [],
+                dmTemplate: dmTemplateResult.success && dmTemplateResult.data ? dmTemplateResult.data : undefined,
               };
             } catch (error) {
-              console.error(`Failed to load assets for template ${template.id}:`, error);
-              return { ...template, assets: [] };
+              console.error(`Failed to load data for template ${template.id}:`, error);
+              return { ...template, assets: [], dmTemplate: undefined };
             }
           })
         );
 
-        setTemplates(templatesWithAssets);
+        setTemplates(templatesWithData);
       }
     } catch (error) {
       console.error("Failed to load templates:", error);
@@ -136,7 +156,8 @@ export function TemplateLibrary() {
         method: "POST",
       });
 
-      // Store comprehensive template data in localStorage for DM Creative page
+      // Store template metadata in localStorage (NOT the large design data)
+      // Canvas editor will fetch the full template using dmTemplateId
       localStorage.setItem(
         "selectedTemplate",
         JSON.stringify({
@@ -145,11 +166,16 @@ export function TemplateLibrary() {
           message: template.template_data.message,
           targetAudience: template.template_data.targetAudience,
           tone: template.template_data.tone,
-          assets: template.assets || [],
+          // DM template reference (just the ID, not the large data)
+          dmTemplateId: template.dmTemplate?.id,
+          hasDesign: !!template.dmTemplate,
+          // Note: canvasJSON, backgroundImage, previewImage are NOT stored here
+          // They're too large for localStorage and will be fetched by canvas editor
         })
       );
 
-      toast.success("Template loaded! Redirecting to campaign creation...");
+      const designStatus = template.dmTemplate ? "message and design" : "message";
+      toast.success(`Template loaded (${designStatus})! Redirecting...`);
 
       // Redirect to DM Creative page
       setTimeout(() => {
@@ -290,8 +316,10 @@ export function TemplateLibrary() {
         {filteredTemplates.map((template) => {
           const CategoryIcon = getCategoryIcon(template.category);
           const isSystemTemplate = template.is_system_template === 1;
+          const hasDesign = !!template.dmTemplate;
 
-          // Find background image asset
+          // Prioritize DM template preview image, fallback to background asset
+          const previewImage = template.dmTemplate?.previewImage;
           const backgroundAsset = template.assets?.find(
             (asset) => asset.asset_type === "background_image"
           );
@@ -303,10 +331,10 @@ export function TemplateLibrary() {
               className="border-slate-200 hover:border-slate-300 transition-all hover:shadow-md overflow-hidden"
             >
               {/* DM Preview Image */}
-              {backgroundAsset && (
+              {(previewImage || backgroundAsset) && (
                 <div className="relative h-48 bg-slate-100 overflow-hidden">
                   <img
-                    src={backgroundAsset.publicUrl || ""}
+                    src={previewImage || backgroundAsset?.publicUrl || ""}
                     alt={`${template.name} preview`}
                     className="w-full h-full object-cover"
                   />
@@ -319,6 +347,17 @@ export function TemplateLibrary() {
                       />
                     </div>
                   )}
+                  <div className="absolute top-2 left-2 flex gap-2">
+                    {hasDesign && (
+                      <div
+                        className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium shadow-sm flex items-center gap-1"
+                        title="This template includes a pre-designed layout"
+                      >
+                        <Eye className="h-3 w-3" />
+                        Design Available
+                      </div>
+                    )}
+                  </div>
                   <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium text-slate-700">
                     Preview
                   </div>
@@ -368,20 +407,30 @@ export function TemplateLibrary() {
                 </div>
 
                 {/* Template Metadata */}
-                {(template.template_data.targetAudience || template.template_data.tone) && (
-                  <div className="mb-4 space-y-1 text-xs text-slate-600">
-                    {template.template_data.targetAudience && (
-                      <p>
-                        <span className="font-medium">Target:</span> {template.template_data.targetAudience}
-                      </p>
-                    )}
-                    {template.template_data.tone && (
-                      <p>
-                        <span className="font-medium">Tone:</span> {template.template_data.tone}
-                      </p>
-                    )}
+                <div className="mb-4 space-y-2">
+                  {/* What's Included Badge */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded text-xs font-medium">
+                      <Library className="h-3 w-3" />
+                      {hasDesign ? "Message + Design" : "Message Only"}
+                    </span>
                   </div>
-                )}
+
+                  {(template.template_data.targetAudience || template.template_data.tone) && (
+                    <div className="space-y-1 text-xs text-slate-600">
+                      {template.template_data.targetAudience && (
+                        <p>
+                          <span className="font-medium">Target:</span> {template.template_data.targetAudience}
+                        </p>
+                      )}
+                      {template.template_data.tone && (
+                        <p>
+                          <span className="font-medium">Tone:</span> {template.template_data.tone}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-2">
