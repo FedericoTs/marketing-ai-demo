@@ -44,6 +44,8 @@ import {
   Unlock,
   ChevronUp,
   ChevronDown,
+  Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { RecipientData } from "@/types/dm-creative";
 
@@ -122,6 +124,7 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [logoLibrary, setLogoLibrary] = useState<string[]>([]);
+  const [customImageCounter, setCustomImageCounter] = useState(1);  // Track custom images
 
   // Properties for selected element
   const [fontFamily, setFontFamily] = useState("Arial");
@@ -220,6 +223,30 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
       fabricCanvasRef.current = null;
     };
   }, [backgroundImage, canvasWidth, canvasHeight]);
+
+  /**
+   * PHASE 2: Keyboard event handler (Delete key)
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Delete/Backspace key
+      if (e.key === "Delete" || e.key === "Backspace") {
+        // Don't trigger if user is typing in an input/textarea
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextArea) {
+          return;
+        }
+
+        e.preventDefault();
+        handleDelete();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleDelete]);  // Include handleDelete in dependencies
 
   /**
    * Apply zoom changes to canvas
@@ -489,20 +516,133 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
 
       fabric.Image.fromURL(dataUrl, { crossOrigin: 'anonymous' })
         .then((img: any) => {
+          // PRESERVE ASPECT RATIO: Scale to max width of 200px
+          const maxLogoWidth = 200;
+          const scale = maxLogoWidth / (img.width || maxLogoWidth);
+
           img.set({
             left: 30,
             top: 30,
-            scaleX: 150 / (img.width || 150),
-            scaleY: 70 / (img.height || 70),
+            scaleX: scale,  // Same scale for both dimensions
+            scaleY: scale,  // This preserves aspect ratio
           });
-          (img as any).data = { id: "logo", type: "logo" };
+
+          (img as any).data = {
+            id: "logo",
+            type: "logo",
+            displayName: "Company Logo",
+            variableType: "logo",
+            category: "standard"
+          };
+
           canvas.add(img);
           canvas.renderAll();
+          saveToHistory();
           toast.success("Logo uploaded and added to library");
         })
         .catch((error) => {
           console.error("Failed to upload logo:", error);
           toast.error("Failed to upload logo");
+        });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  /**
+   * PHASE 2: Delete selected object (with confirmation for standard layers)
+   */
+  const handleDelete = () => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject) {
+      toast.error("Please select an object to delete");
+      return;
+    }
+
+    const objData = (activeObject as any).data;
+    const variableType = objData?.variableType || objData?.type;
+    const displayName = objData?.displayName || variableType || "this object";
+
+    // Check if this is a standard layer (requires confirmation)
+    const standardLayers = ['logo', 'background-image', 'message', 'qr-code', 'customer-name', 'customer-address', 'phone-number'];
+    const isStandardLayer = standardLayers.includes(variableType);
+
+    if (isStandardLayer) {
+      // Confirmation required for standard layers
+      if (!window.confirm(`Are you sure you want to delete "${displayName}"? This is a standard layer used for variable replacement.`)) {
+        return;
+      }
+    }
+
+    // Remove from canvas
+    canvas.remove(activeObject);
+    canvas.renderAll();
+    saveToHistory();
+
+    // Remove from elements state
+    const objId = objData?.id;
+    if (objId) {
+      setElements((prev) => prev.filter((el) => el.id !== objId));
+    }
+
+    toast.success(`Deleted ${displayName}`);
+    setSelectedElement(null);
+  };
+
+  /**
+   * PHASE 2: Upload custom image (decorative, not a standard layer)
+   */
+  const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+
+      fabric.Image.fromURL(dataUrl, { crossOrigin: 'anonymous' })
+        .then((img: any) => {
+          // PRESERVE ASPECT RATIO: Scale to max width of 300px
+          const maxWidth = 300;
+          const scale = Math.min(maxWidth / (img.width || maxWidth), 1);  // Don't upscale
+
+          // Generate unique variableType
+          const variableType = `decorative-image-${customImageCounter}`;
+
+          img.set({
+            left: canvasWidth / 2 - (img.width * scale) / 2,  // Center horizontally
+            top: canvasHeight / 2 - (img.height * scale) / 2,  // Center vertically
+            scaleX: scale,
+            scaleY: scale,
+          });
+
+          // Enhanced metadata for layer management
+          (img as any).data = {
+            id: variableType,
+            type: "image",
+            displayName: `Image ${customImageCounter}`,
+            variableType: variableType,
+            category: "custom-image",
+            imageData: dataUrl,  // Store base64 for template saving
+          };
+
+          canvas.add(img);
+          canvas.setActiveObject(img);  // Auto-select after adding
+          canvas.renderAll();
+          saveToHistory();
+
+          registerElement(variableType, "image", img);
+          setCustomImageCounter((prev) => prev + 1);
+
+          toast.success(`Added Image ${customImageCounter}`);
+        })
+        .catch((error) => {
+          console.error("Failed to upload image:", error);
+          toast.error("Failed to upload image");
         });
     };
     reader.readAsDataURL(file);
@@ -704,6 +844,24 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
           onChange={handleLogoUpload}
         />
 
+        {/* PHASE 2: Custom Image Upload */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => document.getElementById("custom-image-upload")?.click()}
+          className="w-12 h-12 p-0"
+          title="Add Image"
+        >
+          <ImageIcon className="w-5 h-5" />
+        </Button>
+        <input
+          id="custom-image-upload"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleCustomImageUpload}
+        />
+
         <div className="h-px w-8 bg-gray-300 my-2" />
 
         <Button
@@ -729,6 +887,18 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
         </Button>
 
         <div className="h-px w-8 bg-gray-300 my-2" />
+
+        {/* PHASE 2: Delete Tool */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleDelete}
+          disabled={!selectedElement}
+          className="w-12 h-12 p-0 hover:bg-red-50 hover:text-red-600"
+          title="Delete (Del)"
+        >
+          <Trash2 className="w-5 h-5" />
+        </Button>
 
         <Button
           variant="ghost"
