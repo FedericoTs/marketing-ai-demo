@@ -21,12 +21,28 @@ export interface DMTemplate {
 
 export interface VariableMapping {
   [key: string]: {
+    // EXISTING FIELDS (backward compatible)
     type: "text" | "image" | "backgroundImage";
     objectId?: string;
     dataField: string;
     variable: boolean;
     reusable?: boolean;
     regenerate?: boolean;
+
+    // ENHANCED FIELDS (additive, non-breaking)
+    displayName?: string;          // User-editable layer name (shown in UI)
+    variableType?: string;          // Immutable system reference for programmatic replacement
+    category?: "standard" | "custom-image" | "custom-shape" | "custom-text";
+    isLocked?: boolean;             // Layer lock state
+    isVisible?: boolean;            // Layer visibility state
+    layerOrder?: number;            // Z-index for layer ordering
+    imageData?: string;             // For custom images (base64 data URL)
+    shapeData?: {                   // For custom shapes
+      shapeType: "rectangle" | "circle" | "line";
+      fill?: string;
+      stroke?: string;
+      strokeWidth?: number;
+    };
   };
 }
 

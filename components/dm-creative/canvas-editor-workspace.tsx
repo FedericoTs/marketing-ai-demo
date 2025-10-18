@@ -249,14 +249,27 @@ export const CanvasEditorWorkspace = forwardRef<CanvasEditorWorkspaceHandle, Can
     if (logoUrl) {
       fabric.Image.fromURL(logoUrl, { crossOrigin: 'anonymous' })
         .then((img: any) => {
+          // PRESERVE ASPECT RATIO: Scale to max width of 200px
+          const maxLogoWidth = 200;
+          const scale = maxLogoWidth / (img.width || maxLogoWidth);
+
           img.set({
             left: padding,
             top: padding,
-            scaleX: 150 / (img.width || 150),
-            scaleY: 70 / (img.height || 70),
+            scaleX: scale,  // Same scale for both dimensions
+            scaleY: scale,  // This preserves aspect ratio
           });
+
           // Use data attribute for custom properties in Fabric.js v6
-          (img as any).data = { id: "logo", type: "logo" };
+          (img as any).data = {
+            id: "logo",
+            type: "logo",
+            // Enhanced metadata for layer management
+            displayName: "Company Logo",
+            variableType: "logo",  // Immutable reference for programmatic replacement
+            category: "standard"
+          };
+
           canvas.add(img);
           registerElement("logo", "logo", img);
         })
