@@ -1097,7 +1097,7 @@ export default function CanvasEditorPage() {
     if (!canvas) return;
 
     const obj = layer.fabricObject;
-    canvas.bringForward(obj);
+    canvas.bringObjectForward(obj);
     canvas.renderAll();
     syncLayers();
   };
@@ -1108,7 +1108,7 @@ export default function CanvasEditorPage() {
     if (!canvas) return;
 
     const obj = layer.fabricObject;
-    canvas.sendBackwards(obj);
+    canvas.sendObjectBackwards(obj);
     canvas.renderAll();
     syncLayers();
   };
@@ -1167,38 +1167,32 @@ export default function CanvasEditorPage() {
 
   // PHASE 5: Property Application Functions
 
-  // Apply fill color change
+  // Apply fill color change (silently - no toast to avoid spam when dragging)
   const applyFillColor = (color: string) => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
 
     const activeObject = canvas.getActiveObject();
-    if (!activeObject) {
-      toast.error("Please select an object first");
-      return;
-    }
+    if (!activeObject) return; // Silent fail - user will see no change
 
     activeObject.set({ fill: color });
     canvas.renderAll();
     setObjectFill(color);
-    toast.success("Fill color updated");
+    // No toast - this fires continuously when dragging color picker
   };
 
-  // Apply stroke color change
+  // Apply stroke color change (silently - no toast to avoid spam when dragging)
   const applyStrokeColor = (color: string) => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
 
     const activeObject = canvas.getActiveObject();
-    if (!activeObject) {
-      toast.error("Please select an object first");
-      return;
-    }
+    if (!activeObject) return; // Silent fail - user will see no change
 
     activeObject.set({ stroke: color });
     canvas.renderAll();
     setObjectStroke(color);
-    toast.success("Stroke color updated");
+    // No toast - this fires continuously when dragging color picker
   };
 
   // Apply font size change
