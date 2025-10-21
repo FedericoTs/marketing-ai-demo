@@ -279,13 +279,15 @@ export default function HomePage() {
       {/* Hero Section */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
+          <img
+            src="/images/logo_icon_tbg.png"
+            alt="DropLab"
+            className="h-10 w-auto object-contain"
+          />
           <h1 className="text-4xl font-bold text-slate-900">
             {isSetupComplete && settings.companyName
               ? `Welcome back, ${settings.companyName}!`
-              : "AI Marketing Platform"}
+              : "DropLab"}
           </h1>
         </div>
         <p className="text-xl text-slate-600">
@@ -488,9 +490,9 @@ export default function HomePage() {
                   <Target className="h-5 w-5 text-blue-600" />
                   <h4 className="font-semibold text-slate-900">Recent Campaigns</h4>
                 </div>
-                <div className="space-y-2">
-                  {recentRetailCampaigns.map((campaign) => (
-                    <Link href={`/campaigns/${campaign.id}`} key={campaign.id}>
+                <div>
+                  {recentRetailCampaigns.map((campaign, index) => (
+                    <Link href={`/campaigns/${campaign.id}`} key={campaign.id} className={index > 0 ? "mt-4 block" : "block"}>
                       <div className="p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -679,7 +681,7 @@ export default function HomePage() {
               Platform Ready!
             </h3>
             <p className="text-base text-slate-600 mb-6">
-              Your AI marketing platform is configured and ready. Create your first campaign to start engaging customers with personalized direct mail.
+              Your DropLab platform is configured and ready. Create your first campaign to start engaging customers with personalized direct mail.
             </p>
             <div className="flex justify-center gap-3">
               <Button asChild size="lg" className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">

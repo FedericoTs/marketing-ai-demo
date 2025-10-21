@@ -114,6 +114,31 @@ function initializeSchema(database: Database.Database): void {
     );
   `);
 
+  // DM Templates table (for Template Library - Fabric.js canvases)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS dm_templates (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL,
+      canvas_session_id TEXT,
+      campaign_template_id TEXT,
+      name TEXT NOT NULL,
+      canvas_json TEXT NOT NULL,
+      background_image TEXT NOT NULL,
+      canvas_width INTEGER NOT NULL,
+      canvas_height INTEGER NOT NULL,
+      preview_image TEXT,
+      variable_mappings TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+      FOREIGN KEY (campaign_template_id) REFERENCES campaign_templates(id)
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_dm_templates_campaign
+    ON dm_templates(campaign_id);
+  `);
+
   // Campaign Assets table (Phase 11A - Asset Management)
   database.exec(`
     CREATE TABLE IF NOT EXISTS campaign_assets (
@@ -483,7 +508,94 @@ function initializeSchema(database: Database.Database): void {
     ON retail_recommendations(store_id);
   `);
 
-  console.log("✅ Database schema initialized successfully (including retail module tables)");
+  // ==================== BATCH PROCESSING TABLES ====================
+
+  // Batch Jobs table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS batch_jobs (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL,
+      template_id TEXT,
+      user_email TEXT,
+      status TEXT DEFAULT 'pending',
+      total_recipients INTEGER NOT NULL,
+      processed_count INTEGER DEFAULT 0,
+      success_count INTEGER DEFAULT 0,
+      failed_count INTEGER DEFAULT 0,
+      output_zip_path TEXT,
+      error_message TEXT,
+      created_at TEXT NOT NULL,
+      started_at TEXT,
+      completed_at TEXT,
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
+    )
+  `);
+
+  // Batch Job Recipients table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS batch_job_recipients (
+      id TEXT PRIMARY KEY,
+      batch_job_id TEXT NOT NULL,
+      recipient_id TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      pdf_path TEXT,
+      error_message TEXT,
+      processed_at TEXT,
+      FOREIGN KEY (batch_job_id) REFERENCES batch_jobs(id),
+      FOREIGN KEY (recipient_id) REFERENCES recipients(id)
+    )
+  `);
+
+  // Batch Job Progress table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS batch_job_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_job_id TEXT NOT NULL,
+      progress_percent REAL NOT NULL,
+      message TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (batch_job_id) REFERENCES batch_jobs(id)
+    )
+  `);
+
+  // User Notifications table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS user_notifications (
+      id TEXT PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      notification_type TEXT NOT NULL,
+      batch_job_id TEXT,
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
+      sent_at TEXT,
+      read_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (batch_job_id) REFERENCES batch_jobs(id)
+    )
+  `);
+
+  // Batch processing indexes
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_batch_jobs_status
+    ON batch_jobs(status);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_batch_jobs_created_at
+    ON batch_jobs(created_at DESC);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_batch_job_recipients_batch_status
+    ON batch_job_recipients(batch_job_id, status);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_user_notifications_email
+    ON user_notifications(user_email, read_at);
+  `);
+
+  console.log("✅ Database schema initialized successfully (including retail and batch processing tables)");
 }
 
 /**

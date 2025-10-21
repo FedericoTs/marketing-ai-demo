@@ -86,7 +86,7 @@ export function WebsiteAnalyzer({ onBrandDataExtracted }: WebsiteAnalyzerProps) 
             <CardTitle className="text-xl flex items-center gap-2">
               AI Website Analyzer
               <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
-                POWERED BY GPT-4
+                AI POWERED
               </span>
             </CardTitle>
             <CardDescription className="mt-1">

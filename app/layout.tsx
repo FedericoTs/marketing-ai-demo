@@ -31,8 +31,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>AI Marketing Platform</title>
-        <meta name="description" content="Demonstrate AI potential in marketing operations" />
+        <title>DropLab - AI Marketing Platform</title>
+        <meta name="description" content="Smart marketing automation powered by AI" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

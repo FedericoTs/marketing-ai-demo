@@ -4,19 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Mission
 
-**AI Marketing Platform Demo** - A proof-of-concept to demonstrate AI's transformative potential in marketing operations to the CEO. The platform showcases three key AI-powered capabilities with a 3-hour development deadline.
+**DropLab** - AI-powered marketing automation platform for personalized direct mail campaigns, intelligent copywriting, and multi-channel customer engagement.
 
-**Success Criteria**: Simple, effective, functional demonstrations that work in real-world scenarios.
+**Success Criteria**: Enterprise-ready platform with scalable batch processing, comprehensive analytics, and seamless AI integration.
 
 ## Project Overview
 
-Next.js 15.5.4 marketing AI application with:
+**DropLab Platform** - Next.js 15.5.4 marketing automation application with:
 - **Next.js App Router** (React 19) - Server and Client Components
 - **TypeScript** with strict mode
 - **Tailwind CSS v4** + shadcn/ui (New York style)
 - **Turbopack** for fast development
-- **AI APIs**: OpenAI/Anthropic (copywriting), ElevenLabs (voice), QRCode generation
-- **CSV Processing**: papaparse for batch operations
+- **AI APIs**: OpenAI GPT-4 (copywriting, background generation), ElevenLabs (voice AI)
+- **Batch Processing**: BullMQ + Redis for scalable campaign generation
+- **Database**: SQLite with better-sqlite3 for production-ready persistence
+- **Image Processing**: Puppeteer + Canvas for high-quality DM rendering
 
 ## Core Features
 

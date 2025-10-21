@@ -53,7 +53,7 @@ export function AgentManager({ agents, onUpdate }: AgentManagerProps) {
               AI Agent Scenarios
             </CardTitle>
             <CardDescription className="mt-2">
-              Configure different call scenarios with pre-trained ElevenLabs agents
+              Configure different call scenarios with pre-trained ElevenLabs AI agents
             </CardDescription>
           </div>
           <Button

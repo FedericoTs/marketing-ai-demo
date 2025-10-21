@@ -277,7 +277,7 @@ export function IndustryModuleSettings() {
                   <div className="space-y-4">
                     <FeatureToggle
                       label="AI Recommendations"
-                      description="Get AI-powered store recommendations for optimal campaign deployment (uses GPT-4o)"
+                      description="Get AI-powered store recommendations for optimal campaign deployment"
                       checked={settings.retail.enableAIRecommendations}
                       onCheckedChange={(checked) => handleFeatureToggle('enableAIRecommendations', checked)}
                     />
@@ -289,7 +289,7 @@ export function IndustryModuleSettings() {
                     />
                     <FeatureToggle
                       label="Auto-Optimization"
-                      description="AI-generated insights and recommendations for campaign improvement (uses GPT-4o-mini)"
+                      description="AI-generated insights and recommendations for campaign improvement"
                       checked={settings.retail.enableAutoOptimization}
                       onCheckedChange={(checked) => handleFeatureToggle('enableAutoOptimization', checked)}
                     />

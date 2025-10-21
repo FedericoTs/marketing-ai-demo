@@ -145,7 +145,10 @@ export async function POST(request: NextRequest) {
 
       dmDataList.push({
         trackingId,
-        recipient,
+        recipient: {
+          ...recipient,
+          id: dbRecipient.id, // Include database ID for batch processing
+        },
         message: finalMessage,
         qrCodeDataUrl,
         landingPageUrl,

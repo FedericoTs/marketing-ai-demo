@@ -4,7 +4,7 @@ import { DirectMailData } from "@/types/dm-creative";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, ExternalLink } from "lucide-react";
-import { generateDirectMailPDF } from "@/lib/pdf-generator";
+import { generateDirectMailPDFImproved } from "@/lib/pdf-generator-improved";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useSettings } from "@/lib/contexts/settings-context";
@@ -20,7 +20,7 @@ export function QRPreview({ dmData }: QRPreviewProps) {
   const handleDownloadPDF = async () => {
     setIsGeneratingPDF(true);
     try {
-      const pdfBlob = await generateDirectMailPDF(dmData, settings.companyName);
+      const pdfBlob = await generateDirectMailPDFImproved(dmData, settings.companyName);
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = url;

@@ -99,28 +99,9 @@ export default function SettingsPage() {
         }
       }
 
-      // Load brand kit (colors, fonts, logo)
-      const kitResponse = await fetch(
-        `/api/brand/config?companyName=${encodeURIComponent(companyName)}`
-      );
-
-      if (kitResponse.ok) {
-        const kitResult = await kitResponse.json();
-        if (kitResult.success && kitResult.data) {
-          const kit = kitResult.data;
-          setBrandKitData({
-            logoUrl: kit.logo_url || '',
-            primaryColor: kit.primary_color || '#1E3A8A',
-            secondaryColor: kit.secondary_color || '#FF6B35',
-            accentColor: kit.accent_color || '#10B981',
-            headingFont: kit.heading_font || 'Inter',
-            bodyFont: kit.body_font || 'Open Sans',
-            landingPageTemplate: kit.landing_page_template || 'professional',
-          });
-
-          console.log("✅ Brand kit loaded from database");
-        }
-      }
+      // Brand kit is loaded directly by BrandKitManager component
+      // We don't need to load it here to avoid triggering the auto-fill toast
+      console.log("✅ Brand profile loaded - brand kit will be loaded by BrandKitManager");
     } catch (error) {
       console.error("Error loading brand data:", error);
     } finally {

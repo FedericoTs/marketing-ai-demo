@@ -91,10 +91,12 @@ export function Sidebar() {
       )}>
       <div className="flex h-16 items-center border-b px-6">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          <h1 className="text-xl font-bold text-slate-900">AI Marketing</h1>
+          <img
+            src="/images/logo_icon_tbg.png"
+            alt="DropLab"
+            className="h-6 w-auto object-contain"
+          />
+          <h1 className="text-xl font-bold text-slate-900">DropLab</h1>
         </div>
       </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
@@ -135,7 +137,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t p-4">
         <p className="text-xs text-slate-500">
-          AI Marketing Platform Demo
+          DropLab Platform
         </p>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,8 @@ import {
   Eye,
   Search,
   Filter,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -70,14 +73,29 @@ interface DMTemplateData {
 type CategoryFilter = "all" | "general" | "retail" | "seasonal" | "promotional";
 
 export function TemplateLibrary() {
+  const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'most-used' | 'newest' | 'oldest' | 'name-asc' | 'name-desc'>('newest');
 
   useEffect(() => {
     loadTemplates();
+
+    // Load view mode preference from localStorage
+    const savedViewMode = localStorage.getItem('templateViewMode');
+    if (savedViewMode === 'list' || savedViewMode === 'grid') {
+      setViewMode(savedViewMode);
+    }
+
+    // Load sort preference from localStorage
+    const savedSort = localStorage.getItem('templateSortBy');
+    if (savedSort) {
+      setSortBy(savedSort as any);
+    }
   }, []);
 
   const loadTemplates = async () => {
@@ -187,6 +205,16 @@ export function TemplateLibrary() {
     }
   };
 
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('templateViewMode', mode);
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value as any);
+    localStorage.setItem('templateSortBy', value);
+  };
+
   // Filter templates
   const filteredTemplates = templates.filter((template) => {
     const matchesSearch =
@@ -199,6 +227,24 @@ export function TemplateLibrary() {
       categoryFilter === "all" || template.category === categoryFilter;
 
     return matchesSearch && matchesCategory;
+  });
+
+  // Sort templates
+  const sortedTemplates = [...filteredTemplates].sort((a, b) => {
+    switch (sortBy) {
+      case 'most-used':
+        return b.use_count - a.use_count;
+      case 'newest':
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case 'oldest':
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      case 'name-asc':
+        return a.name.localeCompare(b.name);
+      case 'name-desc':
+        return b.name.localeCompare(a.name);
+      default:
+        return 0;
+    }
   });
 
   const getCategoryColor = (category: string) => {
@@ -277,13 +323,54 @@ export function TemplateLibrary() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Sort Control */}
+            <div className="w-full md:w-56">
+              <Select value={sortBy} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-full">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="most-used">Most Used</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                  <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Results Count */}
+          {/* Results Count & View Toggle */}
           <div className="mt-4 flex items-center justify-between">
             <div className="text-sm text-slate-600">
               Showing <span className="font-semibold text-slate-900">{filteredTemplates.length}</span>{" "}
               of <span className="font-semibold text-slate-900">{templates.length}</span> templates
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewModeChange('grid')}
+                className="gap-2"
+                title="Grid View"
+              >
+                <LayoutGrid className="h-4 w-4" />
+                <span className="hidden sm:inline">Grid</span>
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewModeChange('list')}
+                className="gap-2"
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline">List</span>
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -311,9 +398,11 @@ export function TemplateLibrary() {
         </Card>
       )}
 
-      {/* Templates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTemplates.map((template) => {
+      {/* Templates Grid or List View */}
+      {viewMode === 'grid' ? (
+        /* GRID VIEW */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sortedTemplates.map((template) => {
           const CategoryIcon = getCategoryIcon(template.category);
           const isSystemTemplate = template.is_system_template === 1;
           const hasDesign = !!template.dmTemplate;
@@ -435,6 +524,16 @@ export function TemplateLibrary() {
                 {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/templates/${template.id}`)}
+                    className="gap-2"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Details
+                  </Button>
+
+                  <Button
                     size="sm"
                     onClick={() => handleUseTemplate(template)}
                     className="flex-1 gap-2"
@@ -463,7 +562,151 @@ export function TemplateLibrary() {
             </Card>
           );
         })}
-      </div>
+        </div>
+      ) : (
+        /* LIST VIEW */
+        <Card className="border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Template
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Usage
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {sortedTemplates.map((template) => {
+                  const CategoryIcon = getCategoryIcon(template.category);
+                  const isSystemTemplate = template.is_system_template === 1;
+                  const hasDesign = !!template.dmTemplate;
+                  const previewImage = template.dmTemplate?.previewImage;
+                  const backgroundAsset = template.assets?.find(
+                    (asset) => asset.asset_type === "background_image"
+                  );
+
+                  return (
+                    <tr key={template.id} className="hover:bg-slate-50 transition-colors">
+                      {/* Template Name & Preview */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          {/* Small thumbnail */}
+                          <div className="w-16 h-16 rounded border overflow-hidden flex-shrink-0 bg-slate-100">
+                            {(previewImage || backgroundAsset) ? (
+                              <img
+                                src={previewImage || backgroundAsset?.publicUrl || ""}
+                                alt={template.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                                <Library className="h-6 w-6 text-slate-400" />
+                              </div>
+                            )}
+                          </div>
+                          {/* Name and metadata */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="font-medium text-slate-900 truncate">{template.name}</div>
+                              {hasDesign && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 border border-green-200 text-green-700 rounded text-xs font-medium flex-shrink-0">
+                                  <Eye className="h-3 w-3" />
+                                  Design
+                                </span>
+                              )}
+                              {isSystemTemplate && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded text-xs font-medium flex-shrink-0">
+                                  <Sparkles className="h-3 w-3" />
+                                  System
+                                </span>
+                              )}
+                            </div>
+                            {template.description && (
+                              <p className="text-sm text-slate-600 line-clamp-1">{template.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Category */}
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${getCategoryColor(
+                            template.category
+                          )}`}
+                        >
+                          <CategoryIcon className="h-3 w-3" />
+                          {template.category}
+                        </span>
+                      </td>
+
+                      {/* Usage */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+                        {template.use_count} {template.use_count === 1 ? 'time' : 'times'}
+                      </td>
+
+                      {/* Created Date */}
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
+                        {new Date(template.created_at).toLocaleDateString()}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/templates/${template.id}`)}
+                            className="gap-2"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Details
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleUseTemplate(template)}
+                            className="gap-2"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            Use Template
+                          </Button>
+                          {!isSystemTemplate && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteTemplate(template.id, template.name)}
+                              disabled={processingId === template.id}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              {processingId === template.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Empty State (no templates at all) */}
       {templates.length === 0 && !loading && (

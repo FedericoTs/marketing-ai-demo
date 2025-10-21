@@ -4,13 +4,15 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, Download, FileText, Loader2, CheckCircle2, Library, X } from "lucide-react";
+import { Upload, Download, FileText, Loader2, CheckCircle2, Library, X, Eye } from "lucide-react";
 import { parseCSV, generateSampleCSV, analyzeStoreDistribution } from "@/lib/csv-processor";
 import { RecipientData, DirectMailData } from "@/types/dm-creative";
 import { toast } from "sonner";
 import { storeLandingPageData } from "@/lib/tracking";
 import { useSettings } from "@/lib/contexts/settings-context";
 import { StoreDistributionPreview } from "@/components/dm-creative/store-distribution-preview";
+import { BatchPreviewModal, PreviewData } from "@/components/dm-creative/batch-preview";
+import { validateTemplate, type RecipientData as ValidatorRecipientData } from "@/lib/template-validator";
 
 interface CSVUploaderProps {
   onBatchGenerated: (dmDataList: DirectMailData[]) => void;
@@ -24,6 +26,11 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [storeDistribution, setStoreDistribution] = useState<ReturnType<typeof analyzeStoreDistribution> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // NEW: Preview state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewData, setPreviewData] = useState<PreviewData[]>([]);
+  const [isGeneratingPreviews, setIsGeneratingPreviews] = useState(false);
 
   // Template state (loaded from localStorage)
   const [loadedTemplate, setLoadedTemplate] = useState<{
@@ -223,6 +230,116 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
     toast.success("Template downloaded!");
   };
 
+  // NEW: Handle batch preview
+  const handlePreviewBatch = async () => {
+    if (recipients.length === 0) {
+      toast.error("Please upload a CSV file first");
+      return;
+    }
+
+    if (!message.trim()) {
+      toast.error("Please enter a marketing message");
+      return;
+    }
+
+    if (!loadedTemplate?.dmTemplateId) {
+      toast.error("Template is required for preview. Please select a template first.");
+      return;
+    }
+
+    setIsGeneratingPreviews(true);
+
+    try {
+      // Preview first 5 recipients
+      const previewRecipients = recipients.slice(0, Math.min(5, recipients.length));
+
+      toast.info(`Generating preview for ${previewRecipients.length} recipients...`);
+
+      // Use existing batch API to generate preview data (simplified approach)
+      const batchResponse = await fetch("/api/dm-creative/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipients: previewRecipients,
+          message,
+          companyContext: {
+            companyName: settings.companyName,
+            industry: settings.industry,
+            brandVoice: settings.brandVoice,
+            targetAudience: settings.targetAudience,
+          },
+          campaignName: `Preview - ${new Date().toLocaleDateString()}`,
+        }),
+      });
+
+      const batchResult = await batchResponse.json();
+
+      if (!batchResult.success || !batchResult.data) {
+        toast.error("Failed to generate preview");
+        return;
+      }
+
+      const dmDataList: DirectMailData[] = batchResult.data;
+
+      // Transform to PreviewData format with validation
+      const previews: PreviewData[] = dmDataList.map((dm, index) => {
+        const recipientData: ValidatorRecipientData = {
+          name: dm.recipient.name,
+          lastname: dm.recipient.lastname,
+          address: dm.recipient.address,
+          city: dm.recipient.city,
+          zip: dm.recipient.zip,
+          email: dm.recipient.email,
+          phone: dm.recipient.phone,
+          trackingId: dm.trackingId,
+        };
+
+        // Validate this recipient
+        const validation = validateTemplate(
+          null, // Canvas JSON not needed for basic validation
+          {}, // Variable mappings not needed for basic validation
+          recipientData
+        );
+
+        return {
+          recipientIndex: index,
+          recipientName: `${dm.recipient.name} ${dm.recipient.lastname}`,
+          recipientData: {
+            name: dm.recipient.name,
+            lastname: dm.recipient.lastname,
+            address: dm.recipient.address,
+            city: dm.recipient.city,
+            zip: dm.recipient.zip,
+            email: dm.recipient.email,
+            phone: dm.recipient.phone,
+          },
+          previewImageUrl: dm.qrCodeDataUrl, // Using QR code as preview for now
+          qrCodeUrl: dm.qrCodeDataUrl,
+          renderTime: 0,
+          warnings: validation.warnings.map(w => w.message),
+          validation: validation,
+        };
+      });
+
+      setPreviewData(previews);
+      setShowPreviewModal(true);
+
+      toast.success(`Preview ready! Showing ${previews.length} of ${recipients.length} recipients`);
+    } catch (error) {
+      console.error("Error generating preview:", error);
+      toast.error("Failed to generate preview");
+    } finally {
+      setIsGeneratingPreviews(false);
+    }
+  };
+
+  // NEW: Handle approve preview and generate full batch
+  const handleApprovePreview = async () => {
+    setShowPreviewModal(false);
+    // Call existing batch generation function
+    await handleGenerateBatch();
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -337,6 +454,28 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
               <StoreDistributionPreview distribution={storeDistribution} />
             )}
 
+            {/* Preview Button - NEW FEATURE */}
+            <Button
+              onClick={handlePreviewBatch}
+              disabled={!loadedTemplate || recipients.length === 0 || isGeneratingPreviews || isProcessing}
+              variant="outline"
+              className="w-full gap-2"
+              size="lg"
+            >
+              {isGeneratingPreviews ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Generating Preview...
+                </>
+              ) : (
+                <>
+                  <Eye className="h-5 w-5" />
+                  Preview Batch (First {Math.min(5, recipients.length)})
+                </>
+              )}
+            </Button>
+
+            {/* Generate Batch Button - EXISTING (unchanged) */}
             <Button
               onClick={handleGenerateBatch}
               disabled={isProcessing}
@@ -368,6 +507,16 @@ export function CSVUploader({ onBatchGenerated, message }: CSVUploaderProps) {
           </div>
         )}
       </CardContent>
+
+      {/* Batch Preview Modal - NEW FEATURE */}
+      <BatchPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        onApprove={handleApprovePreview}
+        previews={previewData}
+        totalRecipients={recipients.length}
+        templateName={loadedTemplate?.templateName || "Template"}
+      />
     </Card>
   );
 }

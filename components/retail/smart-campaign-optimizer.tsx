@@ -216,7 +216,7 @@ export function SmartCampaignOptimizer() {
                     </p>
                     <p className="text-xs text-purple-700">
                       Our AI analyzes historical performance data to recommend the best stores for
-                      your campaign. Uses GPT-4o for balanced cost and accuracy.
+                      your campaign with balanced cost and accuracy.
                     </p>
                   </div>
                 </div>

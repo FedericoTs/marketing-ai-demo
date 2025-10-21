@@ -223,7 +223,7 @@ export function ThresholdAlertEmail({
           color: '#9ca3af',
           margin: '0 0 8px 0',
         }}>
-          AI Marketing Platform
+          DropLab
         </p>
         <p style={{
           fontSize: '12px',
