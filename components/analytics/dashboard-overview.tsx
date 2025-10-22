@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock, BarChart3 } from "lucide-react";
+import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock, BarChart3, Phone } from "lucide-react";
 import { DateRangePicker } from "./date-range-picker";
 
 interface EngagementMetric {
@@ -10,6 +10,19 @@ interface EngagementMetric {
   unit: string;
   display: string;
   seconds: number;
+}
+
+interface CallMetrics {
+  total_calls: number;
+  successful_calls: number;
+  failed_calls: number;
+  unknown_calls: number;
+  conversions: number;
+  conversion_rate: number;
+  average_duration: number;
+  calls_today: number;
+  calls_this_week: number;
+  calls_this_month: number;
 }
 
 interface DashboardStats {
@@ -21,6 +34,7 @@ interface DashboardStats {
   overallConversionRate: number;
   qrScans: number;
   formSubmissions: number;
+  callMetrics?: CallMetrics;
   engagementMetrics?: {
     avgTimeToFirstView: EngagementMetric | null;
     avgTimeToConversion: EngagementMetric | null;
@@ -227,7 +241,7 @@ export function DashboardOverview() {
       </div>
 
       {/* Secondary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* QR Scans */}
         <Card className="border-slate-200">
           <CardHeader className="pb-3">
@@ -288,6 +302,37 @@ export function DashboardOverview() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Calls Received */}
+        {stats.callMetrics && (
+          <Card className="border-purple-200 bg-purple-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Phone className="h-5 w-5 text-purple-600" />
+                Calls Received
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline gap-2">
+                <p className="text-4xl font-bold text-purple-900">{stats.callMetrics.total_calls}</p>
+                <p className="text-sm text-purple-700">total calls</p>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-purple-900 font-semibold">✓ {stats.callMetrics.successful_calls}</p>
+                  <p className="text-purple-600">successful</p>
+                </div>
+                <div>
+                  <p className="text-purple-900 font-semibold">{stats.callMetrics.average_duration}s</p>
+                  <p className="text-purple-600">avg duration</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-purple-600 mt-2">
+                AI Call Center tracking
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Engagement Metrics */}

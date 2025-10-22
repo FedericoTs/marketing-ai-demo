@@ -3,6 +3,7 @@ import {
   getDashboardStats,
   getOverallEngagementMetrics,
 } from "@/lib/database/tracking-queries";
+import { getAllCallMetrics } from "@/lib/database/call-tracking-queries";
 import { formatEngagementTime } from "@/lib/format-time";
 
 export async function GET(request: NextRequest) {
@@ -14,10 +15,14 @@ export async function GET(request: NextRequest) {
     const stats = getDashboardStats(startDate, endDate);
     const engagementMetrics = getOverallEngagementMetrics(startDate, endDate);
 
+    // Get call tracking metrics
+    const callMetrics = getAllCallMetrics();
+
     return NextResponse.json({
       success: true,
       data: {
         ...stats,
+        callMetrics,
         engagementMetrics: {
           avgTimeToFirstView: formatEngagementTime(engagementMetrics.avg_time_to_first_view_seconds),
           avgTimeToConversion: formatEngagementTime(engagementMetrics.avg_time_to_conversion_seconds),

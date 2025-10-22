@@ -640,6 +640,63 @@ function initializeSchema(database: Database.Database): void {
     )
   `);
 
+  // ElevenLabs call tracking table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS elevenlabs_calls (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT UNIQUE NOT NULL,
+
+      -- Agent & Phone
+      agent_id TEXT,
+      elevenlabs_phone_number TEXT,
+      caller_phone_number TEXT,
+
+      -- Timing
+      call_started_at TEXT NOT NULL,
+      call_ended_at TEXT,
+      call_duration_seconds INTEGER,
+
+      -- Status
+      call_status TEXT NOT NULL,
+
+      -- Campaign Attribution
+      campaign_id TEXT,
+      recipient_id TEXT,
+
+      -- Conversion
+      is_conversion BOOLEAN DEFAULT 0,
+
+      -- Metadata
+      raw_data TEXT,
+      synced_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id),
+      FOREIGN KEY (recipient_id) REFERENCES recipients(id)
+    )
+  `);
+
+  // ElevenLabs call tracking indexes
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_elevenlabs_calls_campaign
+    ON elevenlabs_calls(campaign_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_elevenlabs_calls_started
+    ON elevenlabs_calls(call_started_at);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_elevenlabs_calls_status
+    ON elevenlabs_calls(call_status);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_elevenlabs_calls_caller
+    ON elevenlabs_calls(caller_phone_number);
+  `);
+
   // Batch processing indexes
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_batch_jobs_status

@@ -79,6 +79,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Page views, QR scans, button clicks, form submissions
   - Time-based activity grouping
 - **Database Integration**: SQLite with comprehensive tracking tables
+- **Call Tracking Integration**: ElevenLabs call metrics displayed in dashboard
+
+### 4a. ElevenLabs Call Tracking (NEW - Phase 1 Complete)
+- **API Integration**: Syncs call history from ElevenLabs Conversational AI
+- **Database**: `elevenlabs_calls` table with full call metadata
+- **Metrics Tracked**:
+  - Total calls received
+  - Successful vs failed calls
+  - Average call duration
+  - Call-to-conversion rate
+  - Calls by time period (today/week/month)
+- **Features**:
+  - **Automatic Sync**: Manual trigger via API endpoint (`POST /api/jobs/sync-elevenlabs-calls`)
+  - **Campaign Attribution**: Automatic phone number matching to recipients
+  - **Conversion Detection**: Simple status-based (call_successful = 'success')
+  - **Analytics Display**: Purple "Calls Received" card in dashboard
+  - **Data Storage**: Full API response stored in `raw_data` for debugging
+- **Architecture**:
+  - API polling every sync (configurable)
+  - Upsert logic prevents duplicates
+  - Phone number normalization for attribution
+  - Performance-optimized with database indexes
+- **Files**:
+  - `lib/elevenlabs/call-tracking.ts` - API client
+  - `lib/elevenlabs/call-sync.ts` - Sync logic
+  - `lib/database/call-tracking-queries.ts` - Database queries
+  - `app/api/jobs/sync-elevenlabs-calls/route.ts` - Sync endpoint
+- **Documentation**: See `PHASE1_IMPLEMENTATION_COMPLETE.md` for full details
 
 ### 5. CC Operations Tab
 - Input: Phone number + call objective/script

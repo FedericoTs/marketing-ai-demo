@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCampaignAnalytics, getRecipientsByCampaign, getRecipientJourney } from "@/lib/database/tracking-queries";
+import { getCampaignCallMetrics, getCallsByDay } from "@/lib/database/call-tracking-queries";
 
 export async function GET(
   request: Request,
@@ -21,6 +22,10 @@ export async function GET(
       );
     }
 
+    // Get call tracking metrics for this campaign
+    const callMetrics = getCampaignCallMetrics(id);
+    const callsByDay = getCallsByDay(id, 30);
+
     // Get all recipients with their journey data
     const recipients = getRecipientsByCampaign(id);
     const recipientsWithJourney = recipients.map((recipient) => {
@@ -38,6 +43,8 @@ export async function GET(
       success: true,
       data: {
         ...analytics,
+        callMetrics,
+        callsByDay,
         recipients: recipientsWithJourney,
       },
     });
