@@ -311,6 +311,42 @@ export function getCallsByDay(campaignId: string, days: number = 30): Array<{
 }
 
 /**
+ * Get all calls for a specific campaign
+ * Returns calls ordered by most recent first
+ */
+export function getCampaignCalls(campaignId: string, limit: number = 100): ElevenLabsCall[] {
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT *
+    FROM elevenlabs_calls
+    WHERE campaign_id = ?
+    ORDER BY call_started_at DESC
+    LIMIT ?
+  `);
+
+  return stmt.all(campaignId, limit) as ElevenLabsCall[];
+}
+
+/**
+ * Get all unattributed calls (no campaign_id)
+ * For manual attribution interface
+ */
+export function getUnattributedCalls(limit: number = 100): ElevenLabsCall[] {
+  const db = getDatabase();
+
+  const stmt = db.prepare(`
+    SELECT *
+    FROM elevenlabs_calls
+    WHERE campaign_id IS NULL
+    ORDER BY call_started_at DESC
+    LIMIT ?
+  `);
+
+  return stmt.all(limit) as ElevenLabsCall[];
+}
+
+/**
  * Get last sync timestamp (most recent call synced)
  * Used to fetch only new calls in subsequent syncs
  */

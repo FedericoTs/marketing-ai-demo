@@ -17,7 +17,9 @@ import {
   Mail,
   Clock,
   Download,
-  FileText
+  FileText,
+  Phone,
+  Globe
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -34,6 +36,19 @@ interface Recipient {
   hasConverted: boolean;
   eventsCount: number;
   conversionsCount: number;
+}
+
+interface Call {
+  id: string;
+  conversation_id: string;
+  agent_id?: string;
+  caller_phone_number?: string;
+  call_started_at: string;
+  call_ended_at?: string;
+  call_duration_seconds?: number;
+  call_status: 'success' | 'failure' | 'unknown';
+  is_conversion: boolean;
+  created_at: string;
 }
 
 interface CampaignDetail {
@@ -62,9 +77,12 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
+  const [calls, setCalls] = useState<Call[]>([]);
+  const [callsLoading, setCallsLoading] = useState(false);
 
   useEffect(() => {
     loadCampaignDetail();
+    loadCalls();
   }, [campaignId]);
 
   const loadCampaignDetail = async () => {
@@ -82,6 +100,23 @@ export default function CampaignDetailPage() {
       setError("Failed to load campaign details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCalls = async () => {
+    setCallsLoading(true);
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/calls`);
+      const result = await response.json();
+
+      if (result.success) {
+        setCalls(result.data.calls || []);
+      }
+    } catch (err) {
+      console.error("Error loading calls:", err);
+      // Silently fail - calls are optional
+    } finally {
+      setCallsLoading(false);
     }
   };
 
@@ -355,6 +390,114 @@ export default function CampaignDetailPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Calls Received */}
+      {calls.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-purple-600" />
+              Calls Received ({calls.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {callsLoading ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600">Loading calls...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-900">Date & Time</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-900">Phone Number</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-slate-900">Duration</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-slate-900">Status</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-slate-900">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {calls.map((call) => {
+                      const callDate = new Date(call.call_started_at);
+                      const duration = call.call_duration_seconds || 0;
+                      const minutes = Math.floor(duration / 60);
+                      const seconds = duration % 60;
+
+                      return (
+                        <tr key={call.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4">
+                            <div>
+                              <p className="font-medium text-slate-900">
+                                {callDate.toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {callDate.toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-slate-400" />
+                              <span className="text-slate-700 font-mono text-sm">
+                                {call.caller_phone_number || 'Unknown'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Clock className="h-4 w-4 text-slate-400" />
+                              <span className="text-slate-700 font-medium">
+                                {minutes}:{seconds.toString().padStart(2, '0')}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {call.call_status === 'success' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Success
+                              </span>
+                            ) : call.call_status === 'failure' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                <XCircle className="h-3 w-3" />
+                                Failed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
+                                Unknown
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {call.is_conversion ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                <TrendingUp className="h-3 w-3" />
+                                Conversion
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recipients Table */}
       <Card>
