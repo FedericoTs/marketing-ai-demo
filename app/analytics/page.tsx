@@ -32,13 +32,19 @@ function AnalyticsContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({}),
         });
+
+        if (!response.ok) {
+          console.error('[Analytics] GLOBAL sync failed: HTTP', response.status);
+          return;
+        }
+
         const result = await response.json();
 
         if (!result.success) {
-          console.error('Failed to sync ElevenLabs calls:', result.error);
+          console.error('[Analytics] GLOBAL sync failed:', result.error || 'Unknown error');
         }
       } catch (error) {
-        console.error('Error syncing ElevenLabs calls:', error);
+        console.error('[Analytics] GLOBAL sync error:', error instanceof Error ? error.message : 'Unknown error');
       }
     };
 

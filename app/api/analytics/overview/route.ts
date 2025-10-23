@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     const stats = getDashboardStats(startDate, endDate);
     const engagementMetrics = getOverallEngagementMetrics(startDate, endDate);
 
-    // Get call tracking metrics
-    const callMetrics = getAllCallMetrics();
+    // Get call tracking metrics (with date filtering)
+    const callMetrics = getAllCallMetrics(startDate, endDate);
 
     return NextResponse.json({
       success: true,

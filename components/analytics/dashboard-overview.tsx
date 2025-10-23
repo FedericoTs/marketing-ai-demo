@@ -480,48 +480,7 @@ export function DashboardOverview() {
       )}
 
       {/* Customer Journey Sankey Chart */}
-      <SankeyChart />
-
-      {/* Performance Summary */}
-      <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Performance Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-slate-700">Response Rate</span>
-                <span className="text-sm font-semibold text-blue-600">{responseRate}%</span>
-              </div>
-              <div className="w-full bg-slate-200 rounded-full h-3">
-                <div
-                  className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(parseFloat(responseRate), 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-slate-700">Conversion Rate</span>
-                <span className="text-sm font-semibold text-orange-600">
-                  {stats.overallConversionRate}%
-                </span>
-              </div>
-              <div className="w-full bg-slate-200 rounded-full h-3">
-                <div
-                  className="bg-orange-600 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(stats.overallConversionRate, 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <SankeyChart startDate={dateRange.start} endDate={dateRange.end} />
     </div>
   );
 }

@@ -1705,113 +1705,195 @@ export interface SankeyData {
     totalCalls: number;
     webAppointments: number;
     callAppointments: number;
-    totalAppointments: number;
+    totalConverted: number; // All web conversions + call appointments
   };
 }
 
 /**
  * Get Sankey chart data for customer journey visualization
  * Flow: Recipients → QR Scans → Landing Page Visits → Calls/Appointments
+ * @param startDate Optional start date filter (ISO string)
+ * @param endDate Optional end date filter (ISO string)
  */
-export function getSankeyChartData(): SankeyData {
+export function getSankeyChartData(startDate?: string, endDate?: string): SankeyData {
   const db = getDatabase();
 
-  // Total recipients (contacted people)
-  const totalRecipientsStmt = db.prepare("SELECT COUNT(*) as count FROM recipients");
-  const totalRecipients = (totalRecipientsStmt.get() as { count: number }).count;
+  const hasDateFilter = !!(startDate && endDate);
 
-  // QR code scans
-  const qrScansStmt = db.prepare(`
-    SELECT COUNT(DISTINCT tracking_id) as count
-    FROM events
-    WHERE event_type = 'qr_scan'
-  `);
-  const qrScans = (qrScansStmt.get() as { count: number }).count;
+  // Total recipients (contacted people) - filtered by created_at date
+  const recipientQuery = hasDateFilter
+    ? `SELECT COUNT(*) as count FROM recipients WHERE DATE(created_at) BETWEEN ? AND ?`
+    : `SELECT COUNT(*) as count FROM recipients`;
 
-  // Landing page visits
-  const landingPageVisitsStmt = db.prepare(`
-    SELECT COUNT(DISTINCT tracking_id) as count
-    FROM events
-    WHERE event_type = 'page_view'
-  `);
-  const landingPageVisits = (landingPageVisitsStmt.get() as { count: number }).count;
+  const totalRecipientsStmt = db.prepare(recipientQuery);
+  const totalRecipients = (hasDateFilter
+    ? totalRecipientsStmt.get(startDate, endDate)
+    : totalRecipientsStmt.get()) as { count: number };
+  const totalRecipientsCount = totalRecipients.count;
 
-  // Total calls
-  const totalCallsStmt = db.prepare("SELECT COUNT(*) as count FROM elevenlabs_calls");
-  const totalCalls = (totalCallsStmt.get() as { count: number }).count;
+  // QR code scans - filtered by created_at (event time)
+  const qrQuery = hasDateFilter
+    ? `SELECT COUNT(DISTINCT tracking_id) as count FROM events WHERE event_type = 'qr_scan' AND DATE(created_at) BETWEEN ? AND ?`
+    : `SELECT COUNT(DISTINCT tracking_id) as count FROM events WHERE event_type = 'qr_scan'`;
 
-  // Appointments booked via web (direct from landing page)
-  const webAppointmentsStmt = db.prepare(`
-    SELECT COUNT(DISTINCT cv.tracking_id) as count
-    FROM conversions cv
-    WHERE cv.conversion_type = 'appointment_booked'
-  `);
-  const webAppointments = (webAppointmentsStmt.get() as { count: number }).count;
+  const qrScansStmt = db.prepare(qrQuery);
+  const qrScansResult = (hasDateFilter
+    ? qrScansStmt.get(startDate, endDate)
+    : qrScansStmt.get()) as { count: number };
+  const qrScans = qrScansResult.count;
 
-  // Appointments booked via calls
-  const callAppointmentsStmt = db.prepare(`
-    SELECT COUNT(*) as count
-    FROM elevenlabs_calls
-    WHERE is_conversion = 1
-  `);
-  const callAppointments = (callAppointmentsStmt.get() as { count: number }).count;
+  // Landing page visits - filtered by created_at (event time)
+  const landingQuery = hasDateFilter
+    ? `SELECT COUNT(DISTINCT tracking_id) as count FROM events WHERE event_type = 'page_view' AND DATE(created_at) BETWEEN ? AND ?`
+    : `SELECT COUNT(DISTINCT tracking_id) as count FROM events WHERE event_type = 'page_view'`;
 
-  // Total appointments (unique)
-  const totalAppointmentsStmt = db.prepare(`
-    SELECT COUNT(DISTINCT tracking_id) as count
-    FROM conversions
-    WHERE conversion_type = 'appointment_booked'
-  `);
-  const totalAppointments = (totalAppointmentsStmt.get() as { count: number }).count;
+  const landingPageVisitsStmt = db.prepare(landingQuery);
+  const landingPageVisitsResult = (hasDateFilter
+    ? landingPageVisitsStmt.get(startDate, endDate)
+    : landingPageVisitsStmt.get()) as { count: number };
+  const landingPageVisits = landingPageVisitsResult.count;
+
+  // Total calls - filtered by call start time
+  const callsQuery = hasDateFilter
+    ? `SELECT COUNT(*) as count FROM elevenlabs_calls WHERE DATE(call_started_at) BETWEEN ? AND ?`
+    : `SELECT COUNT(*) as count FROM elevenlabs_calls`;
+
+  const totalCallsStmt = db.prepare(callsQuery);
+  const totalCallsResult = (hasDateFilter
+    ? totalCallsStmt.get(startDate, endDate)
+    : totalCallsStmt.get()) as { count: number };
+  const totalCalls = totalCallsResult.count;
+
+  // Web conversions (all types from landing pages: appointments, downloads, forms) - filtered by conversion time
+  // Excludes call_initiated which is tracked separately via ElevenLabs calls
+  const webConversionsQuery = hasDateFilter
+    ? `SELECT COUNT(DISTINCT tracking_id) as count FROM conversions WHERE conversion_type IN ('appointment_booked', 'download', 'form_submission') AND DATE(created_at) BETWEEN ? AND ?`
+    : `SELECT COUNT(DISTINCT tracking_id) as count FROM conversions WHERE conversion_type IN ('appointment_booked', 'download', 'form_submission')`;
+
+  const webAppointmentsStmt = db.prepare(webConversionsQuery);
+  const webAppointmentsResult = (hasDateFilter
+    ? webAppointmentsStmt.get(startDate, endDate)
+    : webAppointmentsStmt.get()) as { count: number };
+  const webAppointments = webAppointmentsResult.count;
+
+  // Appointments booked via calls - filtered by call time
+  const callAppointmentsQuery = hasDateFilter
+    ? `SELECT COUNT(*) as count FROM elevenlabs_calls WHERE is_conversion = 1 AND DATE(call_started_at) BETWEEN ? AND ?`
+    : `SELECT COUNT(*) as count FROM elevenlabs_calls WHERE is_conversion = 1`;
+
+  const callAppointmentsStmt = db.prepare(callAppointmentsQuery);
+  const callAppointmentsResult = (hasDateFilter
+    ? callAppointmentsStmt.get(startDate, endDate)
+    : callAppointmentsStmt.get()) as { count: number };
+  const callAppointments = callAppointmentsResult.count;
+
+  // ✅ CRITICAL: Total Converted = All web conversions (any CTA) + Call appointments
+  // This shows the complete picture of all successful conversions across all channels
+  const totalConverted = webAppointments + callAppointments;
+
+  // Calculate engaged recipients (those who took any action)
+  const engagedRecipients = Math.max(qrScans, landingPageVisits) + totalCalls;
+  const noEngagement = Math.max(0, totalRecipientsCount - engagedRecipients);
+
+  // Debug logging for Sankey data
+  console.log('[Sankey Query Debug]', {
+    dateFilter: startDate && endDate ? `${startDate} to ${endDate}` : 'No filter (all time)',
+    totalRecipients: totalRecipientsCount,
+    engagedInPeriod: engagedRecipients,
+    noEngagementInPeriod: noEngagement,
+    qrScans,
+    landingPageVisits,
+    totalCalls,
+    webConversions: webAppointments, // All web conversions (appointment, download, form)
+    callAppointments,
+    totalConverted, // webAppointments (all types) + callAppointments
+  });
 
   // Nodes (indexed from 0)
+  // Multi-path funnel: Show ALL recipients with engagement split
   const nodes: SankeyNode[] = [
-    { name: "Recipients" },          // 0
-    { name: "QR Scans" },           // 1
-    { name: "Landing Page Visits" }, // 2
-    { name: "Calls" },              // 3
-    { name: "Appointments" },       // 4
+    { name: "Recipients" },              // 0
+    { name: "No Engagement" },          // 1
+    { name: "QR Scans" },               // 2
+    { name: "Landing Page Visits" },    // 3
+    { name: "Calls Received" },         // 4
+    { name: "Web Conversions" },        // 5 (appointments, downloads, forms)
+    { name: "Call Appointments" },      // 6
   ];
 
   // Links (flows between nodes)
   const links: SankeyLink[] = [];
 
-  // Recipients → QR Scans
+  console.log('[Sankey] Link creation starting...', {
+    totalRecipients: totalRecipientsCount,
+    noEngagement,
+    qrScans,
+    landingPageVisits,
+    totalCalls,
+    webAppointments,
+    callAppointments
+  });
+
+  // CRITICAL: Show no engagement path so Recipients node displays correct total
+  if (noEngagement > 0) {
+    links.push({ source: 0, target: 1, value: noEngagement });
+    console.log('[Sankey] ✓ Added link: Recipients → No Engagement', noEngagement);
+  }
+
+  // Path 1: Digital Engagement - QR Code Flow
   if (qrScans > 0) {
-    links.push({ source: 0, target: 1, value: qrScans });
+    links.push({ source: 0, target: 2, value: qrScans });
+    console.log('[Sankey] ✓ Added link: Recipients → QR Scans', qrScans);
+
+    // QR Scans → Landing Page Visits (from QR)
+    const qrToLanding = Math.min(qrScans, landingPageVisits);
+    if (qrToLanding > 0) {
+      links.push({ source: 2, target: 3, value: qrToLanding });
+      console.log('[Sankey] ✓ Added link: QR Scans → Landing Page Visits', qrToLanding);
+    }
   }
 
-  // QR Scans → Landing Page Visits
-  if (qrScans > 0 && landingPageVisits > 0) {
-    links.push({ source: 1, target: 2, value: Math.min(qrScans, landingPageVisits) });
+  // Path 2: Direct Digital Engagement - Direct Landing Page Visits
+  const directLandingVisits = qrScans > 0 ? Math.max(0, landingPageVisits - qrScans) : landingPageVisits;
+  if (directLandingVisits > 0) {
+    links.push({ source: 0, target: 3, value: directLandingVisits });
+    console.log('[Sankey] ✓ Added link: Recipients → Landing Page Visits (direct)', directLandingVisits);
   }
 
-  // Landing Page Visits → Appointments (direct web bookings)
+  // Landing Page Visits → Web Conversions (appointments, downloads, forms)
   if (landingPageVisits > 0 && webAppointments > 0) {
-    links.push({ source: 2, target: 4, value: webAppointments });
+    links.push({ source: 3, target: 5, value: webAppointments });
+    console.log('[Sankey] ✓ Added link: Landing Page Visits → Web Conversions', webAppointments);
+  } else {
+    console.log('[Sankey] ✗ Skipped Web Conversions link:', { landingPageVisits, webAppointments });
   }
 
-  // Landing Page Visits → Calls
-  if (landingPageVisits > 0 && totalCalls > 0) {
-    links.push({ source: 2, target: 3, value: totalCalls });
+  // Path 3: Phone Engagement - Direct Calls (independent path)
+  if (totalCalls > 0) {
+    links.push({ source: 0, target: 4, value: totalCalls });
+    console.log('[Sankey] ✓ Added link: Recipients → Calls Received', totalCalls);
   }
 
-  // Calls → Appointments (appointments booked via calls)
+  // Calls → Call Appointments
   if (totalCalls > 0 && callAppointments > 0) {
-    links.push({ source: 3, target: 4, value: callAppointments });
+    links.push({ source: 4, target: 6, value: callAppointments });
+    console.log('[Sankey] ✓ Added link: Calls → Call Appointments', callAppointments);
   }
+
+  console.log('[Sankey] Total links created:', links.length);
+  console.log('[Sankey] Links:', JSON.stringify(links, null, 2));
 
   return {
     nodes,
     links,
     metrics: {
-      totalRecipients,
+      totalRecipients: totalRecipientsCount,
       qrScans,
       landingPageVisits,
       totalCalls,
       webAppointments,
       callAppointments,
-      totalAppointments,
+      totalConverted,
     },
   };
 }
