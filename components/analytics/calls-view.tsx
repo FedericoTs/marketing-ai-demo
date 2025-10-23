@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, CheckCircle2, XCircle, Clock, TrendingUp, Loader2, Users, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+// Import standardized KPI utilities for consistent calculations
+import { calculateConversionRate, formatPercentage, formatDuration } from "@/lib/utils/kpi-calculator";
 
 interface CallMetrics {
   total_calls: number;
@@ -31,32 +33,6 @@ interface Call {
   is_conversion: boolean;
   campaign_id?: string;
 }
-
-// Helper function defined outside component to avoid hoisting issues
-const formatDuration = (seconds?: number | null) => {
-  // Handle null, undefined, or 0
-  if (!seconds || seconds === 0) return "0s";
-
-  // Ensure it's a number and round to nearest whole second
-  const totalSeconds = Math.round(Number(seconds));
-
-  // Less than 60 seconds - show in seconds only
-  if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
-  }
-
-  // 60 seconds or more - show in minutes and seconds
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-
-  // If exactly divisible by 60, show only minutes
-  if (secs === 0) {
-    return `${mins}m`;
-  }
-
-  // Show minutes and seconds
-  return `${mins}m ${secs}s`;
-};
 
 // Format phone number for display
 const formatPhoneNumber = (phone?: string | null) => {
@@ -283,9 +259,7 @@ export function CallsView() {
                   {metrics.successful_calls}
                 </p>
                 <p className="text-xs text-green-600 mt-1 font-medium">
-                  {metrics.total_calls > 0
-                    ? ((metrics.successful_calls / metrics.total_calls) * 100).toFixed(1)
-                    : "0"}% success rate
+                  {formatPercentage(calculateConversionRate(metrics.successful_calls, metrics.total_calls), 1)} success rate
                 </p>
               </div>
               <CheckCircle2 className="h-10 w-10 text-green-600" />
@@ -321,11 +295,7 @@ export function CallsView() {
               <div>
                 <p className="text-sm font-medium text-slate-600">Avg Duration</p>
                 <p className="text-3xl font-bold text-slate-900 mt-2">
-                  {(() => {
-                    const formatted = formatDuration(metrics.average_duration);
-                    console.log('[CallsView RENDER] Raw:', metrics.average_duration, '→ Formatted:', formatted);
-                    return formatted;
-                  })()}
+                  {formatDuration(metrics.average_duration)}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
                   Per call conversation
