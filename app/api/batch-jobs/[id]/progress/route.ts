@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getBatchJob, getLatestBatchJobProgress } from "@/lib/database/batch-job-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function GET(
   request: NextRequest,
@@ -20,10 +21,7 @@ export async function GET(
 
     if (!batchJob) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Batch job not found",
-        },
+        errorResponse("Batch job not found", "BATCH_JOB_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -65,30 +63,32 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        batchJobId: batchJob.id,
-        status: batchJob.status,
-        totalRecipients: batchJob.total_recipients,
-        processedCount: batchJob.processed_count,
-        successCount: batchJob.success_count,
-        failedCount: batchJob.failed_count,
-        progressPercent: Math.round(progressPercent * 100) / 100,
-        estimatedTimeRemaining,
-        currentMessage: latestProgress?.message,
-        startedAt: batchJob.started_at,
-        completedAt: batchJob.completed_at,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          batchJobId: batchJob.id,
+          status: batchJob.status,
+          totalRecipients: batchJob.total_recipients,
+          processedCount: batchJob.processed_count,
+          successCount: batchJob.success_count,
+          failedCount: batchJob.failed_count,
+          progressPercent: Math.round(progressPercent * 100) / 100,
+          estimatedTimeRemaining,
+          currentMessage: latestProgress?.message,
+          startedAt: batchJob.started_at,
+          completedAt: batchJob.completed_at,
+        },
+        "Progress retrieved successfully"
+      )
+    );
   } catch (error) {
     console.error("❌ Error fetching progress:", error);
 
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch progress",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to fetch progress",
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }

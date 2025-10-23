@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getBatchJob, getBatchJobRecipients } from "@/lib/database/batch-job-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function GET(
   request: NextRequest,
@@ -20,10 +21,7 @@ export async function GET(
 
     if (!batchJob) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Batch job not found",
-        },
+        errorResponse("Batch job not found", "BATCH_JOB_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -32,21 +30,23 @@ export async function GET(
     const includeRecipients = request.nextUrl.searchParams.get("includeRecipients") === "true";
     const recipients = includeRecipients ? getBatchJobRecipients(id) : undefined;
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...batchJob,
-        recipients,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...batchJob,
+          recipients,
+        },
+        "Batch job retrieved successfully"
+      )
+    );
   } catch (error) {
     console.error("❌ Error fetching batch job:", error);
 
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch batch job",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to fetch batch job",
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }

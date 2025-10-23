@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateBatchJobStatus, getBatchJob } from "@/lib/database/batch-job-queries";
 import { cancelBatchJob } from "@/lib/queue/batch-job-queue";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function POST(
   request: NextRequest,
@@ -17,7 +18,7 @@ export async function POST(
     const job = getBatchJob(id);
     if (!job) {
       return NextResponse.json(
-        { success: false, error: "Batch job not found in database" },
+        errorResponse("Batch job not found in database", "BATCH_JOB_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -25,10 +26,10 @@ export async function POST(
     // Only allow canceling pending/processing jobs
     if (job.status !== "pending" && job.status !== "processing") {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Cannot cancel ${job.status} job. Only pending or processing jobs can be cancelled.`
-        },
+        errorResponse(
+          `Cannot cancel ${job.status} job. Only pending or processing jobs can be cancelled.`,
+          "INVALID_STATUS_FOR_CANCEL"
+        ),
         { status: 400 }
       );
     }
@@ -37,7 +38,7 @@ export async function POST(
     const dbUpdated = updateBatchJobStatus(id, "cancelled");
     if (!dbUpdated) {
       return NextResponse.json(
-        { success: false, error: "Failed to update database status" },
+        errorResponse("Failed to update database status", "UPDATE_ERROR"),
         { status: 500 }
       );
     }
@@ -57,15 +58,18 @@ export async function POST(
       console.warn(`⚠️  Could not remove job from queue (non-critical):`, queueError);
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "Batch job cancelled successfully",
-      note: "Job marked as cancelled. If already processing, it will stop at next checkpoint.",
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          note: "Job marked as cancelled. If already processing, it will stop at next checkpoint.",
+        },
+        "Batch job cancelled successfully"
+      )
+    );
   } catch (error) {
     console.error("❌ Error cancelling batch job:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to cancel batch job" },
+      errorResponse("Failed to cancel batch job", "CANCEL_ERROR"),
       { status: 500 }
     );
   }

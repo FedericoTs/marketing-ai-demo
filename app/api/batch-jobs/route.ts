@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAllBatchJobs, getBatchJobsByStatus, getBatchJobStats, getLatestBatchJobProgress } from "@/lib/database/batch-job-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,17 +43,16 @@ export async function GET(request: NextRequest) {
     // Optionally include stats
     const stats = includeStats ? getBatchJobStats() : undefined;
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        jobs,
-        stats,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        { jobs, stats },
+        "Batch jobs retrieved successfully"
+      )
+    );
   } catch (error) {
     console.error("Error fetching batch jobs:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch batch jobs" },
+      errorResponse("Failed to fetch batch jobs", "FETCH_ERROR"),
       { status: 500 }
     );
   }

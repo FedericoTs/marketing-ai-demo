@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createBatchJob } from "@/lib/database/batch-job-queries";
 import { addBatchJob } from "@/lib/queue/batch-job-queue";
 import type { BatchJobPayload } from "@/lib/queue/batch-job-queue";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,10 +25,10 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!campaignId || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid batch job data: campaignId and recipients are required",
-        },
+        errorResponse(
+          "Invalid batch job data: campaignId and recipients are required",
+          "INVALID_BATCH_DATA"
+        ),
         { status: 400 }
       );
     }
@@ -57,24 +58,26 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Batch job added to queue: ${batchJob.id}`);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        batchJobId: batchJob.id,
-        campaignId: batchJob.campaign_id,
-        status: batchJob.status,
-        totalRecipients: batchJob.total_recipients,
-        createdAt: batchJob.created_at,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          batchJobId: batchJob.id,
+          campaignId: batchJob.campaign_id,
+          status: batchJob.status,
+          totalRecipients: batchJob.total_recipients,
+          createdAt: batchJob.created_at,
+        },
+        "Batch job created and queued successfully"
+      )
+    );
   } catch (error) {
     console.error("❌ Error creating batch job:", error);
 
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to create batch job",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to create batch job",
+        "CREATE_BATCH_ERROR"
+      ),
       { status: 500 }
     );
   }
