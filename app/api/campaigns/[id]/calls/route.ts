@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCampaignCalls } from '@/lib/database/call-tracking-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 export async function GET(
   request: NextRequest,
@@ -16,21 +17,23 @@ export async function GET(
     // Get calls for this campaign
     const calls = getCampaignCalls(id, 100); // Limit to 100 most recent calls
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        calls,
-        total: calls.length,
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          calls,
+          total: calls.length,
+        },
+        'Campaign calls retrieved successfully'
+      )
+    );
   } catch (error) {
     console.error('Error fetching campaign calls:', error);
 
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch calls',
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to fetch calls',
+        'FETCH_ERROR'
+      ),
       { status: 500 }
     );
   }
