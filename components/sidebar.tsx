@@ -15,6 +15,7 @@ const navigation = [
   { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "create" },
   { name: "Batch Jobs", href: "/batch-jobs", icon: Layers, section: "analyze" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, section: "analyze" },
+  { name: "Campaign Matrix", href: "/campaigns/matrix", icon: Sparkles, section: "analyze" },
   { name: "Notifications", href: "/notifications", icon: Bell, section: "analyze" },
   { name: "CC Operations", href: "/cc-operations", icon: Phone, section: "advanced" },
 ];

@@ -88,7 +88,28 @@ npm run dev
 - Auto-refresh every 30 seconds
 - Page views, QR scans, button clicks, form submissions
 
-### 5. **ElevenLabs Call Tracking** ✨ *Live Integration*
+### 4a. **Campaign Performance Matrix** ✨ *NEW - AI-Powered Recommendations*
+- **Intelligent Campaign Recommendations** for all stores
+- **Multi-factor Scoring Algorithm**:
+  - 40% Store Performance (historical + recent trend)
+  - 30% Creative Performance (campaign success rate)
+  - 20% Geographic Fit (regional patterns)
+  - 10% Timing Alignment (time-to-conversion compatibility)
+- **Automatic Status Classification**:
+  - ✅ Auto-approve: High confidence (>75% score)
+  - ⚠️ Needs review: Medium confidence
+  - ⏭️ Skip: No suitable campaigns found
+- **Features**:
+  - Expandable store cards with performance metrics
+  - AI reasoning and risk factor analysis
+  - Score breakdowns (4 visual progress bars)
+  - Alternative campaign suggestions
+  - Filter by region, state, status
+  - Bulk actions: Auto-Approve All, Generate Order
+- **Access**: `/campaigns/matrix` or "Campaign Matrix" in sidebar
+
+
+### 6. **ElevenLabs Call Tracking** ✨ *Live Integration*
 - **Automatic Sync**: Runs globally every 2 minutes on all Analytics tabs
 - **Manual Sync**: Available on Calls tab for immediate updates
 - **Campaign Attribution**: Automatic phone number matching to recipients
@@ -99,13 +120,13 @@ npm run dev
   - Call-to-conversion rate
   - Calls by time period
 
-### 6. **CC Operations Tab**
+### 7. **CC Operations Tab**
 - Initiate AI phone calls via ElevenLabs Conversational AI
 - Agent configuration management
 - Call status monitoring
 - Live agent chat widget
 
-### 7. **Settings Tab**
+### 8. **Settings Tab**
 - **Company & Brand**:
   - Company info, industry, brand voice
   - Brand Intelligence (AI-powered content analysis)
@@ -117,6 +138,42 @@ npm run dev
 ---
 
 ## Recent Improvements
+
+### Campaign Performance Matrix Implementation (Oct 23, 2025)
+**New AI-Powered Feature**:
+
+1. **Intelligent Recommendation System**:
+   - Multi-factor scoring algorithm combining 4 performance dimensions
+   - Confidence-based classification (auto-approve, needs-review, skip)
+   - AI-generated reasoning and risk factor analysis
+   - Alternative campaign suggestions for each store
+
+2. **Database Layer**:
+   - Comprehensive performance metrics aggregation
+   - Geographic pattern analysis
+   - Store similarity clustering (K-means style)
+   - Proper join relationships through `retail_campaign_deployments`
+
+3. **User Interface**:
+   - Expandable store cards with detailed breakdowns
+   - Filter controls (region, state, status)
+   - Visual score progress bars
+   - Bulk action buttons
+   - Summary dashboard with 5 KPI cards
+
+**Files Created**:
+- `lib/database/performance-matrix-queries.ts` - Performance data queries
+- `lib/algorithms/campaign-recommendation.ts` - Multi-factor scoring engine
+- `app/api/campaigns/performance-matrix/route.ts` - API endpoint
+- `app/campaigns/matrix/page.tsx` - Main UI page
+- `components/campaigns/performance-matrix-grid.tsx` - Store grid component
+- Updated `components/sidebar.tsx` - Added "Campaign Matrix" navigation link
+
+**Algorithm Weights**:
+- Store Performance: 40%
+- Creative Performance: 30%
+- Geographic Fit: 20%
+- Timing Alignment: 10%
 
 ### Analytics & Conversion Tracking (Oct 23, 2025)
 **Major Enhancements**:
@@ -174,14 +231,18 @@ npm run dev
 ```
 app/
 ├── analytics/           # Analytics dashboard with tabs
+├── campaigns/matrix/    # Performance Matrix (AI recommendations)
 ├── copywriting/         # AI copywriting generator
 ├── dm-creative/         # Direct mail creation
 ├── cc-operations/       # Call center operations
 ├── settings/           # Configuration
 └── api/                # API routes
+    └── campaigns/
+        └── performance-matrix/  # Recommendation API
 
 components/
 ├── analytics/          # Dashboard, charts, calls view
+├── campaigns/          # Performance Matrix grid
 ├── copywriting/        # Copy generator components
 ├── dm-creative/        # DM builder components
 ├── cc-operations/      # Call initiator components
@@ -189,7 +250,8 @@ components/
 
 lib/
 ├── ai/                 # OpenAI, ElevenLabs clients
-├── database/           # SQLite queries
+├── algorithms/         # Campaign recommendation engine
+├── database/           # SQLite queries, performance metrics
 └── elevenlabs/         # Call tracking integration
 ```
 
@@ -199,6 +261,10 @@ lib/
 - `recipients` - Recipient records with tracking IDs
 - `tracking_events` - Page views, QR scans, conversions
 - `elevenlabs_calls` - Call history from ElevenLabs API
+- `retail_stores` - Store locations and metadata
+- `retail_campaign_deployments` - Campaign-to-store junction table
+- `retail_deployment_recipients` - Deployment-to-recipient junction
+- `conversions` - Conversion events (web + phone)
 - `settings` - Application configuration
 
 ---
