@@ -155,7 +155,7 @@ export function DashboardOverview() {
   );
 
   // Log comparison for verification (will be removed after testing)
-  if (typeof window !== 'undefined' && responseRate !== responseRateNew) {
+  if (typeof window !== 'undefined' && (responseRate + '%') !== responseRateNew) {
     console.warn('[SMOKE TEST] Response rate mismatch:', {
       existing: responseRate + '%',
       new: responseRateNew,
