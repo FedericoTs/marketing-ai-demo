@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // Dynamic import of retail queries (optional feature)
 function getRetailQueries() {
@@ -25,11 +26,9 @@ export async function GET(request: NextRequest) {
     const tracking = getTrackingQueries();
 
     if (!retail || !tracking) {
-      return NextResponse.json({
-        success: false,
-        error: "Retail module not enabled",
-        data: [],
-      });
+      return NextResponse.json(
+        errorResponse("Retail module not enabled", "MODULE_NOT_ENABLED")
+      );
     }
 
     // Get all campaigns to gather deployments
@@ -62,22 +61,25 @@ export async function GET(request: NextRequest) {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    return NextResponse.json({
-      success: true,
-      data: allDeployments,
-      count: allDeployments.length,
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          deployments: allDeployments,
+          count: allDeployments.length,
+        },
+        "Deployments retrieved successfully"
+      )
+    );
   } catch (error: unknown) {
     console.error("Error fetching deployments:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to fetch deployments: ${errorMessage}`,
-        data: [],
-      },
+      errorResponse(
+        `Failed to fetch deployments: ${errorMessage}`,
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }

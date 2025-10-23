@@ -9,6 +9,7 @@ import {
   getCorrelationAnalysis,
   getRetailAnalyticsSummary,
 } from '@/lib/database/retail-analytics';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/retail/analytics
@@ -25,18 +26,20 @@ export async function GET(request: NextRequest) {
 
         // Check if there's any data
         if (summary.totalStores === 0) {
-          return NextResponse.json({
-            success: true,
-            data: summary,
-            warning: 'No retail data available. Please add stores and deploy campaigns to see insights.',
-          });
+          return NextResponse.json(
+            successResponse(summary, 'No retail data available. Please add stores and deploy campaigns to see insights.')
+          );
         }
 
-        return NextResponse.json({ success: true, data: summary });
+        return NextResponse.json(
+          successResponse(summary, 'Analytics summary retrieved successfully')
+        );
 
       case 'clusters':
         const clusters = getStorePerformanceClusters();
-        return NextResponse.json({ success: true, data: clusters });
+        return NextResponse.json(
+          successResponse(clusters, 'Performance clusters retrieved successfully')
+        );
 
       case 'top-performers':
         const limit = parseInt(searchParams.get('limit') || '10');
@@ -45,25 +48,35 @@ export async function GET(request: NextRequest) {
           limit,
           metric as 'conversion_rate' | 'conversions'
         );
-        return NextResponse.json({ success: true, data: topPerformers });
+        return NextResponse.json(
+          successResponse(topPerformers, 'Top performers retrieved successfully')
+        );
 
       case 'underperformers':
         const threshold = parseFloat(searchParams.get('threshold') || '5.0');
         const underperformers = getUnderperformers(threshold);
-        return NextResponse.json({ success: true, data: underperformers });
+        return NextResponse.json(
+          successResponse(underperformers, 'Underperformers retrieved successfully')
+        );
 
       case 'regional':
         const regional = getRegionalPerformance();
-        return NextResponse.json({ success: true, data: regional });
+        return NextResponse.json(
+          successResponse(regional, 'Regional performance retrieved successfully')
+        );
 
       case 'correlations':
         const correlations = getCorrelationAnalysis();
-        return NextResponse.json({ success: true, data: correlations });
+        return NextResponse.json(
+          successResponse(correlations, 'Correlation analysis retrieved successfully')
+        );
 
       case 'time-patterns':
         const groupBy = (searchParams.get('groupBy') as 'dayofweek' | 'week' | 'month') || 'dayofweek';
         const timePatterns = getTimeBasedPatterns(groupBy);
-        return NextResponse.json({ success: true, data: timePatterns });
+        return NextResponse.json(
+          successResponse(timePatterns, 'Time patterns retrieved successfully')
+        );
 
       case 'by-attribute':
         const attribute = (searchParams.get('attribute') as
@@ -71,7 +84,9 @@ export async function GET(request: NextRequest) {
           | 'region'
           | 'district') || 'size_category';
         const byAttribute = getPerformanceByAttribute(attribute);
-        return NextResponse.json({ success: true, data: byAttribute });
+        return NextResponse.json(
+          successResponse(byAttribute, 'Performance by attribute retrieved successfully')
+        );
 
       case 'all':
         // Return comprehensive analytics
@@ -83,24 +98,20 @@ export async function GET(request: NextRequest) {
           correlations: getCorrelationAnalysis(),
           timePatterns: getTimeBasedPatterns('dayofweek'),
         };
-        return NextResponse.json({ success: true, data: allData });
+        return NextResponse.json(
+          successResponse(allData, 'All analytics retrieved successfully')
+        );
 
       default:
         return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid analytics type',
-          },
+          errorResponse('Invalid analytics type', 'INVALID_TYPE'),
           { status: 400 }
         );
     }
   } catch (error: any) {
     console.error('Error fetching retail analytics:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || 'Failed to fetch analytics',
-      },
+      errorResponse(error.message || 'Failed to fetch analytics', 'FETCH_ERROR'),
       { status: 500 }
     );
   }
