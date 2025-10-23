@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, TrendingUp, Info } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ResponsiveSankey } from "@nivo/sankey";
+// Import standardized KPI utilities for consistent calculations
+import { calculateConversionRate, formatPercentage } from "@/lib/utils/kpi-calculator";
 
 interface SankeyNode {
   name: string;
@@ -170,30 +172,36 @@ export function SankeyChart({ startDate, endDate }: SankeyChartProps) {
     })),
   };
 
-  // Calculate conversion rates for insights
-  const qrConversionRate = data.metrics.totalRecipients > 0
-    ? ((data.metrics.qrScans / data.metrics.totalRecipients) * 100).toFixed(2)
-    : "0.00";
+  // Calculate conversion rates for insights using standardized utilities
+  const qrConversionRate = formatPercentage(
+    calculateConversionRate(data.metrics.qrScans, data.metrics.totalRecipients),
+    2
+  );
 
-  const landingConversionRate = data.metrics.totalRecipients > 0
-    ? ((data.metrics.landingPageVisits / data.metrics.totalRecipients) * 100).toFixed(2)
-    : "0.00";
+  const landingConversionRate = formatPercentage(
+    calculateConversionRate(data.metrics.landingPageVisits, data.metrics.totalRecipients),
+    2
+  );
 
-  const callEngagementRate = data.metrics.totalRecipients > 0
-    ? ((data.metrics.totalCalls / data.metrics.totalRecipients) * 100).toFixed(2)
-    : "0.00";
+  const callEngagementRate = formatPercentage(
+    calculateConversionRate(data.metrics.totalCalls, data.metrics.totalRecipients),
+    2
+  );
 
-  const callToApptRate = data.metrics.totalCalls > 0
-    ? ((data.metrics.callAppointments / data.metrics.totalCalls) * 100).toFixed(1)
-    : "0.0";
+  const callToApptRate = formatPercentage(
+    calculateConversionRate(data.metrics.callAppointments, data.metrics.totalCalls),
+    1
+  );
 
-  const webToApptRate = data.metrics.landingPageVisits > 0
-    ? ((data.metrics.webAppointments / data.metrics.landingPageVisits) * 100).toFixed(1)
-    : "0.0";
+  const webToApptRate = formatPercentage(
+    calculateConversionRate(data.metrics.webAppointments, data.metrics.landingPageVisits),
+    1
+  );
 
-  const overallConversionRate = data.metrics.totalRecipients > 0
-    ? ((data.metrics.totalConverted / data.metrics.totalRecipients) * 100).toFixed(2)
-    : "0.00";
+  const overallConversionRate = formatPercentage(
+    calculateConversionRate(data.metrics.totalConverted, data.metrics.totalRecipients),
+    2
+  );
 
   return (
     <Card>
@@ -251,7 +259,7 @@ export function SankeyChart({ startDate, endDate }: SankeyChartProps) {
                   Flow: <span className="font-medium text-slate-900">{link.value.toLocaleString()}</span>
                   {link.source.value && link.source.value > 0 && (
                     <span className="ml-2 text-xs text-slate-500">
-                      ({((link.value / link.source.value) * 100).toFixed(1)}% of source)
+                      ({formatPercentage(calculateConversionRate(link.value, link.source.value), 1)} of source)
                     </span>
                   )}
                 </div>
