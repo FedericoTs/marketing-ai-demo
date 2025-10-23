@@ -5,6 +5,7 @@ import {
   deleteCampaign,
   duplicateCampaign,
 } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // PATCH: Update campaign status
 export async function PATCH(
@@ -18,10 +19,10 @@ export async function PATCH(
 
     if (!status || !["active", "paused", "completed"].includes(status)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid status. Must be 'active', 'paused', or 'completed'",
-        },
+        errorResponse(
+          "Invalid status. Must be 'active', 'paused', or 'completed'",
+          "INVALID_STATUS"
+        ),
         { status: 400 }
       );
     }
@@ -30,10 +31,7 @@ export async function PATCH(
 
     if (!updated) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Campaign not found or failed to update",
-        },
+        errorResponse("Campaign not found or failed to update", "CAMPAIGN_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -41,18 +39,13 @@ export async function PATCH(
     // Get updated campaign
     const campaign = getCampaignById(id);
 
-    return NextResponse.json({
-      success: true,
-      data: campaign,
-      message: `Campaign status updated to ${status}`,
-    });
+    return NextResponse.json(
+      successResponse(campaign, `Campaign status updated to ${status}`)
+    );
   } catch (error) {
     console.error("Error updating campaign status:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to update campaign status",
-      },
+      errorResponse("Failed to update campaign status", "UPDATE_ERROR"),
       { status: 500 }
     );
   }
@@ -69,10 +62,7 @@ export async function DELETE(
     const campaign = getCampaignById(id);
     if (!campaign) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Campaign not found",
-        },
+        errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -81,25 +71,18 @@ export async function DELETE(
 
     if (!deleted) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to delete campaign",
-        },
+        errorResponse("Failed to delete campaign", "DELETE_ERROR"),
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Campaign "${campaign.name}" deleted successfully`,
-    });
+    return NextResponse.json(
+      successResponse(null, `Campaign "${campaign.name}" deleted successfully`)
+    );
   } catch (error) {
     console.error("Error deleting campaign:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to delete campaign",
-      },
+      errorResponse("Failed to delete campaign", "DELETE_ERROR"),
       { status: 500 }
     );
   }

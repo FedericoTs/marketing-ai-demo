@@ -4,6 +4,7 @@ import {
   bulkArchiveCampaigns,
   bulkPermanentlyDeleteCampaigns,
 } from '@/lib/database/campaign-management';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * POST /api/campaigns/bulk
@@ -16,20 +17,14 @@ export async function POST(request: NextRequest) {
 
     if (!action || !campaignIds || !Array.isArray(campaignIds)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Action and campaign IDs array are required',
-        },
+        errorResponse('Action and campaign IDs array are required', 'MISSING_FIELDS'),
         { status: 400 }
       );
     }
 
     if (campaignIds.length === 0) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'No campaigns selected',
-        },
+        errorResponse('No campaigns selected', 'EMPTY_SELECTION'),
         { status: 400 }
       );
     }
@@ -65,26 +60,21 @@ export async function POST(request: NextRequest) {
 
       default:
         return NextResponse.json(
-          {
-            success: false,
-            error: 'Invalid action. Must be: activate, pause, complete, archive, or delete',
-          },
+          errorResponse(
+            'Invalid action. Must be: activate, pause, complete, archive, or delete',
+            'INVALID_ACTION'
+          ),
           { status: 400 }
         );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: { count },
-      message,
-    });
+    return NextResponse.json(
+      successResponse({ count }, message)
+    );
   } catch (error) {
     console.error('Error performing bulk operation:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to perform bulk operation',
-      },
+      errorResponse('Failed to perform bulk operation', 'BULK_OPERATION_ERROR'),
       { status: 500 }
     );
   }
