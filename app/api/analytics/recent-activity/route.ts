@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRecentActivity } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function GET(request: Request) {
   try {
@@ -8,17 +9,13 @@ export async function GET(request: Request) {
 
     const activities = getRecentActivity(limit);
 
-    return NextResponse.json({
-      success: true,
-      data: activities,
-    });
+    return NextResponse.json(
+      successResponse(activities, "Recent activity retrieved successfully")
+    );
   } catch (error) {
     console.error("Error fetching recent activity:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch recent activity",
-      },
+      errorResponse("Failed to fetch recent activity", "FETCH_ERROR"),
       { status: 500 }
     );
   }

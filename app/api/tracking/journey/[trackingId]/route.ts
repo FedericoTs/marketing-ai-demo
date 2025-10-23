@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRecipientJourney } from "@/lib/database/tracking-queries";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
  * GET /api/tracking/journey/[trackingId]
@@ -14,7 +15,7 @@ export async function GET(
 
     if (!trackingId) {
       return NextResponse.json(
-        { success: false, error: "Missing tracking ID" },
+        errorResponse("Missing tracking ID", "MISSING_TRACKING_ID"),
         { status: 400 }
       );
     }
@@ -23,7 +24,7 @@ export async function GET(
 
     if (!journey) {
       return NextResponse.json(
-        { success: false, error: "Recipient not found" },
+        errorResponse("Recipient not found", "NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -45,17 +46,16 @@ export async function GET(
       })),
     };
 
-    return NextResponse.json({
-      success: true,
-      data: parsedJourney,
-    });
+    return NextResponse.json(
+      successResponse(parsedJourney, "Journey retrieved successfully")
+    );
   } catch (error) {
     console.error("Error fetching recipient journey:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch journey",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to fetch journey",
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }
