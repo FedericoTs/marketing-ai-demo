@@ -173,6 +173,17 @@ export function getRetailStores(options: StoreQueryOptions = {}): PaginatedStore
     sortOrder = 'ASC',
   } = options;
 
+  // Runtime validation to prevent SQL injection in ORDER BY clause
+  const validSortColumns = ['store_number', 'name', 'city', 'created_at'] as const;
+  const validSortOrders = ['ASC', 'DESC'] as const;
+
+  if (!validSortColumns.includes(sortBy as any)) {
+    throw new Error(`Invalid sortBy column: ${sortBy}. Allowed: ${validSortColumns.join(', ')}`);
+  }
+  if (!validSortOrders.includes(sortOrder as any)) {
+    throw new Error(`Invalid sortOrder: ${sortOrder}. Allowed: ${validSortOrders.join(', ')}`);
+  }
+
   const offset = (page - 1) * pageSize;
 
   // Build WHERE clause dynamically
@@ -745,6 +756,13 @@ export function getTopPerformingStores(
   ensureRetailModuleEnabled();
 
   const db = getDatabase();
+
+  // Runtime validation to prevent SQL injection in ORDER BY clause
+  const validSortColumns = ['conversion_rate', 'conversions_count', 'recipients_count'] as const;
+
+  if (!validSortColumns.includes(sortBy as any)) {
+    throw new Error(`Invalid sortBy column: ${sortBy}. Allowed: ${validSortColumns.join(', ')}`);
+  }
 
   const stmt = db.prepare(`
     SELECT

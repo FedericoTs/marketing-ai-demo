@@ -235,25 +235,8 @@ export function getCampaignCallMetrics(campaignId: string): CallMetrics {
 export function getAllCallMetrics(startDate?: string, endDate?: string): CallMetrics {
   const db = getDatabase();
 
-  // Build date filter
-  const dateFilter = startDate && endDate
-    ? `WHERE DATE(call_started_at) BETWEEN DATE('${startDate}') AND DATE('${endDate}')`
-    : '';
-
-  const countsStmt = db.prepare(`
-    SELECT
-      COUNT(*) as total_calls,
-      SUM(CASE WHEN call_status = 'success' THEN 1 ELSE 0 END) as successful_calls,
-      SUM(CASE WHEN call_status = 'failure' THEN 1 ELSE 0 END) as failed_calls,
-      SUM(CASE WHEN call_status = 'unknown' THEN 1 ELSE 0 END) as unknown_calls,
-      SUM(CASE WHEN is_conversion = 1 THEN 1 ELSE 0 END) as conversions,
-      AVG(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN call_duration_seconds ELSE NULL END) as average_duration,
-      COUNT(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN 1 END) as calls_with_duration
-    FROM elevenlabs_calls
-    ${dateFilter}
-  `);
-
-  const counts = countsStmt.get() as {
+  // Use conditional query building with proper parameterization to prevent SQL injection
+  let counts: {
     total_calls: number;
     successful_calls: number;
     failed_calls: number;
@@ -262,6 +245,37 @@ export function getAllCallMetrics(startDate?: string, endDate?: string): CallMet
     average_duration: number | null;
     calls_with_duration: number;
   };
+
+  if (startDate && endDate) {
+    // Query with date filter using prepared statement placeholders
+    const countsStmt = db.prepare(`
+      SELECT
+        COUNT(*) as total_calls,
+        SUM(CASE WHEN call_status = 'success' THEN 1 ELSE 0 END) as successful_calls,
+        SUM(CASE WHEN call_status = 'failure' THEN 1 ELSE 0 END) as failed_calls,
+        SUM(CASE WHEN call_status = 'unknown' THEN 1 ELSE 0 END) as unknown_calls,
+        SUM(CASE WHEN is_conversion = 1 THEN 1 ELSE 0 END) as conversions,
+        AVG(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN call_duration_seconds ELSE NULL END) as average_duration,
+        COUNT(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN 1 END) as calls_with_duration
+      FROM elevenlabs_calls
+      WHERE DATE(call_started_at) BETWEEN DATE(?) AND DATE(?)
+    `);
+    counts = countsStmt.get(startDate, endDate) as typeof counts;
+  } else {
+    // Query without date filter
+    const countsStmt = db.prepare(`
+      SELECT
+        COUNT(*) as total_calls,
+        SUM(CASE WHEN call_status = 'success' THEN 1 ELSE 0 END) as successful_calls,
+        SUM(CASE WHEN call_status = 'failure' THEN 1 ELSE 0 END) as failed_calls,
+        SUM(CASE WHEN call_status = 'unknown' THEN 1 ELSE 0 END) as unknown_calls,
+        SUM(CASE WHEN is_conversion = 1 THEN 1 ELSE 0 END) as conversions,
+        AVG(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN call_duration_seconds ELSE NULL END) as average_duration,
+        COUNT(CASE WHEN call_duration_seconds IS NOT NULL AND call_duration_seconds > 0 THEN 1 END) as calls_with_duration
+      FROM elevenlabs_calls
+    `);
+    counts = countsStmt.get() as typeof counts;
+  }
 
   // Time-based counts (only meaningful without custom date range)
   let today, week, month;

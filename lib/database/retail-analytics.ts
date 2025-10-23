@@ -138,6 +138,13 @@ export function getPerformanceByAttribute(
 ): AttributePerformance[] {
   const db = getDatabase();
 
+  // Runtime validation to prevent SQL injection in column names
+  const validAttributes = ['size_category', 'region', 'district'] as const;
+
+  if (!validAttributes.includes(attribute as any)) {
+    throw new Error(`Invalid attribute: ${attribute}. Allowed: ${validAttributes.join(', ')}`);
+  }
+
   const results = db
     .prepare(
       `
