@@ -1,5 +1,7 @@
 import { nanoid } from "nanoid";
 import { getDatabase } from "./connection";
+import { dbLogger } from "./logger";
+import { validateRequired, validateString, validateId, validateEnum } from "./validators";
 
 // ==================== TYPES ====================
 
@@ -54,16 +56,31 @@ export function createCampaign(data: {
   message: string;
   companyName: string;
 }): Campaign {
+  const operation = 'createCampaign';
+
+  // Validate inputs
+  validateString(data.name, 'name', operation, { minLength: 1, maxLength: 255 });
+  validateString(data.message, 'message', operation, { minLength: 1 });
+  validateString(data.companyName, 'companyName', operation, { minLength: 1, maxLength: 255 });
+
   const db = getDatabase();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
+
+  dbLogger.info(operation, 'campaigns', id, { name: data.name });
 
   const stmt = db.prepare(`
     INSERT INTO campaigns (id, name, message, company_name, created_at, status)
     VALUES (?, ?, ?, ?, ?, 'active')
   `);
 
-  stmt.run(id, data.name, data.message, data.companyName, created_at);
+  try {
+    stmt.run(id, data.name, data.message, data.companyName, created_at);
+    dbLogger.debug(`${operation} completed`, { id, name: data.name });
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { id, name: data.name });
+    throw error;
+  }
 
   return {
     id,
@@ -79,9 +96,26 @@ export function createCampaign(data: {
  * Get campaign by ID
  */
 export function getCampaignById(id: string): Campaign | null {
+  const operation = 'getCampaignById';
+
+  // Validate input
+  validateId(id, 'id', operation);
+
   const db = getDatabase();
   const stmt = db.prepare("SELECT * FROM campaigns WHERE id = ?");
-  return stmt.get(id) as Campaign | null;
+
+  try {
+    const campaign = stmt.get(id) as Campaign | null;
+    if (campaign) {
+      dbLogger.debug(`${operation} found`, { id, name: campaign.name });
+    } else {
+      dbLogger.debug(`${operation} not found`, { id });
+    }
+    return campaign;
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { id });
+    throw error;
+  }
 }
 
 /**
@@ -193,10 +227,23 @@ export function createRecipient(data: {
   email?: string;
   phone?: string;
 }): Recipient {
+  const operation = 'createRecipient';
+
+  // Validate required inputs
+  validateId(data.campaignId, 'campaignId', operation);
+  validateString(data.name, 'name', operation, { minLength: 1, maxLength: 255 });
+  validateString(data.lastname, 'lastname', operation, { minLength: 1, maxLength: 255 });
+
   const db = getDatabase();
   const id = nanoid(16);
   const tracking_id = nanoid(12);
   const created_at = new Date().toISOString();
+
+  dbLogger.info(operation, 'recipients', id, {
+    campaignId: data.campaignId,
+    name: `${data.name} ${data.lastname}`,
+    trackingId: tracking_id
+  });
 
   const stmt = db.prepare(`
     INSERT INTO recipients (
@@ -206,19 +253,25 @@ export function createRecipient(data: {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  stmt.run(
-    id,
-    data.campaignId,
-    tracking_id,
-    data.name,
-    data.lastname,
-    data.address || null,
-    data.city || null,
-    data.zip || null,
-    data.email || null,
-    data.phone || null,
-    created_at
-  );
+  try {
+    stmt.run(
+      id,
+      data.campaignId,
+      tracking_id,
+      data.name,
+      data.lastname,
+      data.address || null,
+      data.city || null,
+      data.zip || null,
+      data.email || null,
+      data.phone || null,
+      created_at
+    );
+    dbLogger.debug(`${operation} completed`, { id, trackingId: tracking_id });
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { id, campaignId: data.campaignId });
+    throw error;
+  }
 
   return {
     id,
@@ -347,9 +400,22 @@ export function trackEvent(data: {
   ipAddress?: string;
   userAgent?: string;
 }): Event {
+  const operation = 'trackEvent';
+
+  // Validate required inputs
+  validateId(data.trackingId, 'trackingId', operation);
+  validateEnum(data.eventType, 'eventType', operation, [
+    'page_view', 'qr_scan', 'button_click', 'form_view', 'external_link'
+  ] as const);
+
   const db = getDatabase();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
+
+  dbLogger.info(operation, 'events', id, {
+    trackingId: data.trackingId,
+    eventType: data.eventType
+  });
 
   const stmt = db.prepare(`
     INSERT INTO events (id, tracking_id, event_type, event_data, ip_address, user_agent, created_at)
@@ -358,15 +424,21 @@ export function trackEvent(data: {
 
   const eventDataJson = data.eventData ? JSON.stringify(data.eventData) : null;
 
-  stmt.run(
-    id,
-    data.trackingId,
-    data.eventType,
-    eventDataJson,
-    data.ipAddress || null,
-    data.userAgent || null,
-    created_at
-  );
+  try {
+    stmt.run(
+      id,
+      data.trackingId,
+      data.eventType,
+      eventDataJson,
+      data.ipAddress || null,
+      data.userAgent || null,
+      created_at
+    );
+    dbLogger.debug(`${operation} completed`, { id, eventType: data.eventType });
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { trackingId: data.trackingId, eventType: data.eventType });
+    throw error;
+  }
 
   return {
     id,
@@ -415,9 +487,22 @@ export function trackConversion(data: {
   conversionType: Conversion["conversion_type"];
   conversionData?: Record<string, unknown>;
 }): Conversion {
+  const operation = 'trackConversion';
+
+  // Validate required inputs
+  validateId(data.trackingId, 'trackingId', operation);
+  validateEnum(data.conversionType, 'conversionType', operation, [
+    'form_submission', 'appointment_booked', 'call_initiated', 'download'
+  ] as const);
+
   const db = getDatabase();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
+
+  dbLogger.info(operation, 'conversions', id, {
+    trackingId: data.trackingId,
+    conversionType: data.conversionType
+  });
 
   const stmt = db.prepare(`
     INSERT INTO conversions (id, tracking_id, conversion_type, conversion_data, created_at)
@@ -428,13 +513,19 @@ export function trackConversion(data: {
     ? JSON.stringify(data.conversionData)
     : null;
 
-  stmt.run(
-    id,
-    data.trackingId,
-    data.conversionType,
-    conversionDataJson,
-    created_at
-  );
+  try {
+    stmt.run(
+      id,
+      data.trackingId,
+      data.conversionType,
+      conversionDataJson,
+      created_at
+    );
+    dbLogger.debug(`${operation} completed`, { id, conversionType: data.conversionType });
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { trackingId: data.trackingId, conversionType: data.conversionType });
+    throw error;
+  }
 
   return {
     id,
