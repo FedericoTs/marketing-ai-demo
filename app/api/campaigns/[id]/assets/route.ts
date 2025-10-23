@@ -3,6 +3,7 @@ import {
   getCampaignAssets,
   getAssetPublicUrl,
 } from '@/lib/database/asset-management';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/campaigns/[id]/assets
@@ -23,17 +24,16 @@ export async function GET(
       metadata: asset.metadata ? JSON.parse(asset.metadata) : null,
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: assetsWithUrls,
-    });
+    return NextResponse.json(
+      successResponse(assetsWithUrls, 'Campaign assets retrieved successfully')
+    );
   } catch (error) {
     console.error('Error fetching campaign assets:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch campaign assets',
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to fetch campaign assets',
+        'FETCH_ERROR'
+      ),
       { status: 500 }
     );
   }

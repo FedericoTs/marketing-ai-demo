@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCampaignExportData } from "@/lib/database/tracking-queries";
 import { generateCampaignRecipientsCSV } from "@/lib/export/csv-exporter";
 import { generateCampaignPDF } from "@/lib/export/pdf-exporter";
+import { errorResponse } from "@/lib/utils/api-response";
 
 // GET: Export campaign data
 export async function GET(
@@ -17,10 +18,7 @@ export async function GET(
 
     if (!data) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Campaign not found",
-        },
+        errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -50,20 +48,17 @@ export async function GET(
       });
     } else {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid format. Use 'csv' or 'pdf'",
-        },
+        errorResponse("Invalid format. Use 'csv' or 'pdf'", "INVALID_FORMAT"),
         { status: 400 }
       );
     }
   } catch (error) {
     console.error("Error exporting campaign:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to export campaign data",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to export campaign data",
+        "EXPORT_ERROR"
+      ),
       { status: 500 }
     );
   }

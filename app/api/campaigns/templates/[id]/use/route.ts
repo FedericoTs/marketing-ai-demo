@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTemplateById, incrementTemplateUseCount, getDMTemplateByCampaignTemplate } from '@/lib/database/template-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * Use Template - Increment use count and return template data
@@ -21,7 +22,7 @@ export async function POST(
 
     if (!template) {
       return NextResponse.json(
-        { success: false, error: 'Template not found' },
+        errorResponse('Template not found', 'TEMPLATE_NOT_FOUND'),
         { status: 404 }
       );
     }
@@ -33,24 +34,31 @@ export async function POST(
     const dmTemplate = getDMTemplateByCampaignTemplate(id);
 
     // Return template data for frontend to use
-    return NextResponse.json({
-      success: true,
-      template: {
-        id: template.id,
-        name: template.name,
-        description: template.description,
-        category: template.category,
-        templateData: template.template_data,
-        // Include DM template ID for canvas editor
-        dmTemplateId: dmTemplate?.id || null,
-      },
-      // Suggested redirect URL for frontend
-      redirectUrl: `/dm-creative?templateId=${id}`,
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          template: {
+            id: template.id,
+            name: template.name,
+            description: template.description,
+            category: template.category,
+            templateData: template.template_data,
+            // Include DM template ID for canvas editor
+            dmTemplateId: dmTemplate?.id || null,
+          },
+          // Suggested redirect URL for frontend
+          redirectUrl: `/dm-creative?templateId=${id}`,
+        },
+        'Template prepared for use successfully'
+      )
+    );
   } catch (error) {
     console.error('Error using template:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to use template' },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to use template',
+        'USE_ERROR'
+      ),
       { status: 500 }
     );
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLandingPagesByCampaign } from '@/lib/database/tracking-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/campaigns/[id]/landing-pages
@@ -19,17 +20,16 @@ export async function GET(
       page_data: JSON.parse(page.page_data),
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: parsedPages,
-    });
+    return NextResponse.json(
+      successResponse(parsedPages, 'Landing pages retrieved successfully')
+    );
   } catch (error) {
     console.error('Error fetching landing pages:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch landing pages',
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to fetch landing pages',
+        'FETCH_ERROR'
+      ),
       { status: 500 }
     );
   }
