@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+// Import standardized KPI utilities for consistent percentage formatting
+import { formatPercentage } from "@/lib/utils/kpi-calculator";
 import {
   CheckCircle2,
   AlertCircle,
@@ -188,13 +190,13 @@ export function PerformanceMatrixGrid({ stores }: PerformanceMatrixGridProps) {
                     Avg. Conversion {getTrendIcon(store)}
                   </p>
                   <p className="text-lg font-semibold text-slate-900">
-                    {(store.avg_conversion_rate * 100).toFixed(1)}%
+                    {formatPercentage(store.avg_conversion_rate, 1)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-600 mb-1">Recent Conversion</p>
                   <p className="text-lg font-semibold text-slate-900">
-                    {(store.recent_conversion_rate * 100).toFixed(1)}%
+                    {formatPercentage(store.recent_conversion_rate, 1)}
                   </p>
                 </div>
                 <div>
@@ -229,10 +231,10 @@ export function PerformanceMatrixGrid({ stores }: PerformanceMatrixGridProps) {
                           </span>
                         </div>
                         <div className="text-slate-600">
-                          Score: {(rec.overall_score * 100).toFixed(0)}%
+                          Score: {formatPercentage(rec.overall_score, 0)}
                         </div>
                         <div className="text-slate-600">
-                          Expected: {(rec.expected_conversion_rate * 100).toFixed(1)}% conversion
+                          Expected: {formatPercentage(rec.expected_conversion_rate, 1)} conversion
                         </div>
                       </div>
                     </div>
@@ -269,7 +271,7 @@ export function PerformanceMatrixGrid({ stores }: PerformanceMatrixGridProps) {
                           />
                         </div>
                         <span className="text-xs font-medium text-slate-900">
-                          {(rec.scores.store_performance * 100).toFixed(0)}%
+                          {formatPercentage(rec.scores.store_performance, 0)}
                         </span>
                       </div>
                     </div>
@@ -283,7 +285,7 @@ export function PerformanceMatrixGrid({ stores }: PerformanceMatrixGridProps) {
                           />
                         </div>
                         <span className="text-xs font-medium text-slate-900">
-                          {(rec.scores.creative_performance * 100).toFixed(0)}%
+                          {formatPercentage(rec.scores.creative_performance, 0)}
                         </span>
                       </div>
                     </div>
@@ -297,7 +299,7 @@ export function PerformanceMatrixGrid({ stores }: PerformanceMatrixGridProps) {
                           />
                         </div>
                         <span className="text-xs font-medium text-slate-900">
-                          {(rec.scores.geographic_fit * 100).toFixed(0)}%
+                          {formatPercentage(rec.scores.geographic_fit, 0)}
                         </span>
                       </div>
                     </div>
@@ -311,7 +313,7 @@ export function PerformanceMatrixGrid({ stores }: PerformanceMatrixGridProps) {
                           />
                         </div>
                         <span className="text-xs font-medium text-slate-900">
-                          {(rec.scores.timing_alignment * 100).toFixed(0)}%
+                          {formatPercentage(rec.scores.timing_alignment, 0)}
                         </span>
                       </div>
                     </div>
@@ -378,7 +380,7 @@ export function PerformanceMatrixGrid({ stores }: PerformanceMatrixGridProps) {
                                   </p>
                                   <p className="text-xs text-slate-600">
                                     {altRec.recommended_quantity.toLocaleString()} pieces •{" "}
-                                    {(altRec.overall_score * 100).toFixed(0)}% match
+                                    {formatPercentage(altRec.overall_score, 0)} match
                                   </p>
                                 </div>
                                 <Badge
