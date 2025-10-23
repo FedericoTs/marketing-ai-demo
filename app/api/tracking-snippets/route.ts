@@ -6,6 +6,7 @@ import {
   deleteTrackingSnippet,
   toggleSnippetActive,
 } from '@/lib/database/template-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/tracking-snippets
@@ -15,15 +16,19 @@ export async function GET() {
   try {
     const snippets = getAllTrackingSnippets();
 
-    return NextResponse.json({
-      success: true,
-      snippets,
-      count: snippets.length,
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          snippets,
+          count: snippets.length,
+        },
+        'Tracking snippets retrieved successfully'
+      )
+    );
   } catch (error) {
     console.error('Error fetching tracking snippets:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch tracking snippets' },
+      errorResponse('Failed to fetch tracking snippets', 'FETCH_ERROR'),
       { status: 500 }
     );
   }
@@ -40,28 +45,27 @@ export async function POST(request: Request) {
     // Validation
     if (!name || !snippet_type || !code || !position) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        errorResponse('Missing required fields', 'MISSING_FIELDS'),
         { status: 400 }
       );
     }
 
     if (position !== 'head' && position !== 'body') {
       return NextResponse.json(
-        { error: 'Position must be "head" or "body"' },
+        errorResponse('Position must be "head" or "body"', 'INVALID_POSITION'),
         { status: 400 }
       );
     }
 
     const snippet = createTrackingSnippet(name, snippet_type, code, position);
 
-    return NextResponse.json({
-      success: true,
-      snippet,
-    });
+    return NextResponse.json(
+      successResponse(snippet, 'Tracking snippet created successfully')
+    );
   } catch (error) {
     console.error('Error creating tracking snippet:', error);
     return NextResponse.json(
-      { error: 'Failed to create tracking snippet' },
+      errorResponse('Failed to create tracking snippet', 'CREATE_ERROR'),
       { status: 500 }
     );
   }
@@ -78,7 +82,7 @@ export async function PATCH(request: Request) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'Snippet ID is required' },
+        errorResponse('Snippet ID is required', 'MISSING_ID'),
         { status: 400 }
       );
     }
@@ -91,19 +95,18 @@ export async function PATCH(request: Request) {
       snippet = updateTrackingSnippet(id, updates);
     } else {
       return NextResponse.json(
-        { error: 'Invalid request: provide action or updates' },
+        errorResponse('Invalid request: provide action or updates', 'INVALID_REQUEST'),
         { status: 400 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      snippet,
-    });
+    return NextResponse.json(
+      successResponse(snippet, 'Tracking snippet updated successfully')
+    );
   } catch (error) {
     console.error('Error updating tracking snippet:', error);
     return NextResponse.json(
-      { error: 'Failed to update tracking snippet' },
+      errorResponse('Failed to update tracking snippet', 'UPDATE_ERROR'),
       { status: 500 }
     );
   }
@@ -120,21 +123,20 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json(
-        { error: 'Snippet ID is required' },
+        errorResponse('Snippet ID is required', 'MISSING_ID'),
         { status: 400 }
       );
     }
 
     deleteTrackingSnippet(id);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Tracking snippet deleted',
-    });
+    return NextResponse.json(
+      successResponse(null, 'Tracking snippet deleted successfully')
+    );
   } catch (error) {
     console.error('Error deleting tracking snippet:', error);
     return NextResponse.json(
-      { error: 'Failed to delete tracking snippet' },
+      errorResponse('Failed to delete tracking snippet', 'DELETE_ERROR'),
       { status: 500 }
     );
   }
