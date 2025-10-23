@@ -1,37 +1,55 @@
 # Documentation Archive
 
-This folder contains historical planning documents and guides that were used during development.
+This folder contains historical planning documents and implementation guides organized by date.
 
-## Archive Contents
+## Archive Structure
 
-### Planning Documents (`/archive`)
+### `/archive/2025-10-23/` - Recent Analytics & Conversion Tracking Fixes
+Implementation documentation for:
+- Sankey diagram date filtering fixes
+- SQL injection prevention (prepared statements)
+- Conversion tracking improvements (CTA-aligned)
+- Call analytics enhancements
+- Dashboard UI cleanup
 
-- **DM_WORKFLOW_REDESIGN_PLAN.md** - Original design plan for DM workflow architecture
-- **PHASE_11_PROPOSAL.md** - Phase 11 enterprise features proposal
-- **PHASE_12_PLAN.md** - Phase 12 implementation plan
-- **METRICS_GUIDE.md** - Analytics and metrics system guide
-- **RETAIL_MODULE_TESTING_GUIDE.md** - Retail module testing procedures
+**Files**:
+- `SANKEY_DIAGRAM_IMPLEMENTATION.md`
+- `SANKEY_WEB_APPOINTMENTS_FIX.md`
+- `CRITICAL_FIXES_DASHBOARD_FILTERING.md`
+- `DATE_FILTERING_AND_SANKEY_IMPROVEMENTS.md`
+- `CRITICAL_BUSINESS_FIXES_COMPLETE.md`
+- `CTA_ALIGNED_CONVERSION_TRACKING_AUDIT.md`
+- `CALLS_TAB_IMPROVEMENTS.md`
+- `GLOBAL_SYNC_FIX.md`
+
+### `/archive/2025-10-18/` - Planning Documents
+Earlier roadmaps and feature planning:
+- `NEXT_STEPS_PLAN.md` - Template library, batch processing, onboarding plans
+- `CANVAS_ENHANCEMENT_PLAN.md` - Canvas editor feature roadmap
 
 ## Current Active Documentation
 
 Located in project root:
 
-- **README.md** - User guide and getting started
+- **README.md** - Main project documentation and user guide
 - **CLAUDE.md** - Comprehensive architecture guide for Claude Code
-- **BUGFIX_SEPARATE_VARIABLE_MAPPINGS.md** - Critical template system fix documentation
+- **CURRENT_STATE.md** - Current platform features and recent improvements
+- **QUICK_START.md** - Setup guide (general)
+- **QUICK_START_WINDOWS.md** - Windows-specific setup
+- **WSL_BETTER_SQLITE3_FIX.md** - SQLite native module fix for WSL
 
-## Why This Structure?
+## Document Lifecycle
 
-Documents are archived when:
-- ✅ Features have been implemented and are stable
-- ✅ Planning docs are complete and execution finished
-- ✅ Information is historical but may be useful for reference
+Documents are **archived** when:
+- ✅ Features implemented and stable
+- ✅ Implementation complete and documented
+- ✅ Historical reference value
 
-Documents are kept in root when:
+Documents remain **active** when:
 - ✅ Actively referenced during development
-- ✅ Essential for understanding current architecture
-- ✅ User-facing documentation
+- ✅ Essential for current architecture understanding
+- ✅ User-facing setup/troubleshooting guides
 
-## Accessing Archived Docs
+---
 
-All archived documents are preserved in version control and can be accessed at any time through this folder. They provide valuable context about architectural decisions and feature evolution.
+**Last Updated**: October 23, 2025

@@ -47,10 +47,15 @@ npm run dev
 
 #### **Overview Tab**
 - Total campaigns, recipients, page views, conversions
+- **Sankey Diagram** - Customer journey flow visualization:
+  - Multi-path conversion funnel (digital QR/Web + phone channels)
+  - Date filtering support with accurate data
+  - Real-time conversion tracking
 - **Call Metrics** (purple card):
   - Total calls received
   - Average call duration (formatted as "1m 8s")
   - Call-to-conversion rate
+- **Converted Metric**: All web CTAs (appointments, downloads, forms) + call appointments
 - Response rate and conversion rate visualization
 - QR code scan tracking
 
@@ -113,36 +118,44 @@ npm run dev
 
 ## Recent Improvements
 
-### Call Analytics Enhancement (Oct 2025)
-**Changes Made**:
-1. **Global ElevenLabs Sync** (`app/analytics/page.tsx`):
-   - Moved sync logic to parent Analytics page component
-   - Now runs every 2 minutes on ALL tabs (Overview, Campaigns, Calls, Charts, Activity)
-   - Initial sync on page mount
-   - Database refresh every 30 seconds on individual tabs
+### Analytics & Conversion Tracking (Oct 23, 2025)
+**Major Enhancements**:
 
-2. **Calls Tab Improvements** (`components/analytics/calls-view.tsx`):
-   - Added pagination (10 calls per page) with Previous/Next navigation
-   - Phone number formatting: `(123) 456-7890` or `+1 (123) 456-7890`
-   - Duration formatting: `1m 8s` instead of decimal seconds
-   - Fixed function hoisting issue (formatDuration moved outside component)
-   - Removed confusing "ElevenLabs auto-sync" text from header
-   - Debug logging commented out (available for troubleshooting)
+1. **Sankey Diagram - Customer Journey Visualization**:
+   - Multi-path funnel showing digital (QR/Web) and phone conversion paths
+   - Fixed date filtering - now works correctly across all metrics
+   - Converted SQL queries to prepared statements (SQL injection prevention)
+   - Fixed column name bug (`event_time` → `created_at`)
+   - Comprehensive 3-level debug logging (API, Query, Client)
 
-3. **Overview Tab** (`components/analytics/dashboard-overview.tsx`):
-   - Added duration formatting to call metrics card
-   - Improved auto-refresh logic
-   - Debug logging commented out
+2. **Conversion Tracking Improvements**:
+   - **"Converted" Metric**: Now includes ALL web CTAs (appointments, downloads, forms) + call appointments
+   - Removed "Total Appointments" (replaced with broader "Converted")
+   - CTA-aligned tracking ensures accurate funnel analysis
+
+3. **UI Cleanup**:
+   - Removed "Performance Summary" card from analytics overview
+   - Removed "Getting Started in 4 Steps" from Home page
+   - Cleaner, more focused dashboard layout
+
+4. **Call Analytics Enhancements**:
+   - Global ElevenLabs sync (every 2 minutes on all tabs)
+   - Pagination (10 calls per page)
+   - Phone number formatting: `(123) 456-7890`
+   - Duration formatting: `1m 8s`
+   - Auto-refresh every 30 seconds
 
 **Files Modified**:
-- `app/analytics/page.tsx` - Global sync implementation
-- `components/analytics/calls-view.tsx` - Pagination, formatting, hoisting fix
-- `components/analytics/dashboard-overview.tsx` - Duration formatting
-- `lib/database/call-tracking-queries.ts` - Optimized queries
+- `lib/database/tracking-queries.ts` - Sankey queries, prepared statements
+- `components/analytics/sankey-chart.tsx` - Converted metric, enhanced logging
+- `components/analytics/dashboard-overview.tsx` - Removed Performance Summary
+- `app/page.tsx` - Removed Getting Started section
+- `app/analytics/page.tsx` - Global sync
+- `lib/tracking-client.ts` - Appointment booking tracking
 
 **Documentation**:
-- See `CALLS_TAB_IMPROVEMENTS.md` for detailed testing guide
-- See `GLOBAL_SYNC_FIX.md` for sync architecture explanation
+- Historical fixes archived in `docs/archive/2025-10-23/`
+- See archived docs for detailed implementation notes
 
 ---
 
@@ -274,27 +287,25 @@ npm run lint     # ESLint
 ### Setup Guides
 - `WSL_BETTER_SQLITE3_FIX.md` - SQLite setup for Windows/WSL
 - `QUICK_START.md` - Getting started guide
+- `QUICK_START_WINDOWS.md` - Windows-specific setup
 
-### Recent Implementation Docs
-- `CALLS_TAB_IMPROVEMENTS.md` - Pagination, formatting, testing guide
-- `GLOBAL_SYNC_FIX.md` - Sync architecture and troubleshooting
+### Archived Documentation
+- `docs/archive/2025-10-23/` - Recent fixes and improvements
+- `docs/archive/2025-10-18/` - Older planning documents
 
 ---
 
 ## Next Steps & Roadmap
 
-### Phase 11: Enterprise Features (Current)
-- Multi-user authentication
-- Role-based access control
-- Advanced analytics dashboards
-- Export functionality (CSV, PDF reports)
+### Current Focus
+Platform is stable and production-ready with comprehensive analytics, call tracking, and conversion measurement.
 
-### Future Enhancements
-- Sankey chart for customer journey visualization
+### Future Considerations
+- DM workflow redesign (see `docs/archive/` for proposals)
+- Enhanced template library with search/filter
+- Batch processing UX improvements
 - A/B testing for campaigns
 - Email campaign integration
-- SMS integration
-- Template marketplace
 - CRM integrations (Salesforce, HubSpot)
 
 ---
