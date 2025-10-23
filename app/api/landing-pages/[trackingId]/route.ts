@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLandingPageByTrackingId } from '@/lib/database/tracking-queries';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/landing-pages/[trackingId]
@@ -15,10 +16,7 @@ export async function GET(
 
     if (!landingPage) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Landing page not found',
-        },
+        errorResponse('Landing page not found', 'NOT_FOUND'),
         { status: 404 }
       );
     }
@@ -27,20 +25,19 @@ export async function GET(
     const parsedData = JSON.parse(landingPage.page_data);
 
     // Add campaign_id to the response so the redirect can work
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...parsedData,
-        campaignId: landingPage.campaign_id, // Add campaign ID for redirect
-      },
-    });
+    return NextResponse.json(
+      successResponse(
+        {
+          ...parsedData,
+          campaignId: landingPage.campaign_id, // Add campaign ID for redirect
+        },
+        'Landing page retrieved successfully'
+      )
+    );
   } catch (error) {
     console.error('Error fetching landing page:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch landing page',
-      },
+      errorResponse('Failed to fetch landing page', 'FETCH_ERROR'),
       { status: 500 }
     );
   }

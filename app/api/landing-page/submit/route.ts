@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/database/connection';
 import { getConversionTypeForTemplate } from '@/lib/template-conversion-mapper';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * POST /api/landing-page/submit
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!campaign_id || !formData.name || !formData.email || !formData.phone) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        errorResponse('Missing required fields', 'MISSING_FIELDS'),
         { status: 400 }
       );
     }
@@ -75,15 +76,16 @@ export async function POST(request: NextRequest) {
       // TODO: Create generic_submissions table for campaign-level tracking
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Form submitted successfully',
-      submissionId,
-    });
+    return NextResponse.json(
+      successResponse(
+        { submissionId },
+        'Form submitted successfully'
+      )
+    );
   } catch (error) {
     console.error('Error submitting form:', error);
     return NextResponse.json(
-      { error: 'Failed to submit form' },
+      errorResponse('Failed to submit form', 'SUBMISSION_ERROR'),
       { status: 500 }
     );
   }
