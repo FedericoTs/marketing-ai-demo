@@ -9,6 +9,7 @@ import {
   CampaignRecommendation,
   RecommendationConfig,
 } from "@/lib/algorithms/campaign-recommendation";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -249,29 +250,26 @@ export async function GET(request: NextRequest) {
     });
 
     // 8. Return response
-    const response: PerformanceMatrixResponse = {
-      success: true,
-      data: {
-        stores: filteredStores,
-        campaigns: Array.from(campaignSummaries.values()).sort(
-          (a, b) => b.total_stores_recommended - a.total_stores_recommended
-        ),
-        summary,
-        filters,
-      },
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json(
+      successResponse(
+        {
+          stores: filteredStores,
+          campaigns: Array.from(campaignSummaries.values()).sort(
+            (a, b) => b.total_stores_recommended - a.total_stores_recommended
+          ),
+          summary,
+          filters,
+        },
+        "Performance matrix generated successfully"
+      )
+    );
   } catch (error: unknown) {
     console.error("[Performance Matrix] Error:", error);
 
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate performance matrix";
 
-    return NextResponse.json<PerformanceMatrixResponse>(
-      {
-        success: false,
-        error: `Failed to generate performance matrix: ${errorMessage}`,
-      },
+    return NextResponse.json(
+      errorResponse(errorMessage, "GENERATION_ERROR"),
       { status: 500 }
     );
   }

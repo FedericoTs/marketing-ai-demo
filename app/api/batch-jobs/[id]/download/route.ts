@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getBatchJob } from "@/lib/database/batch-job-queries";
+import { errorResponse } from "@/lib/utils/api-response";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -22,10 +23,7 @@ export async function GET(
 
     if (!batchJob) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Batch job not found",
-        },
+        errorResponse("Batch job not found", "JOB_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -33,10 +31,10 @@ export async function GET(
     // Check if job is completed
     if (batchJob.status !== "completed") {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Batch job is not completed yet. Current status: ${batchJob.status}`,
-        },
+        errorResponse(
+          `Batch job is not completed yet. Current status: ${batchJob.status}`,
+          "JOB_NOT_COMPLETED"
+        ),
         { status: 400 }
       );
     }
@@ -44,10 +42,7 @@ export async function GET(
     // Check if ZIP file exists
     if (!batchJob.output_zip_path) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "ZIP file not found for this batch job",
-        },
+        errorResponse("ZIP file not found for this batch job", "ZIP_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -56,10 +51,7 @@ export async function GET(
 
     if (!fs.existsSync(zipPath)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "ZIP file has been deleted or moved",
-        },
+        errorResponse("ZIP file has been deleted or moved", "FILE_NOT_EXISTS"),
         { status: 404 }
       );
     }
@@ -80,10 +72,10 @@ export async function GET(
     console.error("❌ Error downloading batch results:", error);
 
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to download batch results",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Failed to download batch results",
+        "DOWNLOAD_ERROR"
+      ),
       { status: 500 }
     );
   }

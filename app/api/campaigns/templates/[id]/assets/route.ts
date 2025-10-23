@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTemplateAssets, getAssetPublicUrl } from '@/lib/database/asset-management';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/campaigns/templates/[id]/assets
@@ -20,17 +21,16 @@ export async function GET(
       metadata: asset.metadata ? JSON.parse(asset.metadata) : null,
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: assetsWithUrls,
-    });
+    return NextResponse.json(
+      successResponse(assetsWithUrls, 'Template assets retrieved successfully')
+    );
   } catch (error) {
     console.error('Error fetching template assets:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch template assets',
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to fetch template assets',
+        'FETCH_ERROR'
+      ),
       { status: 500 }
     );
   }

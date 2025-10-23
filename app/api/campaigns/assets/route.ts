@@ -4,6 +4,7 @@ import {
   getStorageStats,
   cleanupOrphanedAssets,
 } from '@/lib/database/asset-management';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/campaigns/assets
@@ -13,17 +14,16 @@ export async function GET(request: NextRequest) {
   try {
     const stats = getStorageStats();
 
-    return NextResponse.json({
-      success: true,
-      data: stats,
-    });
+    return NextResponse.json(
+      successResponse(stats, 'Storage statistics retrieved successfully')
+    );
   } catch (error) {
     console.error('Error fetching storage stats:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch storage statistics',
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to fetch storage statistics',
+        'FETCH_ERROR'
+      ),
       { status: 500 }
     );
   }
@@ -46,10 +46,7 @@ export async function POST(request: NextRequest) {
 
     if (!file || !assetType || !assetName) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'File, asset type, and asset name are required',
-        },
+        errorResponse('File, asset type, and asset name are required', 'MISSING_FIELDS'),
         { status: 400 }
       );
     }
@@ -69,18 +66,16 @@ export async function POST(request: NextRequest) {
       metadata: metadata ? JSON.parse(metadata) : undefined,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: asset,
-      message: 'Asset uploaded successfully',
-    });
+    return NextResponse.json(
+      successResponse(asset, 'Asset uploaded successfully')
+    );
   } catch (error) {
     console.error('Error uploading asset:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to upload asset',
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to upload asset',
+        'UPLOAD_ERROR'
+      ),
       { status: 500 }
     );
   }
@@ -94,18 +89,19 @@ export async function DELETE(request: NextRequest) {
   try {
     const deletedCount = cleanupOrphanedAssets();
 
-    return NextResponse.json({
-      success: true,
-      data: { deletedCount },
-      message: `Cleaned up ${deletedCount} orphaned asset(s)`,
-    });
+    return NextResponse.json(
+      successResponse(
+        { deletedCount },
+        `Cleaned up ${deletedCount} orphaned asset(s)`
+      )
+    );
   } catch (error) {
     console.error('Error cleaning up assets:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to clean up assets',
-      },
+      errorResponse(
+        error instanceof Error ? error.message : 'Failed to clean up assets',
+        'CLEANUP_ERROR'
+      ),
       { status: 500 }
     );
   }
