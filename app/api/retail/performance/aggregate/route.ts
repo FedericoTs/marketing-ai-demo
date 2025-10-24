@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // Dynamic import of retail queries (optional feature)
 function getRetailQueries() {
@@ -14,10 +15,10 @@ export async function POST(request: NextRequest) {
     const retail = getRetailQueries();
 
     if (!retail) {
-      return NextResponse.json({
-        success: false,
-        error: "Retail module not enabled",
-      });
+      return NextResponse.json(
+        errorResponse("Retail module not enabled", "MODULE_DISABLED"),
+        { status: 503 }
+      );
     }
 
     // Trigger aggregation for all stores
@@ -25,20 +26,19 @@ export async function POST(request: NextRequest) {
     retail.aggregateAllStoresPerformance('all_time');
     console.log("Performance aggregation complete!");
 
-    return NextResponse.json({
-      success: true,
-      message: "Performance aggregation completed successfully",
-    });
+    return NextResponse.json(
+      successResponse(null, "Performance aggregation completed successfully")
+    );
   } catch (error: unknown) {
     console.error("Error aggregating performance:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
     return NextResponse.json(
-      {
-        success: false,
-        error: `Failed to aggregate performance: ${errorMessage}`,
-      },
+      errorResponse(
+        `Failed to aggregate performance: ${errorMessage}`,
+        "AGGREGATION_ERROR"
+      ),
       { status: 500 }
     );
   }

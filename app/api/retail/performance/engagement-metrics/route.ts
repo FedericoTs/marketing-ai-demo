@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 // Dynamic import of retail queries (optional feature)
 function getRetailQueries() {
@@ -19,10 +20,10 @@ export async function GET(request: NextRequest) {
     const retail = getRetailQueries();
 
     if (!retail) {
-      return NextResponse.json({
-        success: false,
-        error: "Retail module not enabled",
-      });
+      return NextResponse.json(
+        errorResponse("Retail module not enabled", "MODULE_DISABLED"),
+        { status: 503 }
+      );
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -75,26 +76,24 @@ export async function GET(request: NextRequest) {
         conversionsCount: metrics.conversionsCount,
       };
 
-      return NextResponse.json({
-        success: true,
-        data: formatted,
-      });
+      return NextResponse.json(
+        successResponse(formatted, "Store engagement metrics retrieved successfully")
+      );
     } else {
       // Get metrics for all stores
       const allStoresMetrics = retail.getAllStoresEngagementMetrics();
 
-      return NextResponse.json({
-        success: true,
-        data: allStoresMetrics,
-      });
+      return NextResponse.json(
+        successResponse(allStoresMetrics, "All stores engagement metrics retrieved successfully")
+      );
     }
   } catch (error) {
     console.error("Error fetching retail engagement metrics:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch retail engagement metrics",
-      },
+      errorResponse(
+        "Failed to fetch retail engagement metrics",
+        "FETCH_ERROR"
+      ),
       { status: 500 }
     );
   }
