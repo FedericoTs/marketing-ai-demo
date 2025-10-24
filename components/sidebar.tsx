@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useIndustryModule } from "@/lib/contexts/industry-module-context";
-import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell, Store, Target, TrendingUp, Brain, Menu, X, Library, Layers } from "lucide-react";
+import { FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell, Store, Target, TrendingUp, Brain, Menu, X, Library, Layers, ShoppingCart, Users } from "lucide-react";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home, section: "main" },
@@ -16,6 +16,8 @@ const navigation = [
   { name: "Batch Jobs", href: "/batch-jobs", icon: Layers, section: "analyze" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, section: "analyze" },
   { name: "Campaign Matrix", href: "/campaigns/matrix", icon: Sparkles, section: "analyze" },
+  { name: "Orders", href: "/campaigns/orders", icon: ShoppingCart, section: "analyze" },
+  { name: "Store Groups", href: "/store-groups", icon: Users, section: "analyze" },
   { name: "Notifications", href: "/notifications", icon: Bell, section: "analyze" },
   { name: "CC Operations", href: "/cc-operations", icon: Phone, section: "advanced" },
 ];

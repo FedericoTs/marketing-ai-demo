@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Sparkles, CheckCircle2, AlertCircle, X, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { PerformanceMatrixGrid } from "@/components/campaigns/performance-matrix-grid";
+import { OrderConfirmationModal } from "@/components/campaigns/order-confirmation-modal";
 // Import standardized KPI utilities for consistent calculations
 import { calculateConversionRate, formatPercentage } from "@/lib/utils/kpi-calculator";
 
@@ -60,11 +62,14 @@ interface MatrixData {
 }
 
 export default function PerformanceMatrixPage() {
+  const router = useRouter();
   const [data, setData] = useState<MatrixData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [selectedState, setSelectedState] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     loadMatrix();
@@ -117,9 +122,100 @@ export default function PerformanceMatrixPage() {
       (s) => s.status === "auto-approve" && s.top_recommendation
     );
 
-    toast.success(`Generating order for ${approvedStores.length} stores...`);
+    if (approvedStores.length === 0) {
+      toast.error("No stores approved for order generation");
+      return;
+    }
 
-    // TODO: Implement order generation
+    // Show confirmation modal
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmGenerate = async (confirmData: { notes?: string; supplierEmail?: string }) => {
+    if (!data) return;
+
+    const approvedStores = data.stores.filter(
+      (s) => s.status === "auto-approve" && s.top_recommendation
+    );
+
+    setGenerating(true);
+
+    try {
+      // Prepare approval data
+      const approvals = approvedStores.map((store) => ({
+        storeId: store.store_id,
+        campaignId: store.top_recommendation.campaign_id,
+        recommendedQuantity: store.top_recommendation.recommended_quantity,
+        approvedQuantity: store.top_recommendation.recommended_quantity,
+        notes: `Auto-approved based on ${formatPercentage(store.top_recommendation.confidence)} confidence`,
+      }));
+
+      // Call API to generate order
+      const response = await fetch("/api/campaigns/orders/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          approvals,
+          notes: confirmData.notes,
+          supplierEmail: confirmData.supplierEmail,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const { orderId, orderNumber, totalStores, totalQuantity, estimatedCost, pdfUrl } =
+          result.data;
+
+        toast.success(
+          `Order ${orderNumber} generated! ${totalStores} stores, ${totalQuantity} pieces, $${estimatedCost.toFixed(2)}`,
+          { duration: 5000 }
+        );
+
+        // Open PDF in new tab
+        if (pdfUrl) {
+          window.open(pdfUrl, "_blank");
+        }
+
+        // Close modal
+        setShowConfirmModal(false);
+
+        // Redirect to order detail page
+        router.push(`/campaigns/orders/${orderId}`);
+      } else {
+        throw new Error(result.error || "Failed to generate order");
+      }
+    } catch (error) {
+      console.error("[Matrix Page] Error generating order:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to generate order"
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const getOrderSummary = () => {
+    if (!data) return null;
+
+    const approvedStores = data.stores.filter(
+      (s) => s.status === "auto-approve" && s.top_recommendation
+    );
+
+    const totalStores = approvedStores.length;
+    const totalQuantity = approvedStores.reduce(
+      (sum, store) => sum + store.top_recommendation.recommended_quantity,
+      0
+    );
+    const estimatedCost = totalQuantity * 0.25;
+
+    const stores = approvedStores.map((store) => ({
+      storeNumber: store.store_number,
+      storeName: store.store_name,
+      quantity: store.top_recommendation.recommended_quantity,
+    }));
+
+    return { totalStores, totalQuantity, estimatedCost, stores };
   };
 
   if (loading) {
@@ -317,6 +413,17 @@ export default function PerformanceMatrixPage() {
 
       {/* Performance Matrix Grid */}
       <PerformanceMatrixGrid stores={data.stores} />
+
+      {/* Order Confirmation Modal */}
+      {getOrderSummary() && (
+        <OrderConfirmationModal
+          open={showConfirmModal}
+          onOpenChange={setShowConfirmModal}
+          orderSummary={getOrderSummary()!}
+          onConfirm={handleConfirmGenerate}
+          loading={generating}
+        />
+      )}
     </div>
   );
 }

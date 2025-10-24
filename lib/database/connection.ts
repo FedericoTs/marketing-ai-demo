@@ -576,6 +576,78 @@ function initializeSchema(database: Database.Database): void {
     ON retail_recommendations(store_id);
   `);
 
+  // ==================== CAMPAIGN ORDER SYSTEM (Week 1) ====================
+
+  // Campaign Orders table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS campaign_orders (
+      id TEXT PRIMARY KEY,
+      order_number TEXT UNIQUE NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft', 'pending', 'sent', 'printing', 'shipped', 'delivered', 'cancelled')),
+      total_stores INTEGER NOT NULL DEFAULT 0,
+      total_quantity INTEGER NOT NULL DEFAULT 0,
+      estimated_cost REAL DEFAULT 0.0,
+      pdf_url TEXT,
+      csv_url TEXT,
+      notes TEXT,
+      tracking_number TEXT,
+      supplier_email TEXT,
+      sent_at TEXT,
+      delivered_at TEXT
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_orders_number
+    ON campaign_orders(order_number);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_orders_status
+    ON campaign_orders(status);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_orders_created
+    ON campaign_orders(created_at DESC);
+  `);
+
+  // Campaign Order Items table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS campaign_order_items (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL,
+      store_id TEXT NOT NULL,
+      campaign_id TEXT NOT NULL,
+      recommended_quantity INTEGER NOT NULL DEFAULT 0,
+      approved_quantity INTEGER NOT NULL DEFAULT 0,
+      unit_cost REAL DEFAULT 0.25,
+      total_cost REAL DEFAULT 0.0,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (order_id) REFERENCES campaign_orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (store_id) REFERENCES retail_stores(id),
+      FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_order_items_order
+    ON campaign_order_items(order_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_order_items_store
+    ON campaign_order_items(store_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_campaign_order_items_campaign
+    ON campaign_order_items(campaign_id);
+  `);
+
   // ==================== BATCH PROCESSING TABLES ====================
 
   // Batch Jobs table
@@ -720,7 +792,46 @@ function initializeSchema(database: Database.Database): void {
     ON user_notifications(user_email, read_at);
   `);
 
-  console.log("✅ Database schema initialized successfully (including retail and batch processing tables)");
+  // Store Groups tables (for saving frequently-used store selections)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS store_groups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      store_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS store_group_members (
+      id TEXT PRIMARY KEY,
+      group_id TEXT NOT NULL,
+      store_id TEXT NOT NULL,
+      added_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (group_id) REFERENCES store_groups(id) ON DELETE CASCADE,
+      FOREIGN KEY (store_id) REFERENCES retail_stores(id) ON DELETE CASCADE,
+      UNIQUE(group_id, store_id)
+    );
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_store_groups_name
+    ON store_groups(name);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_store_group_members_group
+    ON store_group_members(group_id);
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_store_group_members_store
+    ON store_group_members(store_id);
+  `);
+
+  console.log("✅ Database schema initialized successfully (including retail, batch processing, and store groups tables)");
 
   // Seed pre-built templates if they don't exist
   seedPrebuiltTemplates(database);

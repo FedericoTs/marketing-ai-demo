@@ -33,29 +33,80 @@ export async function GET(
 
     console.log('✅ [Landing Page API] Campaign found:', campaign.name);
 
-    // Fetch landing page config
-    const landingPage = getCampaignLandingPage(campaignId);
+    // Fetch campaign-level landing page config
+    let landingPage = getCampaignLandingPage(campaignId);
 
     if (!landingPage) {
-      console.log('⚠️ [Landing Page API] Landing page not found for campaign:', campaignId);
+      console.log('⚠️ [Landing Page API] Campaign-level landing page not found, checking recipient-specific landing pages...');
+
+      // Fallback: Check if there are recipient-specific landing pages for this campaign
+      const { getDatabase } = require('@/lib/database/connection');
+      const db = getDatabase();
+
+      const recipientLandingPage = db.prepare(`
+        SELECT id, tracking_id, campaign_id, recipient_id, page_data, landing_page_url, created_at
+        FROM landing_pages
+        WHERE campaign_id = ?
+        LIMIT 1
+      `).get(campaignId) as any;
+
+      if (recipientLandingPage) {
+        console.log('✅ [Landing Page API] Found recipient-specific landing page:', recipientLandingPage.id);
+
+        // Convert recipient landing page to campaign landing page format
+        const pageData = JSON.parse(recipientLandingPage.page_data);
+        const config = {
+          title: `${pageData.companyName || 'Campaign'} - Landing Page`,
+          message: pageData.message || '',
+          companyName: pageData.companyName || '',
+          formFields: ['name', 'email', 'phone'],
+          ctaText: 'Get Started',
+          thankYouMessage: 'Thank you for your interest!',
+          fallbackMessage: 'Welcome!',
+          primaryColor: '#00747A',
+          secondaryColor: '#63809D',
+          accentColor: '#0F2033'
+        };
+
+        console.log('✅ [Landing Page API] Returning converted recipient landing page config');
+
+        return NextResponse.json(
+          successResponse(
+            {
+              id: recipientLandingPage.id,
+              campaign_id: recipientLandingPage.campaign_id,
+              campaign_template_id: null,
+              tracking_id: recipientLandingPage.tracking_id,
+              page_config: config,
+              created_at: recipientLandingPage.created_at,
+              updated_at: recipientLandingPage.created_at,
+              _source: 'recipient_landing_page'
+            },
+            'Landing page configuration retrieved from recipient landing page'
+          )
+        );
+      }
+
+      console.log('❌ [Landing Page API] No landing pages found (campaign or recipient level)');
       return NextResponse.json(
         errorResponse('Landing page not found', 'LANDING_PAGE_NOT_FOUND'),
         { status: 404 }
       );
     }
 
-    console.log('✅ [Landing Page API] Landing page found, template ID:', landingPage.campaign_template_id);
+    console.log('✅ [Landing Page API] Campaign-level landing page found, template ID:', landingPage.campaign_template_id);
 
     // Parse and return config
     const config = JSON.parse(landingPage.page_config);
 
-    console.log('✅ [Landing Page API] Returning landing page config');
+    console.log('✅ [Landing Page API] Returning campaign-level landing page config');
 
     return NextResponse.json(
       successResponse(
         {
           ...landingPage,
           page_config: config, // Return parsed config
+          _source: 'campaign_landing_page'
         },
         'Landing page configuration retrieved successfully'
       )

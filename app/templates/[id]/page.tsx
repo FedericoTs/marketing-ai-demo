@@ -152,13 +152,24 @@ export default function TemplateDetailPage() {
             console.log('🌐 Landing Page Data:', {
               success: lpData.success,
               hasData: !!lpData.data,
-              hasPageConfig: !!lpData.data?.page_config
+              hasPageConfig: !!lpData.data?.page_config,
+              source: lpData.data?._source
             });
             // API returns { success, data: { ...landingPage, page_config: {...} } }
             if (lpData.success && lpData.data && lpData.data.page_config) {
-              // Use campaign-based landing page preview
-              const previewUrl = `/lp/campaign/${firstCampaign.id}/preview`;
-              console.log('✅ Setting landing page preview URL:', previewUrl);
+              // Construct preview URL based on landing page source
+              let previewUrl: string;
+
+              if (lpData.data._source === 'recipient_landing_page' && lpData.data.tracking_id) {
+                // Use recipient-specific landing page
+                previewUrl = `/lp/${lpData.data.tracking_id}`;
+                console.log('✅ Setting recipient landing page preview URL:', previewUrl);
+              } else {
+                // Use campaign-based landing page preview
+                previewUrl = `/lp/campaign/${firstCampaign.id}/preview`;
+                console.log('✅ Setting campaign landing page preview URL:', previewUrl);
+              }
+
               setSampleLandingPageUrl(previewUrl);
             } else {
               console.log('⚠️ Landing page data incomplete:', lpData);

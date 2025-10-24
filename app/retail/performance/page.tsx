@@ -80,8 +80,12 @@ export default function PerformancePage() {
       ]);
 
       if (statsData.success) setStats(statsData.data);
-      if (topStoresData.success) setTopStores(topStoresData.data);
-      if (regionsData.success) setRegions(regionsData.data);
+      if (topStoresData.success && Array.isArray(topStoresData.data?.stores)) {
+        setTopStores(topStoresData.data.stores);
+      }
+      if (regionsData.success && Array.isArray(regionsData.data?.regions)) {
+        setRegions(regionsData.data.regions);
+      }
     } catch (error) {
       console.error("Failed to load performance data:", error);
     } finally {
@@ -312,7 +316,7 @@ export default function PerformancePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {topStores.length === 0 ? (
+            {!Array.isArray(topStores) || topStores.length === 0 ? (
               <div className="text-center py-8">
                 <AlertCircle className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm text-slate-600">No performance data available yet</p>
@@ -363,7 +367,7 @@ export default function PerformancePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {regions.length === 0 ? (
+            {!Array.isArray(regions) || regions.length === 0 ? (
               <div className="text-center py-8">
                 <AlertCircle className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm text-slate-600">
