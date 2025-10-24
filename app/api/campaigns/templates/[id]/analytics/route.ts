@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDatabase } from "@/lib/database/connection";
 import { getTemplateById } from "@/lib/database/campaign-management";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function GET(
     const template = getTemplateById(id);
     if (!template) {
       return NextResponse.json(
-        { error: "Template not found" },
+        errorResponse("Template not found", "TEMPLATE_NOT_FOUND"),
         { status: 404 }
       );
     }
@@ -152,11 +153,13 @@ export async function GET(
       usage_history: usageHistory,
     };
 
-    return NextResponse.json(analytics);
+    return NextResponse.json(
+      successResponse(analytics, "Template analytics retrieved successfully")
+    );
   } catch (error) {
     console.error("Error fetching template analytics:", error);
     return NextResponse.json(
-      { error: "Failed to fetch analytics" },
+      errorResponse("Failed to fetch analytics", "ANALYTICS_ERROR"),
       { status: 500 }
     );
   }
