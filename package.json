@@ -56,8 +56,10 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/archiver": "^6.0.3",
     "@types/fabric": "^5.3.10",
     "@types/ioredis": "^4.28.10",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.2",
     "@types/react": "^19",
