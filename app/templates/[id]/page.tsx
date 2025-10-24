@@ -110,8 +110,12 @@ export default function TemplateDetailPage() {
       let analyticsData: any = null;
       const analyticsRes = await fetch(`/api/campaigns/templates/${templateId}/analytics`);
       if (analyticsRes.ok) {
-        analyticsData = await analyticsRes.json();
-        setAnalytics(analyticsData);
+        const analyticsResponse = await analyticsRes.json();
+        // API returns { success, data } structure
+        analyticsData = analyticsResponse.success ? analyticsResponse.data : null;
+        if (analyticsData) {
+          setAnalytics(analyticsData);
+        }
       }
 
       // Fetch DM template design (includes previewImage with actual DM rendered)
@@ -351,7 +355,7 @@ export default function TemplateDetailPage() {
                           alt={`${template.name} DM preview`}
                           className="max-w-full h-auto rounded-lg shadow-2xl"
                           style={{
-                            imageRendering: 'high-quality',
+                            imageRendering: 'auto',
                             maxHeight: '800px',
                             width: 'auto'
                           }}
@@ -577,7 +581,7 @@ export default function TemplateDetailPage() {
                   <span className="text-sm text-slate-600">Total Uses</span>
                   <span className="text-2xl font-bold text-slate-900">{template.use_count}</span>
                 </div>
-                {analytics && (
+                {analytics && analytics.category_comparison && (
                   <div className="text-xs text-slate-500">
                     {analytics.category_comparison.rank === 'above_average' ? '✓' : '↓'}
                     {' '}{analytics.category_comparison.rank === 'above_average' ? 'Above' : 'Below'} average
@@ -677,7 +681,7 @@ export default function TemplateDetailPage() {
           )}
 
           {/* Category Comparison */}
-          {analytics && (
+          {analytics && analytics.category_comparison && (
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="pt-6">
                 <div className="text-center">
