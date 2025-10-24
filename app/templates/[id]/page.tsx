@@ -121,14 +121,21 @@ export default function TemplateDetailPage() {
       // Fetch DM template design (includes previewImage with actual DM rendered)
       try {
         const dmTemplateRes = await fetch(`/api/dm-template?campaignTemplateId=${templateId}`);
+        console.log('🎨 DM Template Response Status:', dmTemplateRes.status);
         if (dmTemplateRes.ok) {
           const dmTemplateData = await dmTemplateRes.json();
+          console.log('🎨 DM Template Data:', {
+            success: dmTemplateData.success,
+            hasData: !!dmTemplateData.data,
+            hasPreviewImage: !!dmTemplateData.data?.previewImage,
+            previewImageLength: dmTemplateData.data?.previewImage?.length
+          });
           if (dmTemplateData.success && dmTemplateData.data) {
             setDmTemplate(dmTemplateData.data);
           }
         }
       } catch (error) {
-        console.error('Error loading DM template:', error);
+        console.error('❌ Error loading DM template:', error);
         // Non-critical, continue without DM preview
       }
 
@@ -136,18 +143,34 @@ export default function TemplateDetailPage() {
       try {
         if (analyticsData && analyticsData.usage_history && analyticsData.usage_history.length > 0) {
           const firstCampaign = analyticsData.usage_history[0];
+          console.log('🌐 Checking landing page for campaign:', firstCampaign.id, firstCampaign.name);
           // Check if campaign has a landing page configured
           const lpRes = await fetch(`/api/campaigns/${firstCampaign.id}/landing-page`);
+          console.log('🌐 Landing Page Response Status:', lpRes.status);
           if (lpRes.ok) {
             const lpData = await lpRes.json();
-            if (lpData && lpData.page_config) {
+            console.log('🌐 Landing Page Data:', {
+              success: lpData.success,
+              hasData: !!lpData.data,
+              hasPageConfig: !!lpData.data?.page_config
+            });
+            // API returns { success, data: { ...landingPage, page_config: {...} } }
+            if (lpData.success && lpData.data && lpData.data.page_config) {
               // Use campaign-based landing page preview
-              setSampleLandingPageUrl(`/lp/campaign/${firstCampaign.id}/preview`);
+              const previewUrl = `/lp/campaign/${firstCampaign.id}/preview`;
+              console.log('✅ Setting landing page preview URL:', previewUrl);
+              setSampleLandingPageUrl(previewUrl);
+            } else {
+              console.log('⚠️ Landing page data incomplete:', lpData);
             }
+          } else {
+            console.log('⚠️ Landing page request failed:', lpRes.status);
           }
+        } else {
+          console.log('ℹ️ No usage history for this template');
         }
       } catch (error) {
-        console.error('Error finding sample landing page:', error);
+        console.error('❌ Error finding sample landing page:', error);
         // Non-critical, continue without landing page preview
       }
     } catch (error) {

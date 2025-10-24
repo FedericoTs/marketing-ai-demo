@@ -19,27 +19,37 @@ export async function GET(
   try {
     const { id: campaignId } = await params;
 
+    console.log('🔍 [Landing Page API] GET request for campaign:', campaignId);
+
     // Check if campaign exists
     const campaign = getCampaign(campaignId);
     if (!campaign) {
+      console.log('❌ [Landing Page API] Campaign not found:', campaignId);
       return NextResponse.json(
         errorResponse('Campaign not found', 'CAMPAIGN_NOT_FOUND'),
         { status: 404 }
       );
     }
 
+    console.log('✅ [Landing Page API] Campaign found:', campaign.name);
+
     // Fetch landing page config
     const landingPage = getCampaignLandingPage(campaignId);
 
     if (!landingPage) {
+      console.log('⚠️ [Landing Page API] Landing page not found for campaign:', campaignId);
       return NextResponse.json(
         errorResponse('Landing page not found', 'LANDING_PAGE_NOT_FOUND'),
         { status: 404 }
       );
     }
 
+    console.log('✅ [Landing Page API] Landing page found, template ID:', landingPage.campaign_template_id);
+
     // Parse and return config
     const config = JSON.parse(landingPage.page_config);
+
+    console.log('✅ [Landing Page API] Returning landing page config');
 
     return NextResponse.json(
       successResponse(
@@ -51,7 +61,7 @@ export async function GET(
       )
     );
   } catch (error) {
-    console.error('Error fetching campaign landing page:', error);
+    console.error('❌ [Landing Page API] Error fetching campaign landing page:', error);
     return NextResponse.json(
       errorResponse('Failed to fetch landing page', 'FETCH_ERROR'),
       { status: 500 }
