@@ -232,16 +232,34 @@ export function TemplateLibrary() {
 
   // Filter templates
   const filteredTemplates = templates.filter((template) => {
-    const matchesSearch =
-      searchQuery.trim() === "" ||
-      template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.template_data.message.toLowerCase().includes(searchQuery.toLowerCase());
+    try {
+      const matchesSearch =
+        searchQuery.trim() === "" ||
+        template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        template.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        template.template_data?.message?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesCategory =
-      categoryFilter === "all" || template.category === categoryFilter;
+      const matchesCategory =
+        categoryFilter === "all" || template.category === categoryFilter;
 
-    return matchesSearch && matchesCategory;
+      const matches = matchesSearch && matchesCategory;
+
+      if (!matches) {
+        console.log('🔍 [Template Library] Template filtered out:', {
+          id: template.id,
+          name: template.name,
+          matchesSearch,
+          matchesCategory,
+          searchQuery,
+          categoryFilter
+        });
+      }
+
+      return matches;
+    } catch (error) {
+      console.error('❌ [Template Library] Error filtering template:', template.id, error);
+      return false;
+    }
   });
 
   // Sort templates
@@ -288,7 +306,19 @@ export function TemplateLibrary() {
     }
   };
 
+  console.log('🎨 [Template Library] Render state:', {
+    loading,
+    templatesCount: templates.length,
+    filteredCount: filteredTemplates.length,
+    sortedCount: sortedTemplates.length,
+    searchQuery,
+    categoryFilter,
+    sortBy,
+    viewMode
+  });
+
   if (loading) {
+    console.log('⏳ [Template Library] Showing loading spinner');
     return (
       <Card>
         <CardContent className="py-12">
@@ -300,6 +330,8 @@ export function TemplateLibrary() {
       </Card>
     );
   }
+
+  console.log('🎨 [Template Library] Rendering templates grid/list');
 
   return (
     <div className="space-y-6">
