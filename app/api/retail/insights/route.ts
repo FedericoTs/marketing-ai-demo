@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateRetailInsights } from '@/lib/ai/retail-optimizer';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * GET /api/retail/insights
@@ -11,18 +12,16 @@ export async function GET(request: NextRequest) {
     // Generate AI insights (uses GPT-4o-mini)
     const insights = await generateRetailInsights();
 
-    return NextResponse.json({
-      success: true,
-      data: insights,
-      message: 'Insights generated successfully',
-    });
+    return NextResponse.json(
+      successResponse(insights, 'Insights generated successfully')
+    );
   } catch (error: any) {
     console.error('Error generating insights:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || 'Failed to generate insights',
-      },
+      errorResponse(
+        error.message || 'Failed to generate insights',
+        'INSIGHTS_ERROR'
+      ),
       { status: 500 }
     );
   }

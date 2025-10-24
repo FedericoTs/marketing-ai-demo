@@ -61,9 +61,8 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         errorResponse(
-          "ElevenLabs API key not configured. Please add it in Settings.",
-          "API_KEY_MISSING",
-          "Demo Mode: Call would be initiated if API key was configured."
+          "ElevenLabs API key not configured. Please add it in Settings. Demo Mode: Call would be initiated if API key was configured.",
+          "API_KEY_MISSING"
         ),
         { status: 200 } // Intentional 200 for demo mode
       );

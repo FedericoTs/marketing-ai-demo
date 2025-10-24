@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/database/connection";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
  * Manual database migration endpoint
@@ -92,17 +93,16 @@ export async function POST() {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_user_notifications_email ON user_notifications(user_email, read_at)`);
     console.log("✅ Indexes created");
 
-    return NextResponse.json({
-      success: true,
-      message: "Batch job tables created successfully",
-    });
+    return NextResponse.json(
+      successResponse(null, "Batch job tables created successfully")
+    );
   } catch (error) {
     console.error("❌ Migration failed:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Unknown error",
+        "MIGRATION_ERROR"
+      ),
       { status: 500 }
     );
   }

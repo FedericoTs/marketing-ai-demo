@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       errorResponse(
         "Failed to fetch Sankey chart data",
-        "FETCH_ERROR",
-        { details: error instanceof Error ? error.message : String(error) }
+        "FETCH_ERROR"
       ),
       { status: 500 }
     );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { optimizeCampaignDeployment } from '@/lib/ai/retail-optimizer';
+import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
  * POST /api/retail/optimize
@@ -21,10 +22,10 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!campaignName || !message) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Campaign name and message are required',
-        },
+        errorResponse(
+          'Campaign name and message are required',
+          'MISSING_FIELDS'
+        ),
         { status: 400 }
       );
     }
@@ -38,18 +39,16 @@ export async function POST(request: NextRequest) {
       desiredStoreCount: desiredStoreCount || 15,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-      message: 'Campaign optimized successfully',
-    });
+    return NextResponse.json(
+      successResponse(result, 'Campaign optimized successfully')
+    );
   } catch (error: any) {
     console.error('Error optimizing campaign:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || 'Failed to optimize campaign',
-      },
+      errorResponse(
+        error.message || 'Failed to optimize campaign',
+        'OPTIMIZATION_ERROR'
+      ),
       { status: 500 }
     );
   }

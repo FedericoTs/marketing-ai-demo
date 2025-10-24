@@ -19,9 +19,8 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         errorResponse(
-          'ElevenLabs API key not configured',
-          'API_KEY_MISSING',
-          'Please set ELEVENLABS_API_KEY in environment variables'
+          'ElevenLabs API key not configured. Please set ELEVENLABS_API_KEY in environment variables',
+          'API_KEY_MISSING'
         ),
         { status: 500 }
       );
@@ -53,13 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         errorResponse(
           'Call sync completed with errors',
-          'SYNC_WITH_ERRORS',
-          undefined,
-          {
-            newCalls: result.newCalls,
-            attributedCalls: result.attributedCalls,
-            errors: result.errors,
-          }
+          'SYNC_WITH_ERRORS'
         ),
         { status: 500 }
       );
@@ -69,9 +62,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       errorResponse(
-        error instanceof Error ? error.message : 'Unknown error',
-        'SYNC_ERROR',
-        'Failed to sync ElevenLabs calls'
+        `Failed to sync ElevenLabs calls: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'SYNC_ERROR'
       ),
       { status: 500 }
     );

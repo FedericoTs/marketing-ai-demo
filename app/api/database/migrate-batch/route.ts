@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import { initBatchJobTables } from "@/lib/database/init-batch-tables";
+import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function POST() {
   try {
     initBatchJobTables();
-    return NextResponse.json({
-      success: true,
-      message: "Batch job tables initialized successfully",
-    });
+    return NextResponse.json(
+      successResponse(null, "Batch job tables initialized successfully")
+    );
   } catch (error) {
     console.error("Migration failed:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      errorResponse(
+        error instanceof Error ? error.message : "Unknown error",
+        "MIGRATION_ERROR"
+      ),
       { status: 500 }
     );
   }
