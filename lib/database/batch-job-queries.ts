@@ -6,6 +6,8 @@
 
 import { nanoid } from "nanoid";
 import { getDatabase } from "./connection";
+import { dbLogger } from "./logger";
+import { validateRequired, validateId, validateEnum, validateNumber, validateEmail } from "./validators";
 
 // ==================== TYPES ====================
 
@@ -70,9 +72,25 @@ export function createBatchJob(data: {
   userEmail?: string;
   totalRecipients: number;
 }): BatchJob {
+  const operation = 'createBatchJob';
+
+  // Validate required inputs
+  validateId(data.campaignId, 'campaignId', operation);
+  validateNumber(data.totalRecipients, 'totalRecipients', operation, { min: 1, integer: true });
+
+  // Validate optional email if provided
+  if (data.userEmail) {
+    validateEmail(data.userEmail, 'userEmail', operation);
+  }
+
   const db = getDatabase();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
+
+  dbLogger.info(operation, 'batch_jobs', id, {
+    campaignId: data.campaignId,
+    totalRecipients: data.totalRecipients
+  });
 
   const stmt = db.prepare(`
     INSERT INTO batch_jobs (
@@ -83,14 +101,20 @@ export function createBatchJob(data: {
     VALUES (?, ?, ?, ?, 'pending', ?, 0, 0, 0, ?)
   `);
 
-  stmt.run(
-    id,
-    data.campaignId,
-    data.templateId || null,
-    data.userEmail || null,
-    data.totalRecipients,
-    created_at
-  );
+  try {
+    stmt.run(
+      id,
+      data.campaignId,
+      data.templateId || null,
+      data.userEmail || null,
+      data.totalRecipients,
+      created_at
+    );
+    dbLogger.debug(`${operation} completed`, { id, totalRecipients: data.totalRecipients });
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { campaignId: data.campaignId });
+    throw error;
+  }
 
   return {
     id,
@@ -110,9 +134,26 @@ export function createBatchJob(data: {
  * Get batch job by ID
  */
 export function getBatchJob(id: string): BatchJob | null {
+  const operation = 'getBatchJob';
+
+  // Validate input
+  validateId(id, 'id', operation);
+
   const db = getDatabase();
   const stmt = db.prepare("SELECT * FROM batch_jobs WHERE id = ?");
-  return stmt.get(id) as BatchJob | null;
+
+  try {
+    const job = stmt.get(id) as BatchJob | null;
+    if (job) {
+      dbLogger.debug(`${operation} found`, { id, status: job.status });
+    } else {
+      dbLogger.debug(`${operation} not found`, { id });
+    }
+    return job;
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { id });
+    throw error;
+  }
 }
 
 /**
@@ -153,7 +194,15 @@ export function updateBatchJobStatus(
     completedAt?: string;
   }
 ): boolean {
+  const operation = 'updateBatchJobStatus';
+
+  // Validate inputs
+  validateId(id, 'id', operation);
+  validateEnum(status, 'status', operation, ['pending', 'processing', 'completed', 'failed', 'cancelled'] as const);
+
   const db = getDatabase();
+
+  dbLogger.info(operation, 'batch_jobs', id, { status, hasError: !!options?.errorMessage });
 
   let sql = "UPDATE batch_jobs SET status = ?";
   const params: any[] = [status];
@@ -177,8 +226,20 @@ export function updateBatchJobStatus(
   params.push(id);
 
   const stmt = db.prepare(sql);
-  const result = stmt.run(...params);
-  return result.changes > 0;
+
+  try {
+    const result = stmt.run(...params);
+    const success = result.changes > 0;
+    if (success) {
+      dbLogger.debug(`${operation} completed`, { id, status });
+    } else {
+      dbLogger.warn(operation, 'No rows updated (job not found?)', { id, status });
+    }
+    return success;
+  } catch (error) {
+    dbLogger.error(operation, error as Error, { id, status });
+    throw error;
+  }
 }
 
 /**
