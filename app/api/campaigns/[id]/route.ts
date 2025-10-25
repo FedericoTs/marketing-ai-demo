@@ -7,6 +7,33 @@ import {
 } from "@/lib/database/tracking-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
+// GET: Get campaign details by ID
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const campaign = getCampaignById(id);
+
+    if (!campaign) {
+      return NextResponse.json(
+        errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(successResponse(campaign));
+  } catch (error) {
+    console.error("❌ [Campaign GET] Error:", error);
+    return NextResponse.json(
+      errorResponse("Failed to fetch campaign", "FETCH_ERROR"),
+      { status: 500 }
+    );
+  }
+}
+
 // PATCH: Update campaign (name, message, status)
 // Part of Improvement #5: Contextual Quick Actions
 export async function PATCH(
