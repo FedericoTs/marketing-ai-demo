@@ -22,6 +22,9 @@ import {
   Save,
   ChevronDown,
   ChevronUp,
+  Award,
+  Target,
+  TrendingDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PlanSummary, PlanItemWithStoreDetails } from '@/types/planning';
@@ -316,6 +319,27 @@ function StoreRow({
     highConfidenceStores: plan.high_confidence_stores,
   };
 
+  // Determine performance badge based on comparison to plan average
+  const confidenceRatio = planAverage.avgConfidence > 0
+    ? item.ai_confidence / planAverage.avgConfidence
+    : 1;
+
+  const performanceBadge = confidenceRatio >= 1.2 ? {
+    label: 'Top Performer',
+    color: 'bg-green-100 text-green-800 border-green-300',
+    icon: Award,
+  } : confidenceRatio >= 1.05 ? {
+    label: 'Above Average',
+    color: 'bg-blue-100 text-blue-800 border-blue-300',
+    icon: TrendingUp,
+  } : confidenceRatio >= 0.95 ? null : {
+    label: 'Below Average',
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    icon: TrendingDown,
+  };
+
+  const PerformanceIcon = performanceBadge?.icon;
+
   const handleOverrideSave = async (changes: OverrideChanges) => {
     try {
       const response = await fetch(`/api/campaigns/plans/${planId}/items/${item.id}`, {
@@ -341,9 +365,9 @@ function StoreRow({
 
   return (
     <div className="border rounded-lg overflow-hidden">
-      {/* Main Row */}
+      {/* Main Row - Enhanced with Visual Badges */}
       <div
-        className="flex items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer"
+        className="flex items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer transition-colors"
         onClick={onToggle}
       >
         {/* Expand Icon */}
@@ -355,15 +379,23 @@ function StoreRow({
           )}
         </div>
 
-        {/* Store Info */}
+        {/* Store Info with Performance Badge */}
         <div className="flex-1 min-w-0">
-          <div className="font-medium">{item.store_number} - {item.store_name}</div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{item.store_number} - {item.store_name}</span>
+            {performanceBadge && PerformanceIcon && (
+              <Badge className={`${performanceBadge.color} border text-xs flex items-center gap-1 px-2 py-0.5`}>
+                <PerformanceIcon className="h-3 w-3" />
+                {performanceBadge.label}
+              </Badge>
+            )}
+          </div>
           <div className="text-sm text-muted-foreground">
             {item.city}, {item.state}
           </div>
         </div>
 
-        {/* Campaign */}
+        {/* Campaign with Override Badge */}
         <div className="w-48">
           <div className="text-sm font-medium">{item.campaign_name}</div>
           {isOverridden && (
@@ -373,6 +405,17 @@ function StoreRow({
           )}
         </div>
 
+        {/* Expected Conversions - NEW */}
+        <div className="w-28 text-right">
+          <div className="flex items-center justify-end gap-1.5">
+            <Target className="h-4 w-4 text-blue-600" />
+            <span className="font-bold text-blue-600">
+              {item.ai_expected_conversions?.toFixed(1) ?? '0'}
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground">expected</div>
+        </div>
+
         {/* Quantity */}
         <div className="w-24 text-right">
           <div className="font-medium">{item.quantity}</div>
@@ -380,7 +423,7 @@ function StoreRow({
         </div>
 
         {/* AI Confidence */}
-        <div className="w-24 text-right">
+        <div className="w-28 text-right">
           {item.ai_confidence !== null && item.ai_confidence_level !== null ? (
             <AIConfidenceScore
               confidence={item.ai_confidence}
