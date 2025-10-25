@@ -24,10 +24,20 @@ export function WizardStepTemplate({ data, onChange }: WizardStepTemplateProps) 
   const [templates, setTemplates] = useState<CampaignTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
   useEffect(() => {
     loadTemplates();
   }, []);
+
+  // Debounce search input for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -46,9 +56,9 @@ export function WizardStepTemplate({ data, onChange }: WizardStepTemplateProps) 
   };
 
   const filteredTemplates = templates.filter(t =>
-    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.category.toLowerCase().includes(searchQuery.toLowerCase())
+    t.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+    t.description?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+    t.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
   );
 
   if (loading) {
@@ -73,9 +83,16 @@ export function WizardStepTemplate({ data, onChange }: WizardStepTemplateProps) 
 
       <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
         {filteredTemplates.map(template => {
-          const templateData = typeof template.template_data === 'string'
-            ? JSON.parse(template.template_data)
-            : template.template_data;
+          // Safely parse template data with fallback
+          let templateData = template.template_data;
+          if (typeof template.template_data === 'string') {
+            try {
+              templateData = JSON.parse(template.template_data);
+            } catch (error) {
+              console.error('Failed to parse template data:', error);
+              templateData = {};
+            }
+          }
 
           return (
             <Card
@@ -119,7 +136,7 @@ export function WizardStepTemplate({ data, onChange }: WizardStepTemplateProps) 
 
         {filteredTemplates.length === 0 && (
           <div className="col-span-2 text-center py-12 text-slate-500">
-            No templates found. {searchQuery && 'Try adjusting your search.'}
+            No templates found. {debouncedSearchQuery && 'Try adjusting your search.'}
           </div>
         )}
 

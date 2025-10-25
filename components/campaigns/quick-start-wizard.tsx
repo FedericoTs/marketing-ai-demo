@@ -112,11 +112,16 @@ export function QuickStartWizard({ open, onOpenChange, onComplete }: QuickStartW
       const campaignId = campaignResult.data.id;
       console.log('✅ [Quick Start Wizard] Campaign created:', campaignId);
 
-      // Step 2: Increment template use count
+      // Step 2: Increment template use count (non-critical, don't fail if this errors)
       if (wizardData.templateId) {
-        await fetch(`/api/campaigns/templates/${wizardData.templateId}/use`, {
-          method: 'POST',
-        });
+        try {
+          await fetch(`/api/campaigns/templates/${wizardData.templateId}/use`, {
+            method: 'POST',
+          });
+        } catch (error) {
+          console.warn('⚠️ [Quick Start Wizard] Failed to increment template use count:', error);
+          // Continue anyway - this is not critical
+        }
       }
 
       toast.success(`Campaign "${wizardData.campaignName}" created successfully!`);
