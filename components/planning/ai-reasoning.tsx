@@ -103,10 +103,13 @@ export function AIRiskFactors({ risks, compact = false }: AIRiskFactorsProps) {
 /**
  * Combined AI Reasoning Panel
  * Shows confidence + scores + reasoning + risks all together
+ * ENHANCED: Ultra visual, user-friendly KPI display
  */
 import { AIConfidenceBadge } from './ai-confidence-badge';
 import { ScoreBreakdown } from './score-breakdown';
+import { AIScoreGrid, QuickInsight } from './visual-kpi-cards';
 import type { ConfidenceLevel } from '@/types/planning';
+import { Sparkles, TrendingUp } from 'lucide-react';
 
 interface AIReasoningPanelProps {
   confidence: number | null;
@@ -141,11 +144,26 @@ export function AIReasoningPanel({
     );
   }
 
+  // Calculate average score for quick insight
+  const scoreValues = [
+    scores.store_performance,
+    scores.creative_performance,
+    scores.geographic_fit,
+    scores.timing_alignment,
+  ].filter((v) => v !== null) as number[];
+
+  const avgScore = scoreValues.length > 0
+    ? scoreValues.reduce((sum, v) => sum + v, 0) / scoreValues.length
+    : 0;
+
   return (
-    <div className="space-y-6 p-6 bg-muted/30 rounded-lg border">
+    <div className="space-y-6 p-6 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border">
       {/* Header: Confidence Badge */}
       <div className="flex items-center justify-between">
-        <div className="text-lg font-semibold">AI Recommendation</div>
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-purple-600" />
+          <div className="text-lg font-semibold">AI Recommendation</div>
+        </div>
         <AIConfidenceBadge
           confidence={confidence}
           level={confidenceLevel}
@@ -153,23 +171,62 @@ export function AIReasoningPanel({
         />
       </div>
 
-      {/* Expected Outcome */}
+      {/* Quick Insight */}
+      {avgScore >= 75 && (
+        <QuickInsight
+          type="success"
+          message={`Strong recommendation: All factors score ${avgScore.toFixed(0)}/100 or higher. High probability of success.`}
+        />
+      )}
+      {avgScore >= 50 && avgScore < 75 && (
+        <QuickInsight
+          type="info"
+          message={`Moderate recommendation: Average score of ${avgScore.toFixed(0)}/100. Good potential with some considerations.`}
+        />
+      )}
+      {avgScore < 50 && (
+        <QuickInsight
+          type="warning"
+          message={`Consider alternatives: Average score below 50/100. Review risk factors carefully before proceeding.`}
+        />
+      )}
+
+      {/* Expected Outcome - Enhanced Visual */}
       {expectedConversions !== null && expectedConversions !== undefined && (
-        <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="text-sm font-medium text-blue-900 dark:text-blue-300">
-            Expected Conversions
+        <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+          <TrendingUp className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          <div className="flex-1">
+            <div className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">
+              Expected Conversions
+            </div>
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              {expectedConversions.toFixed(1)}
+            </div>
           </div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {expectedConversions.toFixed(1)}
+          <div className="text-xs text-blue-700 dark:text-blue-300 text-right">
+            Predicted<br/>responses
           </div>
         </div>
       )}
 
-      {/* Score Breakdown */}
-      <ScoreBreakdown scores={scores} />
+      {/* Visual Score Grid - NEW! */}
+      <div>
+        <div className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+          <span>AI Analysis Factors</span>
+          <span className="text-xs text-muted-foreground/70">(hover for details)</span>
+        </div>
+        <AIScoreGrid scores={scores} />
+      </div>
 
-      {/* Reasoning */}
-      <AIReasoningList reasoning={reasoning} />
+      {/* Reasoning - Simplified */}
+      {reasoning && reasoning.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Why This Recommendation?
+          </div>
+          <AIReasoningList reasoning={reasoning} compact />
+        </div>
+      )}
 
       {/* Risk Factors */}
       <AIRiskFactors risks={risks} />
