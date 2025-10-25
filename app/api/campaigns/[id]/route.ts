@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import {
   getCampaignById,
-  updateCampaignStatus,
+  updateCampaign,
   deleteCampaign,
   duplicateCampaign,
 } from "@/lib/database/tracking-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
-// PATCH: Update campaign status
+// PATCH: Update campaign (name, message, status)
+// Part of Improvement #5: Contextual Quick Actions
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -15,9 +16,10 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status } = body;
+    const { name, message, status } = body;
 
-    if (!status || !["active", "paused", "completed"].includes(status)) {
+    // Validate status if provided
+    if (status && !["active", "paused", "completed"].includes(status)) {
       return NextResponse.json(
         errorResponse(
           "Invalid status. Must be 'active', 'paused', or 'completed'",
@@ -27,25 +29,28 @@ export async function PATCH(
       );
     }
 
-    const updated = updateCampaignStatus(id, status);
+    console.log('🔄 [Campaign PATCH] Updating campaign:', id, { name, message, status });
+
+    // Update campaign using flexible updateCampaign function
+    const updated = updateCampaign(id, { name, message, status });
 
     if (!updated) {
+      console.warn('⚠️  [Campaign PATCH] Campaign not found:', id);
       return NextResponse.json(
-        errorResponse("Campaign not found or failed to update", "CAMPAIGN_NOT_FOUND"),
+        errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
         { status: 404 }
       );
     }
 
-    // Get updated campaign
-    const campaign = getCampaignById(id);
+    console.log('✅ [Campaign PATCH] Campaign updated successfully:', id);
 
     return NextResponse.json(
-      successResponse(campaign, `Campaign status updated to ${status}`)
+      successResponse(updated, "Campaign updated successfully")
     );
   } catch (error) {
-    console.error("Error updating campaign status:", error);
+    console.error("❌ [Campaign PATCH] Error:", error);
     return NextResponse.json(
-      errorResponse("Failed to update campaign status", "UPDATE_ERROR"),
+      errorResponse("Failed to update campaign", "UPDATE_ERROR"),
       { status: 500 }
     );
   }

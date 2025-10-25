@@ -128,6 +128,58 @@ export function getAllCampaigns(): Campaign[] {
 }
 
 /**
+ * Update campaign details
+ * Part of Improvement #5: Contextual Quick Actions
+ */
+export function updateCampaign(
+  id: string,
+  updates: {
+    name?: string;
+    message?: string;
+    status?: Campaign['status'];
+  }
+): Campaign | null {
+  const db = getDatabase();
+
+  const updateFields: string[] = [];
+  const params: any[] = [];
+
+  if (updates.name !== undefined) {
+    updateFields.push('name = ?');
+    params.push(updates.name);
+  }
+
+  if (updates.message !== undefined) {
+    updateFields.push('message = ?');
+    params.push(updates.message);
+  }
+
+  if (updates.status !== undefined) {
+    updateFields.push('status = ?');
+    params.push(updates.status);
+  }
+
+  if (updateFields.length === 0) {
+    // No updates provided, return current campaign
+    return getCampaignById(id);
+  }
+
+  params.push(id);
+
+  const result = db.prepare(`
+    UPDATE campaigns
+    SET ${updateFields.join(', ')}
+    WHERE id = ?
+  `).run(...params);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getCampaignById(id);
+}
+
+/**
  * Update campaign status
  */
 export function updateCampaignStatus(
