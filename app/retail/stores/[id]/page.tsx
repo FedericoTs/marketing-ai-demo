@@ -19,6 +19,7 @@ import {
   Target,
   CheckCircle,
 } from 'lucide-react';
+import { Breadcrumbs } from '@/components/shared/breadcrumbs';
 
 export default function StoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -90,14 +91,10 @@ export default function StoreDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
+      <Breadcrumbs />
+
       {/* Header */}
       <div className="mb-8">
-        <Link href="/retail/stores">
-          <Button variant="ghost" className="gap-2 mb-4">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Stores
-          </Button>
-        </Link>
 
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Download, FileText, Upload, Sparkles } from "lucide-react";
 import Image from "next/image";
+import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 
 interface TemplateData {
   id: string;
@@ -109,6 +110,8 @@ export default function DMResultsPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
+      <Breadcrumbs />
+
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">

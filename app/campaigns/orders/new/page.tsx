@@ -47,6 +47,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { GeographicBulkSelection } from "@/components/orders/geographic-bulk-selection";
 import { CSVBulkUpload } from "@/components/orders/csv-bulk-upload";
 import { StoreGroupSelection } from "@/components/orders/store-group-selection";
+import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 
 interface Store {
   id: string;
@@ -416,16 +417,10 @@ export default function NewOrderPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
+      <Breadcrumbs />
+
       {/* Header */}
       <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/campaigns/orders")}
-          className="mb-4 gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Orders
-        </Button>
 
         <div className="flex items-center justify-between">
           <div>

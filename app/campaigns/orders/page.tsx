@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { RerunOrderDialog } from "@/components/orders/rerun-order-dialog";
 import { CampaignOrder } from "@/lib/database/order-queries";
+import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 
 interface Order {
   id: string;
@@ -182,6 +183,8 @@ export default function OrdersPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <Breadcrumbs />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

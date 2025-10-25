@@ -33,6 +33,7 @@ import {
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 
 interface Campaign {
   id: string;
@@ -313,16 +314,10 @@ export default function EditOrderPage({
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
+      <Breadcrumbs />
+
       {/* Header */}
       <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push(`/campaigns/orders/${orderId}`)}
-          className="mb-4 gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Order
-        </Button>
 
         <div className="flex items-start justify-between">
           <div>

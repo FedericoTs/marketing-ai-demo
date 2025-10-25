@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { OrderStatusManager } from "@/components/orders/order-status-manager";
 import { CancelOrderDialog } from "@/components/orders/cancel-order-dialog";
+import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 
 interface Order {
   id: string;
@@ -219,16 +220,10 @@ export default function OrderDetailPage({
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
+      <Breadcrumbs />
+
       {/* Header */}
       <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/campaigns/orders")}
-          className="mb-4 gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Orders
-        </Button>
 
         <div className="flex items-start justify-between">
           <div>

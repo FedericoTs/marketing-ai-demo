@@ -10,6 +10,7 @@ import { CampaignList } from "@/components/analytics/campaign-list";
 import { RecentActivityFeed } from "@/components/analytics/recent-activity-feed";
 import { ChartsView } from "@/components/analytics/charts-view";
 import { CallsView } from "@/components/analytics/calls-view";
+import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 
 function AnalyticsContent() {
   const searchParams = useSearchParams();
@@ -66,6 +67,8 @@ function AnalyticsContent() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
+      <Breadcrumbs />
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Analytics Dashboard</h1>
         <p className="text-slate-600">
