@@ -263,6 +263,8 @@ export function createPlanItem(input: CreatePlanItemInput): PlanItem {
   const id = `item_${nanoid(12)}`;
   const now = new Date().toISOString();
 
+  console.log(`[createPlanItem] Creating item for plan_id: ${input.plan_id}, store: ${input.store_name}`);
+
   const stmt = db.prepare(`
     INSERT INTO plan_items (
       id, plan_id, store_id, store_number, store_name,

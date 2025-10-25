@@ -85,6 +85,9 @@ export async function POST(request: NextRequest) {
     // STEP 3: Bulk Insert Plan Items with AI Scores
     // =================================================================
 
+    console.log('[Plan Generation] Using planId:', planId);
+    console.log('[Plan Generation] First recommendation:', aiResult.recommendations[0]);
+
     const planItems: CreatePlanItemInput[] = aiResult.recommendations.map((rec) => ({
       plan_id: planId,
       store_id: rec.store_id,
