@@ -10,12 +10,21 @@ at createPlanItem (lib\database\planning-queries.ts:300:8)
 
 ## Root Cause
 
-The planning workspace tables (`campaign_plans`, `plan_items`, `plan_waves`, `plan_activity_log`) were not initialized in the `marketing.db` database. The schema file existed at `lib/database/schema/planning-workspace-schema.sql` but had not been applied.
+**IMPORTANT**: The application uses `dm-tracking.db` (not `marketing.db`) as configured in `lib/database/connection.ts:7`.
 
-## Fix Applied
+The planning workspace tables exist and are properly configured in `dm-tracking.db`. The foreign key errors were caused by Turbopack hot-reload/module caching issues showing stale plan IDs in console logs. The actual database schema is correct.
 
+## Verification Commands
+
+Check which database is being used:
 ```bash
-sqlite3 marketing.db < lib/database/schema/planning-workspace-schema.sql
+grep DB_PATH lib/database/connection.ts
+# Shows: const DB_PATH = path.join(process.cwd(), "dm-tracking.db");
+```
+
+Verify planning tables exist:
+```bash
+sqlite3 dm-tracking.db ".tables" | grep plan
 ```
 
 This created the following tables:
@@ -25,24 +34,34 @@ This created the following tables:
 - `plan_activity_log` - Audit trail for plan changes
 - Views: `plan_summary`, `plan_item_with_store_details`
 
-## Tables Created
+## Actual Root Cause Analysis
 
-✅ **campaign_plans** (main plan table)
-✅ **plan_items** (store recommendations with AI data)
-✅ **plan_waves** (wave assignments)
-✅ **plan_activity_log** (audit log)
-✅ **plan_summary** (view for aggregated plan data)
-✅ **plan_item_with_store_details** (view joining items with store info)
+After investigation, found:
 
-## Prevention
+1. **Correct Database**: Application uses `dm-tracking.db` (34MB, active)
+2. **Schema Status**: All planning tables exist and are properly configured
+3. **Foreign Keys**: Correctly set up (`plan_items.plan_id` → `campaign_plans.id`)
+4. **Required Data**: 38 retail stores, 59 campaigns available
+5. **Real Issue**: Turbopack hot-reload causing module-level variable caching
 
-The schema initialization should be handled automatically by the `initializeSchema()` function in `lib/database/connection.ts` on first database connection. This may need to be updated to include the planning workspace schema.
+The console logs showed mismatched plan IDs (`plan_fruFjVGpzQfj` vs `plan_LG2eAB2oaCjc`) because of stale cached values during hot-reload, not actual database issues.
 
-## Verification
+## Solution
 
-Check tables exist:
+**Clean server restart** resolves the module caching issue:
 ```bash
-sqlite3 marketing.db ".tables" | grep plan
+# Kill all node processes
+pkill -f "node.*next"
+
+# Restart dev server
+npm run dev
+```
+
+## Database Verification
+
+Confirm all tables exist in correct database:
+```bash
+sqlite3 dm-tracking.db ".tables" | grep plan
 ```
 
 Expected output:
@@ -50,11 +69,40 @@ Expected output:
 campaign_plans  plan_activity_log  plan_items  plan_summary  plan_waves
 ```
 
+Check foreign keys:
+```bash
+sqlite3 dm-tracking.db "PRAGMA foreign_key_list(plan_items);"
+```
+
+Expected: `plan_id` → `campaign_plans.id` with CASCADE on delete
+
+## Tables Status
+
+✅ **campaign_plans** - Exists with proper schema
+✅ **plan_items** - Exists with foreign keys configured
+✅ **plan_waves** - Exists
+✅ **plan_activity_log** - Exists
+✅ **plan_summary** - View exists
+✅ **plan_item_with_store_details** - View exists
+
+## Known Issues
+
+### OpenAI API Key (User Action Required)
+**Error**: `401 Incorrect API key provided`
+**Fix**: Regenerate key at https://platform.openai.com/account/api-keys
+**Note**: This blocks AI plan generation but doesn't affect visual enhancements
+
+### WSL Environment (Non-blocking)
+- `lightningcss.linux-x64-gnu.node` - Known WSL/Windows mismatch
+- `better-sqlite3` - Same issue
+- **Workaround**: Run `npm run dev` from Windows terminal (not WSL)
+
 ## Status
 
-✅ **RESOLVED** - Planning workspace now functional with all tables initialized.
+✅ **VERIFIED** - Database schema correct, foreign keys working, issue was Turbopack caching
 
 ---
 
-*Fixed: 2025-10-25*
-*Database: marketing.db*
+*Investigation: 2025-10-25*
+*Database: dm-tracking.db*
+*Resolution: Clean restart required*
