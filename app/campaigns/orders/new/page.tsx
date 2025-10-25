@@ -573,29 +573,118 @@ export default function NewOrderPage() {
                 const store = getSelectedStore(item.storeId);
                 const campaign = getSelectedCampaign(item.campaignId);
                 const storeName = store?.store_name || store?.name || "Unknown Store";
+                const isEditing = !item.storeId || !item.campaignId; // Show editing UI if incomplete
 
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50"
+                    className="p-4 border rounded-lg bg-white"
                   >
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        #{store?.store_number} - {storeName}
-                      </p>
-                      <p className="text-sm text-slate-600">
-                        {store?.city}, {store?.state} • {campaign?.name} • {item.quantity}{" "}
-                        pieces • ${(item.quantity * 0.25).toFixed(2)}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(item.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {isEditing ? (
+                      // EDITING MODE: Show select dropdowns for incomplete items
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* Store Selection */}
+                          <div>
+                            <Label className="text-xs text-slate-600">Store</Label>
+                            <Select
+                              value={item.storeId}
+                              onValueChange={(value) => updateItem(item.id, "storeId", value)}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select a store..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {stores.map((store) => {
+                                  const displayName = store.store_name || store.name || "Unnamed";
+                                  return (
+                                    <SelectItem key={store.id} value={store.id}>
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">
+                                          #{store.store_number} - {displayName}
+                                        </span>
+                                        {(store.city || store.state) && (
+                                          <span className="text-xs text-slate-500">
+                                            {store.city}{store.city && store.state ? ", " : ""}{store.state}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Campaign Selection */}
+                          <div>
+                            <Label className="text-xs text-slate-600">Campaign</Label>
+                            <Select
+                              value={item.campaignId}
+                              onValueChange={(value) => updateItem(item.id, "campaignId", value)}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select a campaign..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {campaigns.map((campaign) => (
+                                  <SelectItem key={campaign.id} value={campaign.id}>
+                                    {campaign.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {/* Quantity Input */}
+                          <div className="flex-1">
+                            <Label className="text-xs text-slate-600">Quantity</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                updateItem(item.id, "quantity", parseInt(e.target.value) || 100)
+                              }
+                              className="mt-1"
+                            />
+                          </div>
+
+                          {/* Delete Button */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(item.id)}
+                            className="text-red-600 hover:text-red-700 mt-5"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // DISPLAY MODE: Show formatted info for complete items
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium">
+                            #{store?.store_number} - {storeName}
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            {store?.city}, {store?.state} • {campaign?.name} • {item.quantity}{" "}
+                            pieces • ${(item.quantity * 0.25).toFixed(2)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeItem(item.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
