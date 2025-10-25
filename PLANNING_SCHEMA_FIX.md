@@ -36,26 +36,54 @@ This created the following tables:
 
 ## Actual Root Cause Analysis
 
-After investigation, found:
+After **first-principles investigation**, found:
 
-1. **Correct Database**: Application uses `dm-tracking.db` (34MB, active)
-2. **Schema Status**: All planning tables exist and are properly configured
-3. **Foreign Keys**: Correctly set up (`plan_items.plan_id` → `campaign_plans.id`)
-4. **Required Data**: 38 retail stores, 59 campaigns available
-5. **Real Issue**: Turbopack hot-reload causing module-level variable caching
+1. **Correct Database**: Application uses `dm-tracking.db` (34MB, active) ✅
+2. **Schema Status**: All planning tables exist and are properly configured ✅
+3. **Foreign Keys**: Correctly set up (`plan_items.plan_id` → `campaign_plans.id`) ✅
+4. **Required Data**: 38 retail stores, 59 campaigns available ✅
+5. **REAL ROOT CAUSE**: 🔴 **Code bug in `createPlan()` function** (line 42)
 
-The console logs showed mismatched plan IDs (`plan_fruFjVGpzQfj` vs `plan_LG2eAB2oaCjc`) because of stale cached values during hot-reload, not actual database issues.
+### The Actual Bug
+
+**File**: `lib/database/planning-queries.ts`
+**Line**: 42 (before fix)
+
+```typescript
+// BUG: Always generated new ID, ignored input.id parameter
+const id = `plan_${nanoid(12)}`;
+```
+
+**Flow**:
+```
+API Route: Creates planId = 'plan_abc123'
+         ↓ Passes { id: 'plan_abc123', ... } to createPlan()
+createPlan: Ignores input.id, generates NEW id = 'plan_xyz789' ❌
+         ↓ Inserts plan with id='plan_xyz789'
+API Route: Tries to insert plan_items with plan_id='plan_abc123' ❌
+Result: FOREIGN KEY CONSTRAINT FAILED (plan_abc123 doesn't exist)
+```
+
+Initial hypotheses (database schema, Turbopack caching) were **incorrect** - the bug was in parameter handling.
 
 ## Solution
 
-**Clean server restart** resolves the module caching issue:
-```bash
-# Kill all node processes
-pkill -f "node.*next"
+**Code Fix** (Commit 10e6500):
 
-# Restart dev server
-npm run dev
+**File 1**: `lib/database/planning-queries.ts` (Line 42)
+```typescript
+// FIXED: Respects provided ID or generates new one
+const id = input.id || `plan_${nanoid(12)}`;
 ```
+
+**File 2**: `types/planning.ts` (After line 372, ~107 new lines)
+Added comprehensive input types:
+- `CreatePlanInput` with optional `id?: string`
+- `CreatePlanItemInput` with all AI fields
+- `UpdatePlanInput`, `UpdatePlanItemInput`
+- `CreateWaveInput`, `UpdateWaveInput`
+
+**Commit Message**: `fix: CRITICAL - createPlan() was ignoring input.id causing FK constraint errors`
 
 ## Database Verification
 
@@ -99,10 +127,22 @@ Expected: `plan_id` → `campaign_plans.id` with CASCADE on delete
 
 ## Status
 
-✅ **VERIFIED** - Database schema correct, foreign keys working, issue was Turbopack caching
+✅ **FIXED** - Root cause identified and corrected in code
+
+**Summary**:
+- ✅ Database schema was correct (not the issue)
+- ✅ Foreign keys properly configured (not the issue)
+- ✅ **Code bug found**: `createPlan()` ignoring input.id parameter
+- ✅ **Fix applied**: Line 42 now respects input.id
+- ✅ **Types added**: Comprehensive input interfaces for type safety
+- ✅ **Committed**: Commit 10e6500
+
+**Testing**: Requires Windows terminal (not WSL) due to better-sqlite3 native module limitations
+
+**See**: `FOREIGN_KEY_FIX_COMPLETE.md` for full investigation details
 
 ---
 
 *Investigation: 2025-10-25*
 *Database: dm-tracking.db*
-*Resolution: Clean restart required*
+*Resolution: Code fix in createPlan() function*
