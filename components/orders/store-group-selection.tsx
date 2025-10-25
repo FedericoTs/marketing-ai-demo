@@ -52,13 +52,14 @@ interface StoreGroupWithStores extends StoreGroup {
 interface StoreGroupSelectionProps {
   campaigns: Campaign[];
   onAddStores: (stores: Store[], campaignId: string, quantity: number) => void;
+  defaultCampaignId?: string;
 }
 
-export function StoreGroupSelection({ campaigns, onAddStores }: StoreGroupSelectionProps) {
+export function StoreGroupSelection({ campaigns, onAddStores, defaultCampaignId }: StoreGroupSelectionProps) {
   const [groups, setGroups] = useState<StoreGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [selectedGroup, setSelectedGroup] = useState<StoreGroupWithStores | null>(null);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(defaultCampaignId || "");
   const [quantity, setQuantity] = useState<string>("100");
 
   const [loading, setLoading] = useState<boolean>(true);

@@ -43,7 +43,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { GeographicBulkSelection } from "@/components/orders/geographic-bulk-selection";
 import { CSVBulkUpload } from "@/components/orders/csv-bulk-upload";
 import { StoreGroupSelection } from "@/components/orders/store-group-selection";
@@ -71,10 +71,12 @@ interface OrderItem {
   campaignId: string;
   quantity: number;
   notes?: string;
+  confirmed?: boolean; // Track if user explicitly confirmed this item
 }
 
 export default function NewOrderPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
@@ -82,6 +84,10 @@ export default function NewOrderPage() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [orderNotes, setOrderNotes] = useState("");
   const [supplierEmail, setSupplierEmail] = useState("");
+
+  // Pre-selected campaign from template workflow
+  const [preSelectedCampaignId, setPreSelectedCampaignId] = useState<string | null>(null);
+  const fromTemplate = searchParams?.get("fromTemplate") === "true";
 
   // Save as Group state
   const [showSaveGroupDialog, setShowSaveGroupDialog] = useState(false);
@@ -115,6 +121,25 @@ export default function NewOrderPage() {
           (c: Campaign) => c.status === "active"
         );
         setCampaigns(activeCampaigns);
+
+        // Check for pre-selected campaign from query parameter
+        const campaignIdParam = searchParams?.get("campaignId");
+        if (campaignIdParam) {
+          const preSelectedCampaign = activeCampaigns.find(
+            (c: Campaign) => c.id === campaignIdParam
+          );
+          if (preSelectedCampaign) {
+            setPreSelectedCampaignId(campaignIdParam);
+            console.log("[New Order] Pre-selected campaign:", preSelectedCampaign.name);
+
+            if (fromTemplate) {
+              toast.success(
+                `Campaign "${preSelectedCampaign.name}" pre-selected. Add stores to create your order.`,
+                { duration: 5000 }
+              );
+            }
+          }
+        }
       }
     } catch (error) {
       console.error("[New Order] Error loading data:", error);
@@ -128,9 +153,10 @@ export default function NewOrderPage() {
     const newItem: OrderItem = {
       id: `temp-${Date.now()}`,
       storeId: "",
-      campaignId: "",
+      campaignId: preSelectedCampaignId || "", // Use pre-selected campaign if available
       quantity: 100, // Default quantity
-      notes: "",
+      notes: fromTemplate ? "From template workflow" : "",
+      confirmed: false, // Start in editing mode
     };
     setOrderItems([...orderItems, newItem]);
   };
@@ -143,6 +169,22 @@ export default function NewOrderPage() {
     setOrderItems(
       orderItems.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const confirmItem = (id: string) => {
+    setOrderItems(
+      orderItems.map((item) =>
+        item.id === id ? { ...item, confirmed: true } : item
+      )
+    );
+  };
+
+  const editItem = (id: string) => {
+    setOrderItems(
+      orderItems.map((item) =>
+        item.id === id ? { ...item, confirmed: false } : item
       )
     );
   };
@@ -174,6 +216,7 @@ export default function NewOrderPage() {
         campaignId,
         quantity,
         notes: "Added via bulk selection",
+        confirmed: true, // Bulk items are pre-filled and confirmed
       });
 
       existingKeys.add(key);
@@ -396,6 +439,34 @@ export default function NewOrderPage() {
         </div>
       </div>
 
+      {/* Pre-selected Campaign Banner */}
+      {preSelectedCampaignId && fromTemplate && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              <FileText className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-blue-900">
+                  Campaign Pre-selected from Template
+                </p>
+                <p className="text-sm text-blue-800 mt-1">
+                  Campaign "{getSelectedCampaign(preSelectedCampaignId)?.name}" is pre-selected for this order.
+                  All stores you add will use this campaign automatically.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPreSelectedCampaignId(null)}
+                className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
+              >
+                Clear
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Info Banner */}
       {stores.length === 0 || campaigns.length === 0 ? (
         <Card className="mb-6 border-orange-200 bg-orange-50">
@@ -518,17 +589,26 @@ export default function NewOrderPage() {
               <GeographicBulkSelection
                 campaigns={campaigns}
                 onAddStores={handleBulkAddStores}
+                defaultCampaignId={preSelectedCampaignId || undefined}
               />
             </TabsContent>
 
             {/* CSV Upload */}
             <TabsContent value="csv" className="mt-6">
-              <CSVBulkUpload campaigns={campaigns} onAddStores={handleBulkAddStores} />
+              <CSVBulkUpload
+                campaigns={campaigns}
+                onAddStores={handleBulkAddStores}
+                defaultCampaignId={preSelectedCampaignId || undefined}
+              />
             </TabsContent>
 
             {/* Store Groups */}
             <TabsContent value="groups" className="mt-6">
-              <StoreGroupSelection campaigns={campaigns} onAddStores={handleBulkAddStores} />
+              <StoreGroupSelection
+                campaigns={campaigns}
+                onAddStores={handleBulkAddStores}
+                defaultCampaignId={preSelectedCampaignId || undefined}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -573,7 +653,8 @@ export default function NewOrderPage() {
                 const store = getSelectedStore(item.storeId);
                 const campaign = getSelectedCampaign(item.campaignId);
                 const storeName = store?.store_name || store?.name || "Unknown Store";
-                const isEditing = !item.storeId || !item.campaignId; // Show editing UI if incomplete
+                const isEditing = !item.confirmed; // Show editing UI if not confirmed
+                const isComplete = item.storeId && item.campaignId; // Check if all fields are filled
 
                 return (
                   <div
@@ -637,9 +718,9 @@ export default function NewOrderPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="space-y-3">
                           {/* Quantity Input */}
-                          <div className="flex-1">
+                          <div>
                             <Label className="text-xs text-slate-600">Quantity</Label>
                             <Input
                               type="number"
@@ -652,15 +733,27 @@ export default function NewOrderPage() {
                             />
                           </div>
 
-                          {/* Delete Button */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeItem(item.id)}
-                            className="text-red-600 hover:text-red-700 mt-5"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {/* Action Buttons */}
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeItem(item.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => confirmItem(item.id)}
+                              disabled={!isComplete}
+                              className="gap-2 bg-blue-600 hover:bg-blue-700"
+                            >
+                              <Plus className="h-4 w-4" />
+                              Add to Order
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -675,14 +768,24 @@ export default function NewOrderPage() {
                             pieces • ${(item.quantity * 0.25).toFixed(2)}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(item.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editItem(item.id)}
+                            className="gap-2"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(item.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>

@@ -26,9 +26,11 @@ import {
   Filter,
   LayoutGrid,
   List,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { SendToStoresDialog } from "@/components/templates/send-to-stores-dialog";
 
 interface Template {
   id: string;
@@ -81,6 +83,8 @@ export function TemplateLibrary() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'most-used' | 'newest' | 'oldest' | 'name-asc' | 'name-desc'>('newest');
+  const [showSendToStoresDialog, setShowSendToStoresDialog] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
   useEffect(() => {
     loadTemplates();
@@ -569,41 +573,58 @@ export function TemplateLibrary() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push(`/templates/${template.id}`)}
-                    className="gap-2"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    Details
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    onClick={() => handleUseTemplate(template)}
-                    className="flex-1 gap-2"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    Use Template
-                  </Button>
-
-                  {!isSystemTemplate && (
+                <div className="space-y-2">
+                  {/* Primary Actions Row */}
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteTemplate(template.id, template.name)}
-                      disabled={processingId === template.id}
-                      className="gap-2 text-red-700 border-red-300 hover:bg-red-50"
+                      onClick={() => router.push(`/templates/${template.id}`)}
+                      className="gap-2"
                     >
-                      {processingId === template.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
-                      )}
+                      <Eye className="h-3.5 w-3.5" />
+                      Details
                     </Button>
-                  )}
+
+                    <Button
+                      size="sm"
+                      onClick={() => handleUseTemplate(template)}
+                      className="flex-1 gap-2"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      Use Template
+                    </Button>
+
+                    {!isSystemTemplate && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteTemplate(template.id, template.name)}
+                        disabled={processingId === template.id}
+                        className="gap-2 text-red-700 border-red-300 hover:bg-red-50"
+                      >
+                        {processingId === template.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Quick Action: Send to Stores */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedTemplate(template);
+                      setShowSendToStoresDialog(true);
+                    }}
+                    className="w-full gap-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Send to Stores (Quick Order)
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -774,6 +795,15 @@ export function TemplateLibrary() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Send to Stores Dialog */}
+      {selectedTemplate && (
+        <SendToStoresDialog
+          open={showSendToStoresDialog}
+          onOpenChange={setShowSendToStoresDialog}
+          template={selectedTemplate}
+        />
       )}
     </div>
   );

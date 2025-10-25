@@ -41,11 +41,13 @@ interface Campaign {
 interface GeographicBulkSelectionProps {
   campaigns: Campaign[];
   onAddStores: (stores: Store[], campaignId: string, quantity: number) => void;
+  defaultCampaignId?: string;
 }
 
 export function GeographicBulkSelection({
   campaigns,
   onAddStores,
+  defaultCampaignId,
 }: GeographicBulkSelectionProps) {
   // Filter state
   const [region, setRegion] = useState<string>("all");
@@ -58,7 +60,7 @@ export function GeographicBulkSelection({
   const [cities, setCities] = useState<string[]>([]);
 
   // Campaign and quantity
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>(defaultCampaignId || "");
   const [quantity, setQuantity] = useState<string>("100");
 
   // Stores state

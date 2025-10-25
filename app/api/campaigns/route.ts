@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/database/connection';
+import { createCampaign } from '@/lib/database/tracking-queries';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
@@ -62,6 +63,49 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       errorResponse(errorMessage, 'FETCH_ERROR'),
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/campaigns
+ * Create a new campaign
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, message, companyName } = body;
+
+    console.log('📝 [Campaigns API] POST request - Creating campaign:', { name });
+
+    // Validate required fields
+    if (!name || !message || !companyName) {
+      return NextResponse.json(
+        errorResponse('Missing required fields: name, message, companyName', 'VALIDATION_ERROR'),
+        { status: 400 }
+      );
+    }
+
+    // Create campaign using database function
+    const campaign = createCampaign({
+      name,
+      message,
+      companyName,
+    });
+
+    console.log('✅ [Campaigns API] Campaign created:', campaign.id);
+
+    return NextResponse.json(
+      successResponse(campaign)
+    );
+  } catch (error) {
+    console.error('❌ [Campaigns API] Error creating campaign:', error);
+
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create campaign';
+
+    return NextResponse.json(
+      errorResponse(errorMessage, 'CREATE_ERROR'),
       { status: 500 }
     );
   }
