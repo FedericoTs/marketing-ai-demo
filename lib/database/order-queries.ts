@@ -151,6 +151,92 @@ export function createOrder(params: CreateOrderParams): CampaignOrder {
   return getOrderById(orderId)!;
 }
 
+/**
+ * Duplicate an existing order with new order number
+ * Creates identical order items with same stores and quantities
+ * Perfect for recurring monthly campaigns
+ */
+export function duplicateOrder(originalOrderId: string): CampaignOrder {
+  const db = getDatabase();
+
+  // Get original order
+  const originalOrder = getOrderById(originalOrderId);
+  if (!originalOrder) {
+    throw new Error(`Order ${originalOrderId} not found`);
+  }
+
+  // Get original order items
+  const originalItems = getOrderItems(originalOrderId);
+
+  if (originalItems.length === 0) {
+    throw new Error(`Cannot duplicate order ${originalOrder.order_number}: No items found`);
+  }
+
+  // Create new order with same parameters
+  const newOrderId = nanoid();
+  const newOrderNumber = generateOrderNumber();
+  const now = new Date().toISOString();
+
+  const insertOrder = db.prepare(`
+    INSERT INTO campaign_orders (
+      id, order_number, created_at, updated_at, status,
+      total_stores, total_quantity, estimated_cost,
+      notes, supplier_email
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertItem = db.prepare(`
+    INSERT INTO campaign_order_items (
+      id, order_id, store_id, campaign_id,
+      recommended_quantity, approved_quantity,
+      unit_cost, total_cost, notes, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const transaction = db.transaction(() => {
+    // Insert new order (always as draft for review)
+    const notePrefix = `Rerun of ${originalOrder.order_number}`;
+    const combinedNotes = originalOrder.notes
+      ? `${notePrefix}\n\n${originalOrder.notes}`
+      : notePrefix;
+
+    insertOrder.run(
+      newOrderId,
+      newOrderNumber,
+      now,
+      now,
+      'draft', // Always start as draft for safety
+      originalOrder.total_stores,
+      originalOrder.total_quantity,
+      originalOrder.estimated_cost,
+      combinedNotes,
+      originalOrder.supplier_email
+    );
+
+    // Insert order items (duplicate with same quantities)
+    for (const item of originalItems) {
+      insertItem.run(
+        nanoid(),
+        newOrderId,
+        item.store_id,
+        item.campaign_id,
+        item.recommended_quantity,
+        item.approved_quantity,
+        item.unit_cost,
+        item.total_cost,
+        item.notes,
+        now
+      );
+    }
+  });
+
+  transaction();
+
+  console.log(`✅ [duplicateOrder] Order ${originalOrder.order_number} duplicated as ${newOrderNumber}`);
+
+  return getOrderById(newOrderId)!;
+}
+
 // ==================== READ OPERATIONS ====================
 
 /**

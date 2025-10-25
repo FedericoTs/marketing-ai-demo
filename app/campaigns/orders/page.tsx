@@ -34,9 +34,12 @@ import {
   DollarSign,
   Store as StoreIcon,
   FileSpreadsheet,
+  RotateCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { RerunOrderDialog } from "@/components/orders/rerun-order-dialog";
+import { CampaignOrder } from "@/lib/database/order-queries";
 
 interface Order {
   id: string;
@@ -56,6 +59,10 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stats, setStats] = useState<any>(null);
+
+  // Rerun order dialog state
+  const [showRerunDialog, setShowRerunDialog] = useState(false);
+  const [selectedOrderForRerun, setSelectedOrderForRerun] = useState<Order | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -89,6 +96,19 @@ export default function OrdersPage() {
   };
 
   const handleSearch = () => {
+    loadOrders();
+  };
+
+  const handleRerunOrder = (order: Order) => {
+    setSelectedOrderForRerun(order as CampaignOrder);
+    setShowRerunDialog(true);
+  };
+
+  const handleRerunSuccess = (newOrder: CampaignOrder) => {
+    // Navigate to the new order's detail page
+    router.push(`/campaigns/orders/${newOrder.id}`);
+
+    // Refresh the orders list
     loadOrders();
   };
 
@@ -341,6 +361,17 @@ export default function OrdersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {/* Rerun Order Button - HIGHEST PRIORITY ACTION */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRerunOrder(order)}
+                            title="Rerun Order (duplicate with same stores/quantities)"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <RotateCw className="h-4 w-4" />
+                          </Button>
+
                           {order.pdf_url && (
                             <Button
                               variant="ghost"
@@ -400,6 +431,16 @@ export default function OrdersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Rerun Order Dialog */}
+      {selectedOrderForRerun && (
+        <RerunOrderDialog
+          open={showRerunDialog}
+          onOpenChange={setShowRerunDialog}
+          order={selectedOrderForRerun}
+          onSuccess={handleRerunSuccess}
+        />
+      )}
     </div>
   );
 }
