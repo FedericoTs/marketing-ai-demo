@@ -329,7 +329,7 @@ export function getOrderItems(orderId: string): OrderItemWithDetails[] {
     SELECT
       oi.*,
       rs.store_number,
-      rs.store_name,
+      rs.name as store_name,
       rs.city,
       rs.state,
       c.name as campaign_name
