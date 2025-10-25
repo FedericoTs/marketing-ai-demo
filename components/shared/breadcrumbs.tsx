@@ -82,12 +82,16 @@ export function Breadcrumbs() {
 
 /**
  * Generate breadcrumb segments from pathname
+ * Skips intermediate routes that don't have actual pages
  */
 function generateBreadcrumbs(pathname: string): BreadcrumbSegment[] {
   const segments: BreadcrumbSegment[] = [];
   const parts = pathname.split('/').filter(Boolean);
 
   let currentPath = '';
+
+  // Routes that don't have actual pages (skip these in breadcrumbs)
+  const skipRoutes = new Set(['campaigns']);
 
   // Route mapping for readable labels
   const routeLabels: Record<string, string> = {
@@ -97,11 +101,16 @@ function generateBreadcrumbs(pathname: string): BreadcrumbSegment[] {
     'editor': 'Editor',
     'analytics': 'Analytics',
     'campaigns': 'Campaigns',
-    'orders': 'Orders',
+    'orders': 'Campaign Orders',
     'retail': 'Retail',
     'stores': 'Stores',
     'store-groups': 'Store Groups',
     'settings': 'Settings',
+    'matrix': 'Campaign Matrix',
+    'deployments': 'Deployments',
+    'insights': 'Insights',
+    'performance': 'Performance',
+    'results': 'Results',
 
     // Actions
     'new': 'New',
@@ -117,6 +126,11 @@ function generateBreadcrumbs(pathname: string): BreadcrumbSegment[] {
 
   parts.forEach((part, index) => {
     currentPath += `/${part}`;
+
+    // Skip routes that don't have pages
+    if (skipRoutes.has(part)) {
+      return;
+    }
 
     // Check if this is an ID (nanoid pattern: 16 chars, or ORD- pattern, or other ID patterns)
     const isId = part.length === 16 || part.startsWith('ORD-') || part.startsWith('STR-');
