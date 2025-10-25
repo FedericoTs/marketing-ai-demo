@@ -28,6 +28,7 @@ import type { PlanSummary, PlanItemWithStoreDetails } from '@/types/planning';
 import { AIReasoningPanel } from '@/components/planning/ai-reasoning';
 import { AIConfidenceScore } from '@/components/planning/ai-confidence-badge';
 import { OverridePanel, type OverrideChanges } from '@/components/planning/override-panel';
+import { PlanHealthDashboard } from '@/components/planning/plan-health-dashboard';
 
 interface PlanEditorPageProps {
   params: Promise<{ id: string }>;
@@ -222,58 +223,15 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Stores</CardTitle>
-            <Store className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{plan.total_stores}</div>
-            <p className="text-xs text-muted-foreground">
-              {plan.included_stores} included
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Est. Cost</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${plan.estimated_cost.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              {plan.total_quantity.toLocaleString()} pieces
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AI Confidence</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{plan.avg_confidence.toFixed(0)}%</div>
-            <p className="text-xs text-muted-foreground">
-              {plan.high_confidence_stores} high confidence
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expected Conv.</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{plan.expected_conversions.toFixed(1)}</div>
-            <p className="text-xs text-muted-foreground">predicted</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Plan Health Dashboard - ULTRA VISUAL */}
+      <PlanHealthDashboard
+        avgConfidence={plan.avg_confidence}
+        highConfidenceStores={plan.high_confidence_stores}
+        totalStores={plan.total_stores}
+        expectedConversions={plan.expected_conversions}
+        estimatedCost={plan.estimated_cost}
+        totalQuantity={plan.total_quantity}
+      />
 
       {/* Plan Items Table */}
       <Card>
