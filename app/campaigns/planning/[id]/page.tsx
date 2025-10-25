@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,16 +25,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PlanSummary, PlanItemWithStoreDetails } from '@/types/planning';
-import { AI
-
-ReasoningPanel } from '@/components/planning/ai-reasoning';
+import { AIReasoningPanel } from '@/components/planning/ai-reasoning';
 import { AIConfidenceScore } from '@/components/planning/ai-confidence-badge';
+import { OverridePanel, type OverrideChanges } from '@/components/planning/override-panel';
 
 interface PlanEditorPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function PlanEditorPage({ params }: PlanEditorPageProps) {
+  const { id } = use(params);
   const router = useRouter();
   const [plan, setPlan] = useState<PlanSummary | null>(null);
   const [items, setItems] = useState<PlanItemWithStoreDetails[]>([]);
@@ -42,7 +42,7 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (params.id === 'new') {
+    if (id === 'new') {
       // TODO: Create new plan flow
       toast.error('Create new plan flow not yet implemented');
       router.push('/campaigns/planning');
@@ -50,14 +50,14 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
     }
 
     fetchPlanData();
-  }, [params.id]);
+  }, [id]);
 
   async function fetchPlanData() {
     try {
       setLoading(true);
 
       // Fetch plan summary
-      const planResponse = await fetch(`/api/campaigns/plans/${params.id}?summary=true`);
+      const planResponse = await fetch(`/api/campaigns/plans/${id}?summary=true`);
       const planData = await planResponse.json();
 
       if (!planData.success) {
@@ -69,7 +69,7 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
       setPlan(planData.data);
 
       // Fetch plan items with store details
-      const itemsResponse = await fetch(`/api/campaigns/plans/${params.id}/items?includeStoreDetails=true`);
+      const itemsResponse = await fetch(`/api/campaigns/plans/${id}/items?includeStoreDetails=true`);
       const itemsData = await itemsResponse.json();
 
       if (itemsData.success) {
@@ -104,7 +104,7 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
     }
 
     try {
-      const response = await fetch(`/api/campaigns/plans/${params.id}/approve`, {
+      const response = await fetch(`/api/campaigns/plans/${id}/approve`, {
         method: 'POST',
       });
 
@@ -135,7 +135,7 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
     }
 
     try {
-      const response = await fetch(`/api/campaigns/plans/${params.id}/execute`, {
+      const response = await fetch(`/api/campaigns/plans/${id}/execute`, {
         method: 'POST',
       });
 
@@ -297,6 +297,8 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
                   expanded={expandedRows.has(item.id)}
                   onToggle={() => toggleRowExpanded(item.id)}
                   canEdit={canEdit}
+                  planId={id}
+                  onUpdate={fetchPlanData}
                 />
               ))}
             </div>
@@ -308,20 +310,48 @@ export default function PlanEditorPage({ params }: PlanEditorPageProps) {
 }
 
 /**
- * Individual Store Row with expandable AI reasoning
+ * Individual Store Row with expandable AI reasoning and override capability
  */
 function StoreRow({
   item,
   expanded,
   onToggle,
   canEdit,
+  planId,
+  onUpdate,
 }: {
   item: PlanItemWithStoreDetails;
   expanded: boolean;
   onToggle: () => void;
   canEdit: boolean;
+  planId: string;
+  onUpdate: () => void;
 }) {
+  const [isOverrideMode, setIsOverrideMode] = useState(false);
   const isOverridden = item.is_overridden;
+
+  const handleOverrideSave = async (changes: OverrideChanges) => {
+    try {
+      const response = await fetch(`/api/campaigns/plans/${planId}/items/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(changes),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Override saved successfully');
+        setIsOverrideMode(false);
+        onUpdate(); // Refresh plan data
+      } else {
+        toast.error(result.error || 'Failed to save override');
+      }
+    } catch (error) {
+      console.error('Error saving override:', error);
+      toast.error('Failed to save override');
+    }
+  };
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -351,7 +381,7 @@ function StoreRow({
         <div className="w-48">
           <div className="text-sm font-medium">{item.campaign_name}</div>
           {isOverridden && (
-            <Badge variant="outline" className="text-xs mt-1">
+            <Badge variant="outline" className="text-xs mt-1 bg-yellow-50 border-yellow-400 text-yellow-800">
               User Override
             </Badge>
           )}
@@ -376,22 +406,45 @@ function StoreRow({
         </div>
       </div>
 
-      {/* Expanded: AI Reasoning Panel */}
+      {/* Expanded: AI Reasoning Panel OR Override Panel */}
       {expanded && (
         <div className="border-t bg-muted/20 p-6">
-          <AIReasoningPanel
-            confidence={item.ai_confidence}
-            confidenceLevel={item.ai_confidence_level}
-            scores={{
-              store_performance: item.ai_score_store_performance,
-              creative_performance: item.ai_score_creative_performance,
-              geographic_fit: item.ai_score_geographic_fit,
-              timing_alignment: item.ai_score_timing_alignment,
-            }}
-            reasoning={item.ai_reasoning}
-            risks={item.ai_risk_factors}
-            expectedConversions={item.ai_expected_conversions}
-          />
+          {isOverrideMode ? (
+            <OverridePanel
+              item={item}
+              onSave={handleOverrideSave}
+              onCancel={() => setIsOverrideMode(false)}
+            />
+          ) : (
+            <>
+              <AIReasoningPanel
+                confidence={item.ai_confidence}
+                confidenceLevel={item.ai_confidence_level}
+                scores={{
+                  store_performance: item.ai_score_store_performance,
+                  creative_performance: item.ai_score_creative_performance,
+                  geographic_fit: item.ai_score_geographic_fit,
+                  timing_alignment: item.ai_score_timing_alignment,
+                }}
+                reasoning={item.ai_reasoning}
+                risks={item.ai_risk_factors}
+                expectedConversions={item.ai_expected_conversions}
+              />
+
+              {/* Override Button */}
+              {canEdit && (
+                <div className="mt-4 pt-4 border-t flex justify-end">
+                  <Button
+                    onClick={() => setIsOverrideMode(true)}
+                    variant="outline"
+                    className="bg-yellow-50 hover:bg-yellow-100 border-yellow-300 text-yellow-900"
+                  >
+                    Override AI Recommendation
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

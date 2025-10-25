@@ -10,7 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Sparkles, CheckCircle2, AlertCircle, X, Download, FileText } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Sparkles, CheckCircle2, AlertCircle, X, Download, FileText, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { PerformanceMatrixGrid } from "@/components/campaigns/performance-matrix-grid";
@@ -70,6 +81,13 @@ export default function PerformanceMatrixPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [generating, setGenerating] = useState(false);
+
+  // Plan creation dialog state
+  const [showPlanDialog, setShowPlanDialog] = useState(false);
+  const [planName, setPlanName] = useState("");
+  const [planDescription, setPlanDescription] = useState("");
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [creatingPlan, setCreatingPlan] = useState(false);
 
   useEffect(() => {
     loadMatrix();
@@ -192,6 +210,112 @@ export default function PerformanceMatrixPage() {
       );
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleOpenPlanDialog = () => {
+    if (!data || data.campaigns.length === 0) {
+      toast.error("No campaigns available to create a plan");
+      return;
+    }
+
+    // Set default campaign to first one
+    setSelectedCampaignId(data.campaigns[0].campaign_id);
+
+    // Generate default plan name
+    const today = new Date();
+    const defaultName = `Campaign Plan - ${today.toLocaleDateString()}`;
+    setPlanName(defaultName);
+    setPlanDescription("");
+
+    setShowPlanDialog(true);
+  };
+
+  const handleCreatePlan = async () => {
+    if (!planName.trim()) {
+      toast.error("Please enter a plan name");
+      return;
+    }
+
+    if (!selectedCampaignId) {
+      toast.error("Please select a campaign");
+      return;
+    }
+
+    setCreatingPlan(true);
+
+    try {
+      // Get selected campaign details
+      const selectedCampaign = data?.campaigns.find(
+        (c) => c.campaign_id === selectedCampaignId
+      );
+
+      if (!selectedCampaign) {
+        throw new Error("Selected campaign not found");
+      }
+
+      // Fetch full campaign details to get the message
+      const campaignResponse = await fetch(`/api/campaigns/${selectedCampaignId}`);
+      const campaignResult = await campaignResponse.json();
+
+      if (!campaignResult.success || !campaignResult.data) {
+        throw new Error("Failed to fetch campaign details");
+      }
+
+      const campaign = campaignResult.data;
+
+      // Get auto-approved store IDs (optional - AI can select best stores)
+      const autoApprovedStoreIds = data?.stores
+        .filter((s) => s.status === "auto-approve")
+        .map((s) => s.store_id) || [];
+
+      // Call plan generation API
+      const response = await fetch("/api/campaigns/plans/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planName: planName.trim(),
+          planDescription: planDescription.trim() || undefined,
+          campaignId: selectedCampaignId,
+          campaignName: campaign.name,
+          campaignMessage: campaign.message || "Targeted campaign for optimal performance",
+          storeIds: autoApprovedStoreIds.length > 0 ? autoApprovedStoreIds : undefined,
+          desiredStoreCount: 10,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const { planId, planName: createdPlanName, itemCount, insights } = result.data;
+
+        toast.success(
+          `AI-powered plan created! ${itemCount} stores recommended with intelligent scoring.`,
+          { duration: 5000 }
+        );
+
+        // Close dialog
+        setShowPlanDialog(false);
+
+        // Show insights toast if available
+        if (insights && insights.length > 0) {
+          setTimeout(() => {
+            toast.info(`AI Insight: ${insights[0]}`, { duration: 4000 });
+          }, 1000);
+        }
+
+        // Redirect to plan editor
+        router.push(`/campaigns/planning/${planId}`);
+      } else {
+        throw new Error(result.error || "Failed to create plan");
+      }
+    } catch (error) {
+      console.error("[Matrix Page] Error creating plan:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create AI-powered plan"
+      );
+    } finally {
+      setCreatingPlan(false);
     }
   };
 
@@ -391,6 +515,14 @@ export default function PerformanceMatrixPage() {
             {/* Actions */}
             <div className="flex gap-2">
               <Button
+                onClick={handleOpenPlanDialog}
+                className="bg-purple-600 hover:bg-purple-700 gap-2"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Create AI-Powered Plan
+              </Button>
+
+              <Button
                 onClick={handleAutoApproveAll}
                 className="bg-green-600 hover:bg-green-700 gap-2"
                 disabled={data.summary.auto_approve_count === 0}
@@ -424,6 +556,125 @@ export default function PerformanceMatrixPage() {
           loading={generating}
         />
       )}
+
+      {/* Plan Creation Dialog */}
+      <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LayoutDashboard className="h-5 w-5 text-purple-600" />
+              Create AI-Powered Plan
+            </DialogTitle>
+            <DialogDescription>
+              AI will analyze store performance, campaign history, and geographic data to
+              generate intelligent recommendations with visual KPIs.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Plan Name */}
+            <div className="space-y-2">
+              <Label htmlFor="plan-name">Plan Name *</Label>
+              <Input
+                id="plan-name"
+                placeholder="e.g., Campaign Plan - 10/25/2025"
+                value={planName}
+                onChange={(e) => setPlanName(e.target.value)}
+                disabled={creatingPlan}
+              />
+            </div>
+
+            {/* Plan Description */}
+            <div className="space-y-2">
+              <Label htmlFor="plan-description">Description (optional)</Label>
+              <Textarea
+                id="plan-description"
+                placeholder="Add notes about this planning cycle..."
+                rows={3}
+                value={planDescription}
+                onChange={(e) => setPlanDescription(e.target.value)}
+                disabled={creatingPlan}
+              />
+            </div>
+
+            {/* Campaign Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="campaign-select">Campaign *</Label>
+              <Select
+                value={selectedCampaignId}
+                onValueChange={setSelectedCampaignId}
+                disabled={creatingPlan}
+              >
+                <SelectTrigger id="campaign-select">
+                  <SelectValue placeholder="Select a campaign" />
+                </SelectTrigger>
+                <SelectContent>
+                  {data?.campaigns.map((campaign) => (
+                    <SelectItem key={campaign.campaign_id} value={campaign.campaign_id}>
+                      {campaign.campaign_name} ({campaign.total_stores_recommended} stores)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-600">
+                AI will optimize store selection and quantities for this campaign
+              </p>
+            </div>
+
+            {/* AI Features Preview */}
+            <div className="rounded-lg bg-purple-50 border border-purple-200 p-3">
+              <h4 className="text-sm font-semibold text-purple-900 mb-2">
+                AI will provide:
+              </h4>
+              <ul className="space-y-1 text-xs text-purple-800">
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <span>4-factor scoring (Store, Creative, Geographic, Timing)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <span>Confidence levels and risk warnings</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <span>Reasoning bullets explaining each recommendation</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <span>Predicted conversion rates and expected results</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPlanDialog(false)}
+              disabled={creatingPlan}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreatePlan}
+              disabled={creatingPlan || !planName.trim() || !selectedCampaignId}
+              className="bg-purple-600 hover:bg-purple-700 gap-2"
+            >
+              {creatingPlan ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating with AI...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Create Plan
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

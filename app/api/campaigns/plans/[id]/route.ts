@@ -17,15 +17,16 @@ import type { UpdatePlanInput } from '@/types/planning';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const includeSummary = searchParams.get('summary') === 'true';
 
     const plan = includeSummary
-      ? getPlanSummary(params.id)
-      : getPlanById(params.id);
+      ? getPlanSummary(id)
+      : getPlanById(id);
 
     if (!plan) {
       return NextResponse.json(
@@ -54,13 +55,14 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json() as UpdatePlanInput;
 
     // Check if plan exists
-    const existing = getPlanById(params.id);
+    const existing = getPlanById(id);
     if (!existing) {
       return NextResponse.json(
         { success: false, error: 'Plan not found' },
@@ -76,7 +78,7 @@ export async function PATCH(
       );
     }
 
-    const updated = updatePlan(params.id, body);
+    const updated = updatePlan(id, body);
 
     return NextResponse.json({
       success: true,
@@ -98,11 +100,13 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     // Check if plan exists
-    const existing = getPlanById(params.id);
+    const existing = getPlanById(id);
     if (!existing) {
       return NextResponse.json(
         { success: false, error: 'Plan not found' },
@@ -118,7 +122,7 @@ export async function DELETE(
       );
     }
 
-    deletePlan(params.id);
+    deletePlan(id);
 
     return NextResponse.json({
       success: true,

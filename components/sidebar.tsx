@@ -8,7 +8,7 @@ import { useIndustryModule } from "@/lib/contexts/industry-module-context";
 import {
   FileText, Mail, Phone, Settings, BarChart3, Home, Sparkles, Bell,
   Store, Target, TrendingUp, Brain, Menu, X, Library, Layers,
-  ShoppingCart, Users, Plus, ChevronDown, ChevronRight
+  ShoppingCart, Users, Plus, ChevronDown, ChevronRight, LayoutDashboard
 } from "lucide-react";
 
 // Option A: Workflow-Based Navigation Structure
@@ -22,6 +22,7 @@ const navigation = [
   { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "content" },
 
   // Orders & Fulfillment
+  { name: "Planning", href: "/campaigns/planning", icon: LayoutDashboard, section: "orders" },
   { name: "New Order", href: "/campaigns/orders/new", icon: Plus, section: "orders", primary: true },
   { name: "Orders", href: "/campaigns/orders", icon: ShoppingCart, section: "orders" },
   { name: "Store Groups", href: "/store-groups", icon: Users, section: "orders" },

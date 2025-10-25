@@ -22,14 +22,15 @@ import type { CreatePlanItemInput } from '@/types/planning';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const includeStoreDetails = searchParams.get('includeStoreDetails') === 'true';
 
     // Check if plan exists
-    const plan = getPlanById(params.id);
+    const plan = getPlanById(id);
     if (!plan) {
       return NextResponse.json(
         { success: false, error: 'Plan not found' },
@@ -38,8 +39,8 @@ export async function GET(
     }
 
     const items = includeStoreDetails
-      ? getPlanItemsWithStoreDetails(params.id)
-      : getPlanItems(params.id);
+      ? getPlanItemsWithStoreDetails(id)
+      : getPlanItems(id);
 
     return NextResponse.json({
       success: true,
@@ -63,13 +64,14 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Check if plan exists
-    const plan = getPlanById(params.id);
+    const plan = getPlanById(id);
     if (!plan) {
       return NextResponse.json(
         { success: false, error: 'Plan not found' },
@@ -92,7 +94,7 @@ export async function POST(
       // Bulk create
       const items: CreatePlanItemInput[] = body.items.map((item: any) => ({
         ...item,
-        plan_id: params.id,
+        plan_id: id,
       }));
 
       // Validation
@@ -124,7 +126,7 @@ export async function POST(
       // Single create
       const itemInput: CreatePlanItemInput = {
         ...body,
-        plan_id: params.id,
+        plan_id: id,
       };
 
       // Validation
