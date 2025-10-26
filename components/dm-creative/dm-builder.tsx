@@ -370,8 +370,11 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
               if (rawLogoUrl.startsWith('http://') || rawLogoUrl.startsWith('https://')) {
                 const proxyResponse = await fetch(`/api/brand/logo-proxy?url=${encodeURIComponent(rawLogoUrl)}`);
                 const proxyData = await proxyResponse.json();
-                if (proxyData.success) {
-                  logoUrl = proxyData.dataUrl;
+                if (proxyData.success && proxyData.data) {
+                  logoUrl = proxyData.data.dataUrl;
+                  console.log('✅ Logo proxied successfully (template workflow)');
+                } else {
+                  console.error('❌ Logo proxy failed (template workflow):', proxyData);
                 }
               } else {
                 logoUrl = rawLogoUrl;
@@ -395,7 +398,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            campaignId: data.campaignId,
+            campaignId: data.data.campaignId,
             backgroundImage: template.backgroundImage, // Use template's background
             qrCodeDataUrl: data.data.qrCodeDataUrl,
             trackingId: data.data.trackingId,
@@ -426,11 +429,11 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
           return;
         }
 
-        console.log('✅ Canvas session created with template:', sessionData.sessionId);
+        console.log('✅ Canvas session created with template:', sessionData.data.sessionId);
 
         // Store campaign info
-        if (data.campaignId && data.campaignName) {
-          setCampaignInfo({ id: data.campaignId, name: data.campaignName });
+        if (data.data.campaignId && data.data.campaignName) {
+          setCampaignInfo({ id: data.data.campaignId, name: data.data.campaignName });
         }
 
         // Clear template from localStorage
@@ -443,7 +446,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
 
         // Navigate to editor
         toast.success("Opening Canvas Editor with template design...");
-        router.push(`/dm-creative/editor?session=${sessionData.sessionId}`);
+        router.push(`/dm-creative/editor?session=${sessionData.data.sessionId}`);
       } else {
         toast.error(data.error || "Failed to create tracking data");
         setIsLoading(false);
@@ -558,9 +561,11 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
               if (rawLogoUrl.startsWith('http://') || rawLogoUrl.startsWith('https://')) {
                 const proxyResponse = await fetch(`/api/brand/logo-proxy?url=${encodeURIComponent(rawLogoUrl)}`);
                 const proxyData = await proxyResponse.json();
-                if (proxyData.success) {
-                  logoUrl = proxyData.dataUrl;
+                if (proxyData.success && proxyData.data) {
+                  logoUrl = proxyData.data.dataUrl;
                   console.log('✅ Logo proxied successfully');
+                } else {
+                  console.error('❌ Logo proxy failed:', proxyData);
                 }
               } else {
                 logoUrl = rawLogoUrl;
@@ -590,7 +595,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            campaignId: data.campaignId,
+            campaignId: data.data.campaignId,
             backgroundImage: data.data.creativeImageUrl,
             qrCodeDataUrl: data.data.qrCodeDataUrl,
             trackingId: data.data.trackingId,
@@ -606,8 +611,8 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
             logoUrl: brandConfigLocal.logoUrl,
             primaryColor: brandConfigLocal.primaryColor || "#003E7E",
             textColor: brandConfigLocal.textColor || "#1F2937",
-            canvasWidth: imageAspectRatio === '1536x1024' ? 1536 : 1024,
-            canvasHeight: imageAspectRatio === '1536x1024' ? 1024 : 1536,
+            canvasWidth: imageAspectRatio === '1536x1024' ? 1536 : (imageAspectRatio === '1024x1536' ? 1024 : 1024),
+            canvasHeight: imageAspectRatio === '1536x1024' ? 1024 : (imageAspectRatio === '1024x1536' ? 1536 : 1024),
             phoneNumber: formData.phoneNumber || settings.phoneNumber || "+1 (555) 123-4567",
             // NEW: Template data for canvas editor
             dmTemplateId: loadedTemplate?.dmTemplateId,
@@ -622,11 +627,11 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
           return;
         }
 
-        console.log('✅ Canvas session created:', sessionData.sessionId);
+        console.log('✅ Canvas session created:', sessionData.data.sessionId);
 
         // Store campaign info
-        if (data.campaignId && data.campaignName) {
-          setCampaignInfo({ id: data.campaignId, name: data.campaignName });
+        if (data.data.campaignId && data.data.campaignName) {
+          setCampaignInfo({ id: data.data.campaignId, name: data.data.campaignName });
         }
 
         // Clear template from localStorage after session created successfully
@@ -639,7 +644,7 @@ export function DMBuilder({ onGenerated }: DMBuilderProps) {
 
         // Navigate to editor page with session ID in URL
         toast.success("Opening Canvas Editor...");
-        router.push(`/dm-creative/editor?session=${sessionData.sessionId}`);
+        router.push(`/dm-creative/editor?session=${sessionData.data.sessionId}`);
       } else {
         toast.error(data.error || "Failed to generate AI background");
       }
