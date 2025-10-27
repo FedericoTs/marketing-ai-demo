@@ -653,6 +653,7 @@ export default function CanvasEditorPage() {
       message: data.message?.substring(0, 50) + '...',
       hasQR: !!data.qrCodeDataUrl,
       phone: data.phoneNumber,
+      hasNewBackground: !!data.backgroundImage,
     });
 
     const { FabricImage } = fabricModule;
@@ -660,6 +661,38 @@ export default function CanvasEditorPage() {
     const replacements: Promise<void>[] = [];
 
     console.log(`📊 Processing ${objects.length} objects in template`);
+
+    // === CRITICAL FIX: Replace template background with NEW AI-generated image ===
+    if (data.backgroundImage) {
+      console.log('🖼️ Replacing template background with new AI-generated image');
+      console.log('   Old background:', canvas.backgroundImage ? 'exists' : 'none');
+
+      const bgReplacement = FabricImage.fromURL(data.backgroundImage, {crossOrigin: 'anonymous'})
+        .then((newBg: any) => {
+          if (!canvas || canvas.disposed) {
+            console.error('❌ Canvas disposed, skipping background replacement');
+            return;
+          }
+
+          // Scale new background to cover full canvas
+          newBg.set({
+            scaleX: data.canvasWidth / (newBg.width || data.canvasWidth),
+            scaleY: data.canvasHeight / (newBg.height || data.canvasHeight),
+            selectable: false,
+            evented: false,
+          });
+
+          // Replace canvas background
+          canvas.backgroundImage = newBg;
+          console.log('✅ Background image replaced successfully');
+          console.log(`   New background dimensions: ${newBg.width}x${newBg.height}, scaled to ${data.canvasWidth}x${data.canvasHeight}`);
+        })
+        .catch((err: any) => {
+          console.error('❌ Error replacing background image:', err);
+        });
+
+      replacements.push(bgReplacement);
+    }
 
     // Process each object
     for (const obj of objects) {
