@@ -39,6 +39,8 @@
  */
 
 import OpenAI from "openai";
+import https from "https";
+import http from "http";
 
 export interface CompanyContext {
   companyName: string;
@@ -143,11 +145,19 @@ export async function generateDMCreativeImageV2(
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions, customSceneDescription } = options;
 
   // CRITICAL: High-quality image generation can take 30-60+ seconds
-  // Default timeout (60s) is too short - increase to 2 minutes
+  // Configure HTTP agent with extended socket timeouts to prevent premature closure
+  const httpAgent = new https.Agent({
+    keepAlive: true,
+    keepAliveMsecs: 60000,  // Keep connection alive for 60 seconds
+    timeout: 180000,         // Socket timeout: 3 minutes
+    scheduling: 'fifo',
+  });
+
   const openai = new OpenAI({
     apiKey,
-    timeout: 120000, // 120 seconds (2 minutes)
-    maxRetries: 0,   // We handle retries manually
+    timeout: 180 * 1000,  // Request timeout: 3 minutes (180 seconds)
+    maxRetries: 0,        // We handle retries manually
+    httpAgent: httpAgent, // Use custom agent with extended socket timeouts
   });
 
   // Build enhanced prompt based on brand context AND layout template AND fine-tuning params AND custom scene
@@ -803,11 +813,19 @@ export async function generateDMCreativeImageV1Fallback(
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions } = options;
 
   // CRITICAL: DALL-E 3 HD quality can take 30-60+ seconds
-  // Increase timeout to 2 minutes to prevent premature connection closure
+  // Configure HTTP agent with extended socket timeouts
+  const httpAgent = new https.Agent({
+    keepAlive: true,
+    keepAliveMsecs: 60000,
+    timeout: 180000,  // Socket timeout: 3 minutes
+    scheduling: 'fifo',
+  });
+
   const openai = new OpenAI({
     apiKey,
-    timeout: 120000, // 120 seconds (2 minutes)
-    maxRetries: 0,   // We handle retries manually
+    timeout: 180 * 1000,  // Request timeout: 3 minutes
+    maxRetries: 0,        // We handle retries manually
+    httpAgent: httpAgent,
   });
 
   // Build SHORTER prompt for dall-e-3 (max 4000 chars) WITH template awareness AND fine-tuning params

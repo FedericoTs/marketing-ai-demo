@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import https from "https";
 import { CopyVariation } from "@/types/copywriting";
 import { nanoid } from "nanoid";
 
@@ -16,10 +17,18 @@ export async function generateDMCreativeImage(
   sceneDescription?: string // NEW: Optional scene description from form
 ): Promise<string> {
   // CRITICAL: High-quality image generation can take 30-60+ seconds
-  // Increase timeout to prevent connection closure during processing
+  // Configure HTTP agent with extended socket timeouts
+  const httpAgent = new https.Agent({
+    keepAlive: true,
+    keepAliveMsecs: 60000,
+    timeout: 180000,  // Socket timeout: 3 minutes
+    scheduling: 'fifo',
+  });
+
   const openai = new OpenAI({
     apiKey,
-    timeout: 120000, // 120 seconds (2 minutes)
+    timeout: 180 * 1000,  // Request timeout: 3 minutes
+    httpAgent: httpAgent,
   });
 
   // Build prompt based on whether scene description is provided
