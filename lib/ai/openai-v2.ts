@@ -39,6 +39,7 @@
  */
 
 import OpenAI from "openai";
+import { Agent } from "undici";
 
 export interface CompanyContext {
   companyName: string;
@@ -143,11 +144,23 @@ export async function generateDMCreativeImageV2(
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions, customSceneDescription } = options;
 
   // CRITICAL: High-quality image generation can take 60-90+ seconds
-  // OpenAI SDK v6 uses fetch API - timeout parameter controls AbortSignal timeout
+  // WSL2 has networking bugs with fetch API - use custom undici Agent to fix socket issues
+  const customAgent = new Agent({
+    keepAliveTimeout: 180000,      // Keep sockets alive for 3 minutes
+    keepAliveMaxTimeout: 180000,   // Maximum socket lifetime
+    headersTimeout: 180000,        // Wait up to 3 minutes for headers
+    bodyTimeout: 180000,           // Wait up to 3 minutes for body
+    connect: {
+      timeout: 60000,              // TCP connection timeout: 60 seconds
+      keepAlive: true,
+    },
+  });
+
   const openai = new OpenAI({
     apiKey,
-    timeout: 180 * 1000,  // Request timeout: 3 minutes (180 seconds) - enough for high-quality generations
-    maxRetries: 0,        // We handle retries manually with exponential backoff
+    timeout: 180 * 1000,           // Request timeout: 3 minutes (180 seconds)
+    maxRetries: 0,                 // We handle retries manually with exponential backoff
+    httpAgent: customAgent,        // Custom undici Agent fixes WSL2 socket issues
   });
 
   // Build enhanced prompt based on brand context AND layout template AND fine-tuning params AND custom scene
@@ -803,11 +816,20 @@ export async function generateDMCreativeImageV1Fallback(
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions } = options;
 
   // CRITICAL: DALL-E 3 HD quality can take 30-60+ seconds
-  // OpenAI SDK v6 uses fetch API - timeout parameter controls AbortSignal timeout
+  // WSL2 has networking bugs with fetch API - use custom undici Agent
+  const customAgent = new Agent({
+    keepAliveTimeout: 180000,
+    keepAliveMaxTimeout: 180000,
+    headersTimeout: 180000,
+    bodyTimeout: 180000,
+    connect: { timeout: 60000, keepAlive: true },
+  });
+
   const openai = new OpenAI({
     apiKey,
-    timeout: 180 * 1000,  // Request timeout: 3 minutes (180 seconds) - enough for HD generations
-    maxRetries: 0,        // We handle retries manually
+    timeout: 180 * 1000,        // Request timeout: 3 minutes
+    maxRetries: 0,              // We handle retries manually
+    httpAgent: customAgent,     // Fix WSL2 socket issues
   });
 
   // Build SHORTER prompt for dall-e-3 (max 4000 chars) WITH template awareness AND fine-tuning params
