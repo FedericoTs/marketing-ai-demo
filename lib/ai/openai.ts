@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import { Agent } from "undici";
 import { CopyVariation } from "@/types/copywriting";
 import { nanoid } from "nanoid";
 
@@ -16,20 +15,9 @@ export async function generateDMCreativeImage(
   apiKey: string,
   sceneDescription?: string // NEW: Optional scene description from form
 ): Promise<string> {
-  // CRITICAL: High-quality image generation can take 30-60+ seconds
-  // WSL2 networking fix: use custom undici Agent with extended timeouts
-  const customAgent = new Agent({
-    keepAliveTimeout: 180000,
-    keepAliveMaxTimeout: 180000,
-    headersTimeout: 180000,
-    bodyTimeout: 180000,
-    connect: { timeout: 60000, keepAlive: true },
-  });
-
   const openai = new OpenAI({
     apiKey,
-    timeout: 180 * 1000,      // Request timeout: 3 minutes
-    httpAgent: customAgent,   // Fix WSL2 socket issues
+    timeout: 180 * 1000,
   });
 
   // Build prompt based on whether scene description is provided
@@ -127,18 +115,9 @@ export async function generateDMCreativeImageWithSize(
   apiKey: string,
   size: string = "1024x1024"
 ): Promise<{ imageUrl: string; promptUsed: string; metadata: any }> {
-  const customAgent = new Agent({
-    keepAliveTimeout: 180000,
-    keepAliveMaxTimeout: 180000,
-    headersTimeout: 180000,
-    bodyTimeout: 180000,
-    connect: { timeout: 60000, keepAlive: true },
-  });
-
   const openai = new OpenAI({
     apiKey,
     timeout: 180 * 1000,
-    httpAgent: customAgent,
   });
 
   const imagePrompt = `A ${size.includes('1536x1024') ? 'horizontal' : size.includes('1024x1536') ? 'vertical' : 'square'} advertisement poster, flat graphic style, vibrant colors.

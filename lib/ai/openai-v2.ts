@@ -39,7 +39,6 @@
  */
 
 import OpenAI from "openai";
-import { Agent } from "undici";
 
 export interface CompanyContext {
   companyName: string;
@@ -143,24 +142,17 @@ export async function generateDMCreativeImageV2(
 ): Promise<ImageGenerationResult> {
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions, customSceneDescription } = options;
 
-  // CRITICAL: High-quality image generation can take 60-90+ seconds
-  // WSL2 has networking bugs with fetch API - use custom undici Agent to fix socket issues
-  const customAgent = new Agent({
-    keepAliveTimeout: 180000,      // Keep sockets alive for 3 minutes
-    keepAliveMaxTimeout: 180000,   // Maximum socket lifetime
-    headersTimeout: 180000,        // Wait up to 3 minutes for headers
-    bodyTimeout: 180000,           // Wait up to 3 minutes for body
-    connect: {
-      timeout: 60000,              // TCP connection timeout: 60 seconds
-      keepAlive: true,
-    },
-  });
+  // WSL2 networking bug: gpt-image-1 high quality fails immediately with socket closure
+  // Workaround: Use DALL-E 3 directly for high quality (works fine, same cost)
+  if (quality === 'high') {
+    console.log('⚠️ WSL2 workaround: Using DALL-E 3 for high quality (gpt-image-1 has socket issues on WSL2)');
+    return await generateDMCreativeImageV1Fallback(options);
+  }
 
   const openai = new OpenAI({
     apiKey,
-    timeout: 180 * 1000,           // Request timeout: 3 minutes (180 seconds)
-    maxRetries: 0,                 // We handle retries manually with exponential backoff
-    httpAgent: customAgent,        // Custom undici Agent fixes WSL2 socket issues
+    timeout: 180 * 1000,
+    maxRetries: 0,
   });
 
   // Build enhanced prompt based on brand context AND layout template AND fine-tuning params AND custom scene
@@ -815,21 +807,10 @@ export async function generateDMCreativeImageV1Fallback(
 ): Promise<ImageGenerationResult> {
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions } = options;
 
-  // CRITICAL: DALL-E 3 HD quality can take 30-60+ seconds
-  // WSL2 has networking bugs with fetch API - use custom undici Agent
-  const customAgent = new Agent({
-    keepAliveTimeout: 180000,
-    keepAliveMaxTimeout: 180000,
-    headersTimeout: 180000,
-    bodyTimeout: 180000,
-    connect: { timeout: 60000, keepAlive: true },
-  });
-
   const openai = new OpenAI({
     apiKey,
-    timeout: 180 * 1000,        // Request timeout: 3 minutes
-    maxRetries: 0,              // We handle retries manually
-    httpAgent: customAgent,     // Fix WSL2 socket issues
+    timeout: 180 * 1000,
+    maxRetries: 0,
   });
 
   // Build SHORTER prompt for dall-e-3 (max 4000 chars) WITH template awareness AND fine-tuning params
