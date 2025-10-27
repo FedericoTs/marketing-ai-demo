@@ -142,17 +142,32 @@ export async function generateDMCreativeImageV2(
 ): Promise<ImageGenerationResult> {
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions, customSceneDescription } = options;
 
-  // WSL2 networking bug: gpt-image-1 high quality fails immediately with socket closure
-  // Workaround: Use DALL-E 3 directly for high quality (works fine, same cost)
-  if (quality === 'high') {
-    console.log('⚠️ WSL2 workaround: Using DALL-E 3 for high quality (gpt-image-1 has socket issues on WSL2)');
-    return await generateDMCreativeImageV1Fallback(options);
-  }
+  // CRITICAL: High-quality generation takes 60-120+ seconds
+  // Use custom fetch with explicit AbortSignal.timeout() for proper socket timeout control
+  const timeoutMs = quality === 'high' ? 300 * 1000 : 180 * 1000; // 5min for high, 3min for others
+
+  const customFetch = async (url: RequestInfo | URL, init?: RequestInit) => {
+    // Create AbortSignal with timeout
+    const signal = AbortSignal.timeout(timeoutMs);
+
+    // Merge with any existing signal
+    const controller = new AbortController();
+    signal.addEventListener('abort', () => controller.abort());
+    if (init?.signal) {
+      init.signal.addEventListener('abort', () => controller.abort());
+    }
+
+    return fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  };
 
   const openai = new OpenAI({
     apiKey,
-    timeout: 180 * 1000,
-    maxRetries: 0,
+    timeout: timeoutMs,
+    maxRetries: quality === 'high' ? 1 : 0, // One retry for high quality
+    fetch: customFetch as any, // Custom fetch with explicit timeout
   });
 
   // Build enhanced prompt based on brand context AND layout template AND fine-tuning params AND custom scene
@@ -168,21 +183,10 @@ export async function generateDMCreativeImageV2(
     customSceneDescription  // NEW: Pass custom scene description
   );
 
-  console.log(`🎨 Generating image V2: ${quality} quality, ${size} size, ${layoutTemplate || 'classic'} layout, style: ${promptStyle || 'default'}`);
+  console.log(`🎨 Generating image V2: ${quality} quality, ${size} size, timeout: ${timeoutMs / 1000}s`);
 
-  // Retry logic for transient network errors (ECONNRESET, timeouts)
-  const maxRetries = 2;
-  let lastError: any;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      if (attempt > 1) {
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff: 2s, 4s
-        console.log(`🔄 Retry attempt ${attempt}/${maxRetries} after ${delay}ms delay...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-
-      const response = await openai.images.generate({
+  try {
+    const response = await openai.images.generate({
         model: "gpt-image-1",
         prompt: imagePrompt,
         n: 1,
@@ -221,51 +225,22 @@ export async function generateDMCreativeImageV2(
 
       console.log(`💰 Estimated cost: $${estimatedCost.toFixed(3)}`);
 
-      return {
-        imageUrl,
-        promptUsed: imagePrompt, // Include prompt for fine-tuning debugging
-        metadata: {
-          quality,
-          size,
-          estimatedCost,
-          generatedAt: new Date().toISOString(),
-          model: 'gpt-image-1',
-        },
-      };
+    return {
+      imageUrl,
+      promptUsed: imagePrompt, // Include prompt for fine-tuning debugging
+      metadata: {
+        quality,
+        size,
+        estimatedCost,
+        generatedAt: new Date().toISOString(),
+        model: 'gpt-image-1',
+      },
+    };
 
-    } catch (error) {
-      lastError = error;
-
-      // Check if error is retryable (network errors)
-      const isRetryable = error instanceof Error && (
-        error.message.includes('ECONNRESET') ||
-        error.message.includes('ETIMEDOUT') ||
-        error.message.includes('terminated') ||
-        error.message.includes('network')
-      );
-
-      if (!isRetryable || attempt === maxRetries) {
-        console.error(`❌ Error generating image V2 (attempt ${attempt}/${maxRetries}):`, error);
-
-        // If error is due to quality parameter, try fallback to lower quality
-        if (error instanceof Error && error.message.includes('quality') && quality !== 'low') {
-          console.log("⚠️ Falling back to lower quality...");
-          return generateDMCreativeImageV2({
-            ...options,
-            quality: quality === 'high' ? 'medium' : 'low',
-          });
-        }
-
-        break; // Exit retry loop, will throw error below
-      }
-
-      console.warn(`⚠️ Retryable error on attempt ${attempt}/${maxRetries}:`, error instanceof Error ? error.message : error);
-      // Continue to next retry attempt
-    }
+  } catch (error) {
+    console.error(`❌ gpt-image-1 failed:`, error);
+    throw error; // Let caller handle fallback
   }
-
-  // If we get here, all retries failed
-  throw lastError;
 }
 
 /**
@@ -900,6 +875,100 @@ export async function generateDMCreativeImageV1Fallback(
 
   } catch (error) {
     console.error("❌ dall-e-3 fallback failed:", error);
+    throw error;
+  }
+}
+
+/**
+ * Google Gemini (Nano Banana) image generation - PREMIUM FALLBACK
+ * Better quality than DALL-E 3, similar cost ($0.039 per image)
+ */
+export async function generateDMCreativeImageWithGemini(
+  options: ImageGenerationOptions
+): Promise<ImageGenerationResult> {
+  const { message, context, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions, customSceneDescription } = options;
+
+  // Import Google Generative AI
+  const { GoogleGenerativeAI } = await import('@google/generative-ai');
+
+  // Get API key from environment
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (!geminiApiKey) {
+    throw new Error('GEMINI_API_KEY not configured. Please add it to .env.local');
+  }
+
+  const genAI = new GoogleGenerativeAI(geminiApiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
+
+  // Build enhanced prompt (use same prompt builder as V2)
+  const imagePrompt = await buildImagePrompt(
+    message,
+    context,
+    size,
+    layoutTemplate || 'classic',
+    brandConfig,
+    promptStyle,
+    noLogoStrength,
+    customInstructions,
+    customSceneDescription
+  );
+
+  console.log(`🎨 Generating with Gemini (Nano Banana): ${quality} quality, ${size} size`);
+
+  try {
+    // Map size to aspect ratio
+    const aspectRatioMap: Record<ImageSize, string> = {
+      '1024x1024': '1:1',
+      '1536x1024': '3:2',  // Closest to 1536:1024 (1.5:1)
+      '1024x1536': '2:3',  // Portrait
+    };
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: imagePrompt }] }],
+      generationConfig: {
+        responseModalities: ['image'],
+        imageConfig: {
+          aspectRatio: aspectRatioMap[size] || '1:1',
+        },
+      },
+    });
+
+    const response = await result.response;
+
+    // Extract image from response
+    const candidates = response.candidates;
+    if (!candidates || candidates.length === 0) {
+      throw new Error('No image generated by Gemini');
+    }
+
+    const imagePart = candidates[0].content.parts.find((part: any) => part.inlineData);
+    if (!imagePart || !imagePart.inlineData) {
+      throw new Error('No inline image data in Gemini response');
+    }
+
+    const base64Image = imagePart.inlineData.data;
+    const mimeType = imagePart.inlineData.mimeType || 'image/png';
+    const imageUrl = `data:${mimeType};base64,${base64Image}`;
+
+    // Cost calculation: $30 per 1M tokens, 1290 tokens per image
+    const estimatedCost = (1290 / 1000000) * 30; // $0.039
+
+    console.log(`💰 Gemini cost: $${estimatedCost.toFixed(3)}`);
+
+    return {
+      imageUrl,
+      promptUsed: imagePrompt,
+      metadata: {
+        quality,
+        size,
+        estimatedCost,
+        generatedAt: new Date().toISOString(),
+        model: 'gemini-2.5-flash-image',
+      },
+    };
+
+  } catch (error) {
+    console.error("❌ Gemini (Nano Banana) generation failed:", error);
     throw error;
   }
 }

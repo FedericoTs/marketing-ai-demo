@@ -189,6 +189,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
+        // TRY 1: gpt-image-1 (OpenAI) - Best cost/performance
         const result = await generateDMCreativeImageV2({
           message,
           context: companyContext,
@@ -196,46 +197,69 @@ export async function POST(request: NextRequest) {
           quality: imageQuality as ImageQuality,
           size: imageAspectRatio as ImageSize,
           brandConfig: brandConfig || undefined,
-          layoutTemplate, // Pass layout for template-aware image generation
+          layoutTemplate,
           noLogoStrength: 10, // ALWAYS MAX - prevents logo generation in AI images
-          customSceneDescription: sceneDescription, // Use scene description from form
+          customSceneDescription: sceneDescription,
         });
 
         backgroundImage = result.imageUrl;
         imageMetadata = result.metadata;
 
-        console.log(`✅ V2 image generated: ${imageMetadata.quality} quality, cost: $${imageMetadata.estimatedCost.toFixed(3)}`);
-      } catch (error) {
-        console.error("❌ V2 image generation failed, falling back to V1 with dall-e-3:", error);
+        console.log(`✅ gpt-image-1 succeeded: ${imageMetadata.quality} quality, cost: $${imageMetadata.estimatedCost.toFixed(3)}`);
+      } catch (v2Error) {
+        console.error("❌ gpt-image-1 failed, trying Gemini (Nano Banana) fallback...");
 
-        // Fallback to V1 but maintain V2 settings (use dall-e-3 instead of gpt-image-1)
+        // TRY 2: Gemini (Nano Banana) - Better quality than DALL-E 3
         try {
-          const { generateDMCreativeImageV1Fallback } = require("@/lib/ai/openai-v2");
-          const result = await generateDMCreativeImageV1Fallback({
+          const { generateDMCreativeImageWithGemini } = require("@/lib/ai/openai-v2");
+          const result = await generateDMCreativeImageWithGemini({
             message,
             context: companyContext,
-            apiKey,
+            apiKey, // Not used for Gemini, but required by interface
             quality: imageQuality as ImageQuality,
             size: imageAspectRatio as ImageSize,
             brandConfig,
-            layoutTemplate, // Pass layout to fallback too
-            noLogoStrength: 10, // ALWAYS MAX
-            customSceneDescription: sceneDescription, // Use scene description
+            layoutTemplate,
+            noLogoStrength: 10,
+            customSceneDescription: sceneDescription,
           });
 
           backgroundImage = result.imageUrl;
           imageMetadata = result.metadata;
-          console.log(`✅ Fallback to dall-e-3 successful: ${imageMetadata.quality} quality`);
-        } catch (fallbackError) {
-          console.error("❌ dall-e-3 fallback also failed:", fallbackError);
-          // Last resort: use old V1 function
-          backgroundImage = await generateDMCreativeImage(
-            message,
-            companyContext,
-            apiKey,
-            sceneDescription // Pass scene description
-          );
-          console.log("✅ Final fallback to legacy V1 successful");
+
+          console.log(`✅ Gemini succeeded: cost: $${imageMetadata.estimatedCost.toFixed(3)}`);
+        } catch (geminiError) {
+          console.error("❌ Gemini failed, using DALL-E 3 as final fallback...");
+
+          // TRY 3: DALL-E 3 - Last resort
+          try {
+            const { generateDMCreativeImageV1Fallback } = require("@/lib/ai/openai-v2");
+            const result = await generateDMCreativeImageV1Fallback({
+              message,
+              context: companyContext,
+              apiKey,
+              quality: imageQuality as ImageQuality,
+              size: imageAspectRatio as ImageSize,
+              brandConfig,
+              layoutTemplate,
+              noLogoStrength: 10,
+              customSceneDescription: sceneDescription,
+            });
+
+            backgroundImage = result.imageUrl;
+            imageMetadata = result.metadata;
+            console.log(`✅ DALL-E 3 succeeded: ${imageMetadata.quality} quality`);
+          } catch (dalle3Error) {
+            console.error("❌ All AI models failed. Using legacy fallback...");
+            // Last resort: use old V1 function
+            backgroundImage = await generateDMCreativeImage(
+              message,
+              companyContext,
+              apiKey,
+              sceneDescription
+            );
+            console.log("✅ Final fallback to legacy V1 successful");
+          }
         }
       }
     } else {

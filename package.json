@@ -13,6 +13,7 @@
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.17.0",
     "@floating-ui/react-dom": "^2.1.6",
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@nivo/sankey": "^0.99.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
