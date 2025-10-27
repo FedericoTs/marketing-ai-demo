@@ -12,6 +12,10 @@ import {
   DirectMailData,
 } from "@/types/dm-creative";
 
+// CRITICAL: High-quality image generation can take 60-90+ seconds
+// Next.js API routes have 60s default timeout - we need more time
+export const maxDuration = 300; // 5 minutes (max allowed)
+
 // Dynamic import of retail queries (optional feature)
 function getRetailQueries() {
   try {

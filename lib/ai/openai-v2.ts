@@ -39,8 +39,6 @@
  */
 
 import OpenAI from "openai";
-import https from "https";
-import http from "http";
 
 export interface CompanyContext {
   companyName: string;
@@ -144,20 +142,12 @@ export async function generateDMCreativeImageV2(
 ): Promise<ImageGenerationResult> {
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions, customSceneDescription } = options;
 
-  // CRITICAL: High-quality image generation can take 30-60+ seconds
-  // Configure HTTP agent with extended socket timeouts to prevent premature closure
-  const httpAgent = new https.Agent({
-    keepAlive: true,
-    keepAliveMsecs: 60000,  // Keep connection alive for 60 seconds
-    timeout: 180000,         // Socket timeout: 3 minutes
-    scheduling: 'fifo',
-  });
-
+  // CRITICAL: High-quality image generation can take 60-90+ seconds
+  // OpenAI SDK v6 uses fetch API - timeout parameter controls AbortSignal timeout
   const openai = new OpenAI({
     apiKey,
-    timeout: 180 * 1000,  // Request timeout: 3 minutes (180 seconds)
-    maxRetries: 0,        // We handle retries manually
-    httpAgent: httpAgent, // Use custom agent with extended socket timeouts
+    timeout: 180 * 1000,  // Request timeout: 3 minutes (180 seconds) - enough for high-quality generations
+    maxRetries: 0,        // We handle retries manually with exponential backoff
   });
 
   // Build enhanced prompt based on brand context AND layout template AND fine-tuning params AND custom scene
@@ -813,19 +803,11 @@ export async function generateDMCreativeImageV1Fallback(
   const { message, context, apiKey, quality, size, layoutTemplate, brandConfig, promptStyle, noLogoStrength, customInstructions } = options;
 
   // CRITICAL: DALL-E 3 HD quality can take 30-60+ seconds
-  // Configure HTTP agent with extended socket timeouts
-  const httpAgent = new https.Agent({
-    keepAlive: true,
-    keepAliveMsecs: 60000,
-    timeout: 180000,  // Socket timeout: 3 minutes
-    scheduling: 'fifo',
-  });
-
+  // OpenAI SDK v6 uses fetch API - timeout parameter controls AbortSignal timeout
   const openai = new OpenAI({
     apiKey,
-    timeout: 180 * 1000,  // Request timeout: 3 minutes
+    timeout: 180 * 1000,  // Request timeout: 3 minutes (180 seconds) - enough for HD generations
     maxRetries: 0,        // We handle retries manually
-    httpAgent: httpAgent,
   });
 
   // Build SHORTER prompt for dall-e-3 (max 4000 chars) WITH template awareness AND fine-tuning params
