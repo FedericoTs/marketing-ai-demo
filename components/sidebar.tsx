@@ -11,39 +11,15 @@ import {
   ShoppingCart, Users, Plus, ChevronDown, ChevronRight, LayoutDashboard
 } from "lucide-react";
 
-// DropLab Direct Mail Platform Navigation
+// DropLab Direct Mail Platform - Simplified Navigation (Phase 1-2)
 const navigation = [
-  // Dashboard
-  { name: "Dashboard", href: "/", icon: Home, section: "dashboard" },
-
-  // 🎨 Design & Content Creation
-  { name: "Design Templates", href: "/templates", icon: Library, section: "design", badge: "NEW" },
-  { name: "AI Copywriting", href: "/copywriting", icon: FileText, section: "design" },
-  { name: "DM Creative", href: "/dm-creative", icon: Mail, section: "design" },
-
-  // 📬 Campaign Management
-  { name: "New Campaign", href: "/campaigns/orders/new", icon: Plus, section: "campaigns", primary: true },
-  { name: "My Campaigns", href: "/campaigns/orders", icon: ShoppingCart, section: "campaigns" },
-  { name: "Campaign Planning", href: "/campaigns/planning", icon: LayoutDashboard, section: "campaigns" },
-  { name: "Batch Jobs", href: "/batch-jobs", icon: Layers, section: "campaigns" },
-
-  // 📊 Analytics & Insights
-  { name: "Analytics", href: "/analytics", icon: BarChart3, section: "analytics" },
-  { name: "Campaign Matrix", href: "/campaigns/matrix", icon: Sparkles, section: "analytics" },
-  { name: "Notifications", href: "/notifications", icon: Bell, section: "analytics" },
-
-  // ⚙️ Settings & Tools
-  { name: "Settings", href: "/settings", icon: Settings, section: "settings" },
-  { name: "AI Call Center", href: "/cc-operations", icon: Phone, section: "settings" },
-  { name: "Store Groups", href: "/store-groups", icon: Users, section: "settings" },
+  { name: "Dashboard", href: "/dashboard", icon: Home, section: "main" },
+  { name: "Design Templates", href: "/templates", icon: Library, section: "main", badge: "NEW" },
+  { name: "Settings", href: "/settings", icon: Settings, section: "main" },
 ];
 
 const sections = [
-  { id: "dashboard", label: "Dashboard", collapsible: false },
-  { id: "design", label: "🎨 Design & Create", collapsible: true },
-  { id: "campaigns", label: "📬 Campaign Management", collapsible: true },
-  { id: "analytics", label: "📊 Analytics & Insights", collapsible: true },
-  { id: "settings", label: "⚙️ Settings & Tools", collapsible: true },
+  { id: "main", label: "", collapsible: false },
 ];
 
 // Retail module navigation items (conditionally shown)

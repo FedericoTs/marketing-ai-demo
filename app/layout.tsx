@@ -26,9 +26,11 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
 
-  // CRITICAL: Editor routes and landing pages should be FULL-SCREEN (no sidebar)
+  // CRITICAL: Public and editor routes should be FULL-SCREEN (no sidebar)
+  const isPublicRoute = pathname === "/" || pathname === "/auth/login" || pathname === "/auth/signup";
   const isEditorRoute = pathname?.startsWith("/dm-creative/editor");
   const isLandingPage = pathname?.startsWith("/lp/");
+  const isFullScreen = isPublicRoute || isEditorRoute || isLandingPage;
 
   return (
     <html lang="en">
@@ -42,21 +44,20 @@ export default function RootLayout({
       >
         <SettingsProvider>
           <IndustryModuleProvider>
-            {isEditorRoute || isLandingPage ? (
-              // STANDALONE PAGES - No sidebar, full screen
+            {isFullScreen ? (
+              // PUBLIC & STANDALONE PAGES - No sidebar, full screen
               <>
                 {children}
                 <Toaster />
               </>
             ) : (
-              // NORMAL APP - With sidebar
+              // APP PAGES - With sidebar
               <div className="flex h-screen">
                 <Sidebar />
                 <main className="flex-1 overflow-auto bg-white pt-16 lg:pt-0">
                   {children}
                 </main>
                 <Toaster />
-                {/* Quick Actions FAB - Available on all app pages */}
                 <QuickActionsFAB />
               </div>
             )}
