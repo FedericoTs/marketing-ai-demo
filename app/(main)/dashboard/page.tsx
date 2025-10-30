@@ -46,7 +46,15 @@ export default function DashboardPage() {
           .single();
 
         if (profileError) {
-          console.error('Profile error:', profileError);
+          // Profile doesn't exist - this is expected for new users before seed data
+          console.log('No user profile found - seed data needs to be created');
+          console.log('Error details:', profileError);
+          setLoading(false);
+          return;
+        }
+
+        if (!profileData) {
+          console.log('No profile data returned');
           setLoading(false);
           return;
         }
@@ -94,6 +102,138 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  // Show onboarding if no profile exists
+  if (user && !profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 p-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <img
+                src="/images/logo_icon_tbg.png"
+                alt="DropLab"
+                className="h-12 w-auto object-contain"
+              />
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">
+                  Welcome to DropLab
+                </h1>
+                <p className="text-slate-600">{user.email}</p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
+
+          {/* Onboarding Card */}
+          <Card className="border-2 border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="text-orange-900 flex items-center gap-2">
+                <Building2 className="h-6 w-6" />
+                🎯 Setup Required: Create Seed Data
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-orange-800">
+                  Your account is authenticated, but you need to create an organization and user profile
+                  to access the dashboard. This is a one-time setup step.
+                </p>
+
+                <div className="bg-white p-4 rounded-lg border border-orange-200">
+                  <h3 className="font-semibold text-slate-900 mb-3">📋 Quick Setup Instructions:</h3>
+                  <ol className="space-y-2 text-sm text-slate-700 list-decimal list-inside">
+                    <li>
+                      Open <strong>SEED_DATA_GUIDE.md</strong> in your project root
+                    </li>
+                    <li>
+                      Follow the 3-step process:
+                      <ul className="ml-6 mt-1 space-y-1 list-disc">
+                        <li>Create Organizations (via Supabase SQL Editor)</li>
+                        <li>Create Auth Users (via Supabase Auth UI)</li>
+                        <li>Link Users to Organizations (via SQL)</li>
+                      </ul>
+                    </li>
+                    <li>
+                      Log out and log back in with test credentials
+                    </li>
+                  </ol>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg border border-orange-200">
+                  <h3 className="font-semibold text-slate-900 mb-2">🔗 Quick Links:</h3>
+                  <div className="space-y-2 text-sm">
+                    <p>
+                      <strong>Supabase SQL Editor:</strong>{' '}
+                      <a
+                        href="https://supabase.com/dashboard/project/egccqmlhzqiirovstpal/sql/new"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        Open SQL Editor →
+                      </a>
+                    </p>
+                    <p>
+                      <strong>Supabase Auth Users:</strong>{' '}
+                      <a
+                        href="https://supabase.com/dashboard/project/egccqmlhzqiirovstpal/auth/users"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        Manage Users →
+                      </a>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>💡 Tip:</strong> This setup creates 3 test organizations with 6 users.
+                    After setup, you can test multi-tenant isolation by logging in as different users.
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-orange-200">
+                  <p className="text-xs text-orange-700">
+                    <strong>Current User ID:</strong> {user.id}
+                  </p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    This ID needs to be added to the <code className="bg-orange-100 px-1 rounded">user_profiles</code> table
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Documentation Card */}
+          <Card className="mt-6 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="text-blue-900">📚 Documentation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm text-blue-800">
+                <p>✅ <strong>Database Schema:</strong> All tables deployed and ready</p>
+                <p>✅ <strong>RLS Policies:</strong> Multi-tenant isolation configured</p>
+                <p>✅ <strong>Authentication:</strong> Working (you're logged in!)</p>
+                <p>⏳ <strong>Seed Data:</strong> Needs to be created manually</p>
+                <p className="pt-3 border-t border-blue-200">
+                  <strong>Files to reference:</strong>
+                  <code className="block bg-blue-100 px-2 py-1 rounded mt-1">SEED_DATA_GUIDE.md</code>
+                  <code className="block bg-blue-100 px-2 py-1 rounded mt-1">supabase/seed-data.sql</code>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
