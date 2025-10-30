@@ -1,2382 +1,2450 @@
-# DropLab Platform Transformation Plan
+# DropLab Supabase Transformation Plan
+## AI-Powered Direct Mail Design Monopoly Platform
 
-**Master Planning Document - Single Source of Truth**
+**⚠️ SINGLE SOURCE OF TRUTH FOR ALL DEVELOPMENT**
 
-**Last Updated:** October 28, 2025
-**Status:** Planning Phase → Implementation Ready
-**Target Launch:** 6-8 weeks from start
-**Version:** 1.0
+**Status**: Active Development - Feature Branch `feature/supabase-parallel-app`
 
----
+**Strategic Vision**: Build the first "Figma meets Mailchimp for Physical Mail" platform
 
-## 📋 Document Purpose
+**Last Updated**: 2025-10-30
 
-This is the **MASTER TRANSFORMATION PLAN** for DropLab. All development, feature planning, and architectural decisions should reference this document.
-
-**Rules:**
-- ✅ This is the ONLY planning document
-- ✅ Update this document as you progress (mark tasks complete)
-- ✅ Add new tasks/discoveries to relevant sections
-- ❌ Do NOT create separate planning documents
-- ❌ Do NOT make major architectural decisions without updating this plan
+**Version**: 2.0 (Complete rewrite - Fabric.js focus)
 
 ---
 
-## 🎯 Executive Summary
+## 🎯 Mission Statement
 
-### Vision Transformation
+Transform DropLab into a **monopolistic direct mail design platform** that combines Fabric.js programmatic control with AI intelligence to create tools that Canva cannot replicate. This platform will build proprietary datasets, network effects through marketplace templates, and regulatory expertise that create an insurmountable competitive moat.
 
-**FROM:** AI marketing automation for multi-store retail campaigns
-**TO:** Universal direct mail SaaS with digital-level analytics
-
-### Core Value Proposition
-
-*"The only direct mail platform where you find your audience (Data Axle), create AI campaigns, send mail (PostGrid), and track every conversion - all in one place."*
-
-### Key Differentiators
-
-1. **Built-in Audience Targeting** - Data Axle integration with FREE count API
-2. **AI-First Creative** - Gemini backgrounds ($0.039, 3-4s) + GPT-4 copywriting
-3. **Digital-Level Attribution** - QR tracking → landing pages → call tracking → conversions
-4. **End-to-End Platform** - No need for external tools
-
-### Success Metrics
-
-**Technical:**
-- [ ] Multi-tenant Supabase database operational
-- [ ] Data Axle real-time counts working (<500ms)
-- [ ] PostGrid mail fulfillment integrated
-- [ ] Stripe subscriptions processing
-- [ ] End-to-end test: Signup → Target audience → Create DM → Send mail → Track conversion
-
-**Business:**
-- [ ] 50 beta users in first month
-- [ ] $5K MRR by Month 2
-- [ ] <5% churn rate
-- [ ] 60%+ onboarding completion rate
-
-**User Experience:**
-- [ ] Signup to first mail sent in <10 minutes
-- [ ] 95% of campaigns generate mail within 24 hours
-- [ ] Zero database-related user complaints
+**Core Insight**: Direct mail remains a $40B industry with zero modern design tools. We're building the first platform with AI-powered personalization, postal compliance validation, and performance prediction—features impossible for general design tools to match.
 
 ---
 
-## 🏗️ Architecture Overview
+## 📊 First Principles Analysis (Elon Musk Methodology)
 
-### Current State (Before Transformation)
+### Breaking Down to Fundamental Truths
 
-```
-DropLab Platform (Retail-Focused)
-├── Next.js 15 + React 19 + TypeScript
-├── SQLite Database (dm-tracking.db)
-├── 316 TypeScript files
-├── 17+ database tables
-├── Features:
-│   ✅ AI Copywriting (GPT-4)
-│   ✅ AI Backgrounds (Gemini 2.5 Flash)
-│   ✅ DM Creative Builder (Fabric.js canvas)
-│   ✅ Template System (reusable DM templates)
-│   ✅ Batch Processing (BullMQ + Redis)
-│   ✅ Landing Pages (dynamic with tracking)
-│   ✅ Analytics Dashboard (QR scans, conversions)
-│   ✅ Call Tracking (ElevenLabs integration)
-│   ✅ Brand Intelligence (website analyzer)
-│   🅿️ Retail Module (store management, performance matrix)
-│   🅿️ Campaign Planning (AI-driven recommendations)
-│   🅿️ Store Groups (multi-location targeting)
-└── Limitations:
-    ❌ Single-tenant (no user authentication)
-    ❌ Local database (can't deploy to serverless)
-    ❌ No contact sourcing (users bring own lists)
-    ❌ No printing fulfillment (PDF download only)
-    ❌ No billing system
-```
+**Question**: What is a direct mail design platform at its most basic level?
 
-### Target State (After Transformation)
+**Core Atomic Components**:
 
-```
-DropLab SaaS Platform (Universal Direct Mail)
-├── Next.js 15 + React 19 + TypeScript
-├── Supabase PostgreSQL (multi-tenant with RLS)
-├── ~350 TypeScript files (40+ new, 6 deprecated)
-├── 25+ database tables (8 new)
-├── Features:
-│   ✅ All existing AI features (preserved)
-│   ✅ Multi-tenant authentication (Supabase Auth)
-│   ✅ Audience Targeting (Data Axle - 250M+ contacts)
-│   ✅ Printing Fulfillment (PostGrid API)
-│   ✅ Subscription Billing (Stripe)
-│   ✅ Usage Metering (contacts + mail pieces)
-│   ✅ Saved Audiences (reusable filters)
-│   ✅ Contact Management (purchased lists)
-│   🅿️ Retail Module (hidden, can reactivate)
-│   🆕 User Dashboard (account overview)
-│   🆕 Onboarding Flow (5-minute setup)
-└── Infrastructure:
-    ✅ Serverless deployment (Vercel)
-    ✅ Row-Level Security (data isolation)
-    ✅ Real-time subscriptions (Supabase)
-    ✅ Background jobs (BullMQ)
-```
+1. **Identity Atom** - Who owns what?
+   - Organizations (multi-tenant isolation)
+   - Users within organizations (roles, permissions)
+   - Authentication state (session management)
 
----
+2. **Design Atom** - What are users creating?
+   - Canvas state (Fabric.js JSON)
+   - Visual elements (text, images, shapes, paths)
+   - Positioning and layering (z-index, grouping)
+   - Styling rules (colors, fonts, effects)
 
-## 📊 Feature Matrix
+3. **Variability Atom** - How do designs become personalized?
+   - Variable markers (placeholders for dynamic data)
+   - Recipient datasets (CSV imports, API data)
+   - Substitution rules (field mappings)
+   - Conditional logic (if homeowner, show X)
 
-### Features to KEEP (95% of codebase)
+4. **Intelligence Atom** - How does AI create competitive advantage?
+   - Design analysis (layout scoring, readability)
+   - Compliance validation (postal regulations)
+   - Performance prediction (response rates)
+   - Optimization suggestions (AI-powered improvements)
 
-| Feature | Status | Location | Notes |
-|---------|--------|----------|-------|
-| **AI Copywriting** | ✅ Keep as-is | `/copywriting` | Core differentiator |
-| **AI Backgrounds** | ✅ Keep as-is | `lib/ai/openai-v2.ts` | Gemini integration working |
-| **DM Creative Builder** | ✅ Keep, enhance | `/dm-creative` | Add PostGrid integration |
-| **Template System** | ✅ Keep as-is | `/templates` | Template library functional |
-| **Batch Processing** | ✅ Keep as-is | `lib/queue/` | BullMQ + Redis working |
-| **Landing Pages** | ✅ Keep as-is | `/lp/[trackingId]` | QR tracking working |
-| **Analytics Dashboard** | ✅ Keep, enhance | `/analytics` | Add user filtering |
-| **Call Tracking** | ✅ Keep as-is | `/cc-operations` | ElevenLabs integration |
-| **Brand Intelligence** | ✅ Keep as-is | `/settings` (Brand tab) | Website analyzer working |
-| **QR Code Generation** | ✅ Keep as-is | `lib/qr-generator.ts` | Core tracking feature |
+5. **Production Atom** - How do designs become physical mail?
+   - PDF generation (300 DPI, CMYK, print-ready)
+   - Format conversion (postcard → letter → self-mailer)
+   - Cost calculation (paper + ink + postage)
+   - Batch rendering (10,000+ pieces)
 
-### Features to DEPRECATE (Hide, Not Delete)
+6. **Tracking Atom** - How do we measure success?
+   - Attribution codes (QR, PURL, promo codes)
+   - Event capture (scan, visit, convert)
+   - Campaign metrics (response rate, ROI)
+   - Performance data (feeds AI learning)
 
-| Feature | Action | Location | Reason |
-|---------|--------|----------|--------|
-| **Retail Module** | 🅿️ Hide from nav | `/retail/*` | Too niche, can reactivate later |
-| **Performance Matrix** | 🅿️ Hide from nav | `/campaigns/matrix` | Retail-specific |
-| **Planning Workspace** | 🅿️ Hide from nav | `/campaigns/planning` | Premature, add post-launch |
-| **Store Groups** | 🅿️ Hide from nav | `/store-groups` | Retail-specific |
+7. **Collaboration Atom** - How do teams work together?
+   - Real-time sync (WebSocket canvas updates)
+   - Version history (time-travel debugging)
+   - Comment threads (design feedback)
+   - Approval workflows (sign-off process)
 
-**Implementation:**
-- Don't delete code or tables
-- Remove from sidebar navigation
-- Add feature flag: `ENABLE_RETAIL_MODULE=false`
-- Document reactivation process
+8. **Marketplace Atom** - How do templates create network effects?
+   - Template sharing (public/private)
+   - Performance ranking (proven results surface first)
+   - Revenue sharing (creator payouts)
+   - Licensing (single-use vs unlimited)
 
-### Features to ADD (New Development)
+9. **Compliance Atom** - How do we prevent printing failures?
+   - Regulation database (USPS, Royal Mail, etc.)
+   - Real-time validation (as user designs)
+   - Auto-fix suggestions (AI-powered corrections)
+   - Historical issue tracking (learn from errors)
 
-| Feature | Priority | Timeline | Dependencies |
-|---------|----------|----------|--------------|
-| **Supabase Database** | 🔥 Critical | Week 1-2 | None (foundation) |
-| **Authentication** | 🔥 Critical | Week 2 | Supabase setup |
-| **Data Axle Integration** | 🔥 Critical | Week 2-3 | Auth complete |
-| **Audience Targeting UI** | 🔥 Critical | Week 3 | Data Axle API |
-| **PostGrid Fulfillment** | 🔥 Critical | Week 3-4 | Auth complete |
-| **Stripe Billing** | 🔥 Critical | Week 4-5 | Auth + usage tracking |
-| **User Dashboard** | 🔶 High | Week 5 | Auth complete |
-| **Onboarding Flow** | 🔶 High | Week 5 | Auth + dashboard |
-| **Contact Management** | 🔶 High | Week 4 | Data Axle integration |
-| **Saved Audiences** | 🔷 Medium | Week 6 | Data Axle + database |
-| **Address Validation** | 🔷 Medium | Post-launch | Smarty API |
-| **Geographic Targeting** | ⚪ Low | Post-launch | Data Axle geo filters |
+10. **API Atom** - How do developers build on our platform?
+    - RESTful endpoints (CRUD operations)
+    - Webhook events (real-time notifications)
+    - Rate limiting (fair usage enforcement)
+    - SDK libraries (TypeScript, Python, etc.)
 
 ---
 
-## 🗄️ Database Transformation Strategy
+## 🗄️ Atomic Database Schema (From First Principles)
 
-### Phase 1: Abstraction Layer (Week 1, Days 1-3)
+### Design Philosophy
 
-**Goal:** Enable database switching without rewriting queries
-
-**Status:** ⬜ Not Started
-
-#### Task 1.1: Create Database Interface
-
-**File:** `lib/database/client-interface.ts`
-
-```typescript
-export interface DatabaseClient {
-  // Campaign operations
-  getAllCampaigns(userId?: string): Promise<Campaign[]>;
-  getCampaignById(id: string, userId?: string): Promise<Campaign | null>;
-  createCampaign(data: CampaignInput, userId: string): Promise<Campaign>;
-  updateCampaign(id: string, data: Partial<Campaign>, userId: string): Promise<Campaign>;
-  deleteCampaign(id: string, userId: string): Promise<void>;
-
-  // Recipient operations
-  getRecipientsByCampaign(campaignId: string, userId?: string): Promise<Recipient[]>;
-  createRecipient(data: RecipientInput, userId: string): Promise<Recipient>;
-  bulkCreateRecipients(data: RecipientInput[], userId: string): Promise<Recipient[]>;
-
-  // Analytics operations
-  trackEvent(event: AnalyticsEvent): Promise<void>;
-  getCampaignStats(campaignId: string, userId?: string): Promise<CampaignStats>;
-  getOverviewStats(userId: string): Promise<OverviewStats>;
-
-  // Template operations
-  getAllTemplates(userId?: string): Promise<DMTemplate[]>;
-  getTemplateById(id: string, userId?: string): Promise<DMTemplate | null>;
-  createTemplate(data: TemplateInput, userId: string): Promise<DMTemplate>;
-
-  // Landing page operations
-  getLandingPageByTrackingId(trackingId: string): Promise<LandingPageData | null>;
-  createLandingPage(data: LandingPageInput): Promise<LandingPageData>;
-
-  // Brand profile operations
-  getBrandProfile(userId: string): Promise<BrandProfile | null>;
-  upsertBrandProfile(data: BrandProfileInput, userId: string): Promise<BrandProfile>;
-
-  // User operations (new for Supabase)
-  getUserById(id: string): Promise<User | null>;
-  updateUser(id: string, data: Partial<User>): Promise<User>;
-
-  // Subscription operations (new for billing)
-  getSubscription(userId: string): Promise<Subscription | null>;
-  updateSubscription(userId: string, data: SubscriptionInput): Promise<Subscription>;
-
-  // Usage tracking (new for billing)
-  trackUsage(userId: string, type: 'contacts' | 'mail', quantity: number): Promise<void>;
-  getUsage(userId: string, period: 'month' | 'billing_cycle'): Promise<UsageData>;
-}
-```
-
-**Checklist:**
-- [ ] Define complete interface with all methods
-- [ ] Add TypeScript types for all parameters/returns
-- [ ] Document each method with JSDoc comments
-- [ ] Add userId parameter to all relevant methods (for RLS)
+1. **Multi-Tenancy First**: Every table has `organization_id` with Row-Level Security
+2. **Fabric.js Native**: Schema optimized for JSON storage and retrieval
+3. **Performance Tracking**: Every campaign outcome feeds the AI learning system
+4. **Audit Everything**: Track all changes for compliance and debugging
+5. **Real-time Ready**: Structure supports WebSocket synchronization
+6. **API-First**: Design for programmatic access from day one
 
 ---
 
-#### Task 1.2: Implement SQLite Client (Wrapper)
+### **Phase 1: Foundation Schema (Core Atoms)**
 
-**File:** `lib/database/sqlite-client.ts`
-
-**Goal:** Wrap existing better-sqlite3 queries in the interface
-
-```typescript
-import Database from 'better-sqlite3';
-import { DatabaseClient } from './client-interface';
-
-export class SQLiteClient implements DatabaseClient {
-  private db: Database.Database;
-
-  constructor(dbPath: string) {
-    this.db = new Database(dbPath);
-    this.db.pragma('foreign_keys = ON');
-  }
-
-  async getAllCampaigns(userId?: string): Promise<Campaign[]> {
-    // Wrap existing synchronous query
-    const query = userId
-      ? 'SELECT * FROM campaigns WHERE user_id = ? ORDER BY created_at DESC'
-      : 'SELECT * FROM campaigns ORDER BY created_at DESC';
-
-    const rows = userId
-      ? this.db.prepare(query).all(userId)
-      : this.db.prepare(query).all();
-
-    return Promise.resolve(rows as Campaign[]);
-  }
-
-  async createCampaign(data: CampaignInput, userId: string): Promise<Campaign> {
-    const id = nanoid();
-    this.db.prepare(`
-      INSERT INTO campaigns (id, user_id, name, message, company_name, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
-    `).run(id, userId, data.name, data.message, data.companyName);
-
-    return this.getCampaignById(id, userId);
-  }
-
-  // ... implement all other methods
-}
-```
-
-**Checklist:**
-- [ ] Wrap all campaign queries
-- [ ] Wrap all recipient queries
-- [ ] Wrap all analytics queries
-- [ ] Wrap all template queries
-- [ ] Wrap all landing page queries
-- [ ] Wrap all brand profile queries
-- [ ] Add user_id to all INSERT/UPDATE queries
-- [ ] Test all methods with existing data
-
-**Estimated queries to wrap:** ~60-80 across all modules
-
----
-
-#### Task 1.3: Update Database Connection
-
-**File:** `lib/database/connection.ts`
-
-```typescript
-import { SQLiteClient } from './sqlite-client';
-import { SupabaseClient } from './supabase-client';
-import { DatabaseClient } from './client-interface';
-
-/**
- * Get database client based on environment
- * Switch with NEXT_PUBLIC_SUPABASE_URL environment variable
- */
-export function getDatabase(): DatabaseClient {
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    return new SupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-  }
-
-  // Fallback to SQLite for local development
-  return new SQLiteClient(process.cwd() + '/dm-tracking.db');
-}
-```
-
-**Checklist:**
-- [ ] Implement environment-based switching
-- [ ] Add TypeScript types
-- [ ] Test switching between SQLite and Supabase
-- [ ] Document usage in README
-
----
-
-### Phase 2: Supabase Setup (Week 1, Days 4-7)
-
-**Status:** ⬜ Not Started
-
-#### Task 2.1: Create Supabase Project
-
-**Steps:**
-1. Go to https://supabase.com
-2. Create account / login
-3. Click "New Project"
-4. Settings:
-   - **Organization:** DropLab
-   - **Name:** droplab-production
-   - **Database Password:** Generate strong password (save to password manager)
-   - **Region:** Choose closest to target users (e.g., US East for US market)
-   - **Pricing Plan:** Free (upgrade to Pro when needed)
-
-**Checklist:**
-- [ ] Account created
-- [ ] Project created
-- [ ] Database password saved securely
-- [ ] Project URL copied (https://xyz.supabase.co)
-- [ ] API keys copied (anon public, service role secret)
-
----
-
-#### Task 2.2: Schema Migration (SQLite → PostgreSQL)
-
-**File:** `lib/database/supabase-schema.sql`
-
-**Critical Changes:**
-
-| SQLite | PostgreSQL | Reason |
-|--------|------------|--------|
-| `TEXT PRIMARY KEY` | `UUID PRIMARY KEY DEFAULT gen_random_uuid()` | Better for distributed systems |
-| `INTEGER PRIMARY KEY AUTOINCREMENT` | `SERIAL PRIMARY KEY` or `BIGSERIAL` | PostgreSQL standard |
-| `TEXT NOT NULL DEFAULT (datetime('now'))` | `TIMESTAMPTZ NOT NULL DEFAULT NOW()` | Timezone-aware timestamps |
-| `INTEGER DEFAULT 1` (for boolean) | `BOOLEAN DEFAULT true` | Native boolean type |
-| `TEXT` (for JSON) | `JSONB` | Native JSON with indexing |
-
-**Schema Migration Script:**
+#### 1.1 Identity Atom Tables
 
 ```sql
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Users table (NEW - required for multi-tenancy)
-CREATE TABLE users (
+-- Organizations (Multi-tenancy Root)
+CREATE TABLE organizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  full_name VARCHAR(255),
-  company_name VARCHAR(255),
-  credits DECIMAL(10,2) DEFAULT 0,
-  subscription_tier VARCHAR(50) DEFAULT 'starter',
-  subscription_status VARCHAR(50) DEFAULT 'trialing',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL, -- URL-safe identifier
+
+  -- Subscription
+  plan_tier TEXT NOT NULL DEFAULT 'free', -- free, starter, professional, enterprise
+  billing_status TEXT NOT NULL DEFAULT 'active',
+  trial_ends_at TIMESTAMPTZ,
+
+  -- Brand Kit (stored at org level for reuse)
+  brand_logo_url TEXT,
+  brand_primary_color TEXT,
+  brand_secondary_color TEXT,
+  brand_accent_color TEXT,
+  brand_font_headline TEXT,
+  brand_font_body TEXT,
+  brand_voice_guidelines JSONB, -- AI copywriting guidance
+
+  -- Usage Limits
+  monthly_design_limit INTEGER DEFAULT 100,
+  monthly_sends_limit INTEGER DEFAULT 1000,
+  storage_limit_mb INTEGER DEFAULT 1000,
+
+  -- Metadata
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Campaigns table (MODIFIED - add user_id)
-CREATE TABLE campaigns (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  message TEXT NOT NULL,
-  company_name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  status VARCHAR(50) NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'paused', 'completed', 'archived'))
+CREATE INDEX idx_organizations_slug ON organizations(slug);
+
+-- Users (extends Supabase Auth)
+CREATE TABLE user_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+
+  full_name TEXT NOT NULL,
+  avatar_url TEXT,
+
+  role TEXT NOT NULL DEFAULT 'member', -- owner, admin, designer, viewer
+
+  -- Granular Permissions
+  can_create_designs BOOLEAN DEFAULT true,
+  can_send_campaigns BOOLEAN DEFAULT false,
+  can_manage_billing BOOLEAN DEFAULT false,
+  can_invite_users BOOLEAN DEFAULT false,
+  can_approve_designs BOOLEAN DEFAULT false,
+
+  -- Preferences
+  ui_preferences JSONB DEFAULT '{}', -- editor settings, keyboard shortcuts
+
+  -- Activity Tracking
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_active_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_campaigns_user_id ON campaigns(user_id);
-CREATE INDEX idx_campaigns_created_at ON campaigns(created_at DESC);
+CREATE INDEX idx_user_profiles_org ON user_profiles(organization_id);
+CREATE INDEX idx_user_profiles_role ON user_profiles(organization_id, role);
 
--- Recipients table (MODIFIED - add user_id)
+-- Row Level Security
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Policies: Users can only see their own organization
+CREATE POLICY "Users can view their organization"
+  ON organizations FOR SELECT
+  USING (id IN (
+    SELECT organization_id FROM user_profiles WHERE id = auth.uid()
+  ));
+
+CREATE POLICY "Users can view profiles in their organization"
+  ON user_profiles FOR SELECT
+  USING (organization_id IN (
+    SELECT organization_id FROM user_profiles WHERE id = auth.uid()
+  ));
+```
+
+#### 1.2 Design Atom Tables (Fabric.js Optimized)
+
+```sql
+-- Design Templates (Reusable Fabric.js Canvases)
+CREATE TABLE design_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+
+  -- Template Metadata
+  name TEXT NOT NULL,
+  description TEXT,
+  thumbnail_url TEXT, -- 400x400 preview
+
+  -- Fabric.js Canvas State
+  canvas_json JSONB NOT NULL, -- Complete Fabric.js toJSON() output
+  canvas_width INTEGER NOT NULL, -- Pixels at 300 DPI (e.g., 1800 for 6")
+  canvas_height INTEGER NOT NULL,
+
+  -- CRITICAL: Variable Mappings (stored separately from canvas_json)
+  -- Fabric.js v6 does NOT serialize custom properties via toJSON()
+  -- We store variable markers separately and apply them on load
+  variable_mappings JSONB DEFAULT '{}',
+  -- Structure: { "0": { "variableType": "recipientName", "isReusable": false }, "1": { "variableType": "logo", "isReusable": true } }
+  -- Key = canvas object index, Value = variable metadata
+
+  -- Format & Dimensions
+  format_type TEXT NOT NULL, -- postcard_4x6, postcard_6x9, letter_8.5x11, selfmailer_11x17, doorhanger_4x11
+  format_width_inches NUMERIC(5,3) NOT NULL, -- Physical size
+  format_height_inches NUMERIC(5,3) NOT NULL,
+  postal_country TEXT DEFAULT 'US',
+
+  -- Compliance Status
+  compliance_validated BOOLEAN DEFAULT false,
+  compliance_issues JSONB, -- Array of validation results
+  last_compliance_check_at TIMESTAMPTZ,
+
+  -- AI Background (reused for all recipients)
+  background_image_url TEXT, -- AI-generated background via DALL-E/Midjourney
+  background_generation_prompt TEXT,
+  background_cost NUMERIC(10,4), -- Track AI costs
+
+  -- Marketplace Status
+  is_public BOOLEAN DEFAULT false,
+  marketplace_category TEXT, -- real_estate, retail, healthcare, automotive, nonprofit
+  marketplace_price NUMERIC(10,2) DEFAULT 0.00,
+  marketplace_license_type TEXT, -- single_use, unlimited, commercial
+  marketplace_rating NUMERIC(3,2),
+  marketplace_featured BOOLEAN DEFAULT false,
+
+  -- Usage & Performance (Network Effects Data)
+  usage_count INTEGER DEFAULT 0, -- How many times used
+  avg_response_rate NUMERIC(5,2), -- Average performance across all campaigns
+  total_campaigns_using INTEGER DEFAULT 0,
+
+  -- Version Control
+  parent_template_id UUID REFERENCES design_templates(id), -- For template variations
+  version_number INTEGER DEFAULT 1,
+
+  -- Status
+  status TEXT DEFAULT 'draft', -- draft, active, archived
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ -- Soft delete
+);
+
+CREATE INDEX idx_templates_org ON design_templates(organization_id);
+CREATE INDEX idx_templates_creator ON design_templates(created_by);
+CREATE INDEX idx_templates_format ON design_templates(organization_id, format_type);
+CREATE INDEX idx_templates_marketplace ON design_templates(is_public, marketplace_category, marketplace_rating DESC) WHERE is_public = true;
+CREATE INDEX idx_templates_performance ON design_templates(avg_response_rate DESC NULLS LAST);
+CREATE INDEX idx_templates_canvas_json ON design_templates USING GIN (canvas_json); -- For JSON queries
+
+-- Design Assets (Images, Logos, Fonts, Icons)
+CREATE TABLE design_assets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  uploaded_by UUID NOT NULL REFERENCES auth.users(id),
+
+  -- Asset Metadata
+  name TEXT NOT NULL,
+  asset_type TEXT NOT NULL, -- logo, image, font, icon, svg
+  mime_type TEXT NOT NULL,
+  file_size_bytes INTEGER NOT NULL,
+  storage_url TEXT NOT NULL, -- Supabase Storage path
+
+  -- Dimensions (for images)
+  width_px INTEGER,
+  height_px INTEGER,
+  dpi INTEGER, -- Dots per inch (300 recommended for print)
+
+  -- Categorization
+  tags TEXT[],
+  folder TEXT, -- Organizational folder structure
+
+  -- AI Analysis (for searchability)
+  ai_description TEXT, -- Claude-generated description
+  ai_suggested_tags TEXT[],
+  dominant_colors TEXT[], -- Hex codes extracted from image
+
+  -- Usage Tracking
+  usage_count INTEGER DEFAULT 0,
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_assets_org ON design_assets(organization_id);
+CREATE INDEX idx_assets_type ON design_assets(organization_id, asset_type);
+CREATE INDEX idx_assets_tags ON design_assets USING GIN (tags);
+CREATE INDEX idx_assets_folder ON design_assets(organization_id, folder);
+
+-- Row Level Security
+ALTER TABLE design_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_assets ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Users can view their organization's templates"
+  ON design_templates FOR SELECT
+  USING (
+    organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid())
+    OR is_public = true -- Public marketplace templates visible to all
+  );
+
+CREATE POLICY "Designers can create templates"
+  ON design_templates FOR INSERT
+  WITH CHECK (
+    organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid() AND can_create_designs = true)
+  );
+
+CREATE POLICY "Users can update own templates"
+  ON design_templates FOR UPDATE
+  USING (created_by = auth.uid());
+
+CREATE POLICY "Users can view their organization's assets"
+  ON design_assets FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can upload assets"
+  ON design_assets FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+```
+
+---
+
+### **Phase 2: Personalization & Campaign Schema (Variability Atom)**
+
+```sql
+-- Recipient Lists (CSV Imports or API Data)
+CREATE TABLE recipient_lists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+
+  -- List Metadata
+  name TEXT NOT NULL,
+  description TEXT,
+
+  -- Data Source
+  source_type TEXT NOT NULL, -- csv_upload, api_import, manual_entry, data_axle, marketplace_purchase
+  source_file_url TEXT, -- Original CSV URL
+  total_recipients INTEGER NOT NULL,
+
+  -- Field Mapping (how CSV columns map to our schema)
+  field_mappings JSONB NOT NULL,
+  -- Example: { "Name": "recipient_name", "Street": "recipient_address_line1", "Custom Field 1": "custom_fields.property_value" }
+
+  -- Data Quality
+  validation_status TEXT DEFAULT 'pending', -- pending, validated, has_errors
+  validation_errors JSONB,
+  validation_summary JSONB, -- { "total": 100, "valid": 95, "invalid": 5, "duplicates": 2 }
+
+  -- Segmentation (for AI personalization)
+  segments JSONB, -- Array of segments: [{ "name": "High Income", "filter": { "income_range": "100k+" }, "count": 45 }]
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_recipient_lists_org ON recipient_lists(organization_id);
+CREATE INDEX idx_recipient_lists_creator ON recipient_lists(created_by);
+
+-- Individual Recipients
 CREATE TABLE recipients (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
-  tracking_id VARCHAR(50) UNIQUE NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  lastname VARCHAR(255) NOT NULL,
-  address TEXT,
-  city VARCHAR(255),
-  zip VARCHAR(20),
-  email VARCHAR(255),
-  phone VARCHAR(50),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  list_id UUID NOT NULL REFERENCES recipient_lists(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+
+  -- Standard Fields (mailability)
+  recipient_name TEXT,
+  recipient_lastname TEXT,
+  recipient_company TEXT,
+  recipient_address_line1 TEXT,
+  recipient_address_line2 TEXT,
+  recipient_city TEXT,
+  recipient_state TEXT,
+  recipient_zip TEXT,
+  recipient_country TEXT DEFAULT 'US',
+  recipient_email TEXT,
+  recipient_phone TEXT,
+
+  -- Demographics (for AI personalization)
+  age_range TEXT, -- 18-24, 25-34, 35-44, 45-54, 55-64, 65+
+  income_range TEXT, -- <25k, 25k-50k, 50k-75k, 75k-100k, 100k-150k, 150k+
+  home_ownership TEXT, -- owner, renter, unknown
+  property_value NUMERIC(12,2),
+  household_size INTEGER,
+
+  -- Custom Fields (flexible JSONB for any use case)
+  custom_fields JSONB DEFAULT '{}',
+  -- Examples: { "last_purchase_date": "2024-01-15", "loyalty_tier": "gold", "preferred_category": "electronics" }
+
+  -- Validation & Enrichment
+  address_validated BOOLEAN DEFAULT false,
+  address_validation_result JSONB, -- USPS validation response
+  address_standardized TEXT, -- Standardized USPS address
+  geocode_lat NUMERIC(10,7),
+  geocode_lng NUMERIC(10,7),
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_recipients_user_id ON recipients(user_id);
-CREATE INDEX idx_recipients_campaign_id ON recipients(campaign_id);
-CREATE INDEX idx_recipients_tracking_id ON recipients(tracking_id);
+CREATE INDEX idx_recipients_list ON recipients(list_id);
+CREATE INDEX idx_recipients_org ON recipients(organization_id);
+CREATE INDEX idx_recipients_zip ON recipients(recipient_zip);
+CREATE INDEX idx_recipients_custom_fields ON recipients USING GIN (custom_fields);
 
--- DM Templates table (MODIFIED - add user_id)
-CREATE TABLE dm_templates (
+-- Campaigns (Direct Mail Sends)
+CREATE TABLE campaigns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
-  canvas_session_id VARCHAR(255),
-  campaign_template_id UUID,
-  name VARCHAR(255) NOT NULL,
-  canvas_json TEXT NOT NULL,
-  background_image TEXT NOT NULL,
-  canvas_width INTEGER NOT NULL,
-  canvas_height INTEGER NOT NULL,
-  preview_image TEXT,
-  variable_mappings TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
 
-CREATE INDEX idx_dm_templates_user_id ON dm_templates(user_id);
-CREATE INDEX idx_dm_templates_campaign_id ON dm_templates(campaign_id);
-
--- Landing Pages table (MODIFIED - add user_id)
-CREATE TABLE landing_pages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  tracking_id VARCHAR(50) UNIQUE NOT NULL REFERENCES recipients(tracking_id) ON DELETE CASCADE,
-  campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
-  recipient_id UUID NOT NULL REFERENCES recipients(id) ON DELETE CASCADE,
-  page_data TEXT NOT NULL,
-  landing_page_url TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_landing_pages_user_id ON landing_pages(user_id);
-CREATE INDEX idx_landing_pages_tracking_id ON landing_pages(tracking_id);
-
--- Events table (tracking - MODIFIED)
-CREATE TABLE events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tracking_id VARCHAR(50) NOT NULL REFERENCES recipients(tracking_id) ON DELETE CASCADE,
-  event_type VARCHAR(50) NOT NULL CHECK(event_type IN ('page_view', 'qr_scan', 'button_click', 'form_view', 'external_link')),
-  event_data TEXT,
-  ip_address VARCHAR(50),
-  user_agent TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_events_tracking_id ON events(tracking_id);
-CREATE INDEX idx_events_type ON events(event_type);
-CREATE INDEX idx_events_created_at ON events(created_at DESC);
-
--- Conversions table (MODIFIED)
-CREATE TABLE conversions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tracking_id VARCHAR(50) NOT NULL REFERENCES recipients(tracking_id) ON DELETE CASCADE,
-  conversion_type VARCHAR(50) NOT NULL CHECK(conversion_type IN ('form_submission', 'appointment_booked', 'call_initiated', 'download')),
-  conversion_data TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_conversions_tracking_id ON conversions(tracking_id);
-CREATE INDEX idx_conversions_type ON conversions(conversion_type);
-
--- Brand Profiles table (MODIFIED - add user_id)
-CREATE TABLE brand_profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  company_name VARCHAR(255) NOT NULL,
-  brand_voice TEXT,
-  tone TEXT,
-  key_phrases TEXT,
-  brand_values TEXT,
-  target_audience TEXT,
-  industry VARCHAR(255),
-  extracted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  source_content TEXT,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  logo_url TEXT,
-  logo_asset_id VARCHAR(255),
-  primary_color VARCHAR(7) DEFAULT '#1E3A8A',
-  secondary_color VARCHAR(7) DEFAULT '#FF6B35',
-  accent_color VARCHAR(7) DEFAULT '#10B981',
-  background_color VARCHAR(7) DEFAULT '#FFFFFF',
-  text_color VARCHAR(7) DEFAULT '#1F2937',
-  heading_font VARCHAR(255) DEFAULT 'Inter',
-  body_font VARCHAR(255) DEFAULT 'Open Sans',
-  landing_page_template VARCHAR(255) DEFAULT 'professional',
-  website_url TEXT,
-  last_updated_at TIMESTAMPTZ
-);
-
-CREATE INDEX idx_brand_profiles_user_id ON brand_profiles(user_id);
-
--- NEW TABLES FOR SAAS FEATURES --
-
--- Saved Audiences (NEW)
-CREATE TABLE saved_audiences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
+  -- Campaign Metadata
+  name TEXT NOT NULL,
   description TEXT,
-  filters JSONB NOT NULL,
-  last_count INTEGER,
-  last_count_updated_at TIMESTAMPTZ,
-  total_contacts_purchased INTEGER DEFAULT 0,
-  total_conversions INTEGER DEFAULT 0,
-  conversion_rate DECIMAL(5,2),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+  campaign_type TEXT NOT NULL DEFAULT 'direct_mail', -- direct_mail, digital, multi_channel
 
-CREATE INDEX idx_saved_audiences_user_id ON saved_audiences(user_id);
-CREATE INDEX idx_saved_audiences_filters ON saved_audiences USING GIN (filters);
+  -- Design
+  template_id UUID REFERENCES design_templates(id),
+  design_snapshot JSONB, -- Frozen Fabric.js JSON at send time (for audit/replay)
+  variable_mappings_snapshot JSONB, -- Frozen variable mappings
 
--- Contact Purchases (NEW - track Data Axle purchases)
-CREATE TABLE contact_purchases (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  order_id VARCHAR(100) UNIQUE NOT NULL,
-  campaign_id UUID REFERENCES campaigns(id),
-  audience_id UUID REFERENCES saved_audiences(id),
-  filters JSONB NOT NULL,
-  contact_count INTEGER NOT NULL,
-  total_cost DECIMAL(10,2) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+  -- Recipients
+  recipient_list_id UUID REFERENCES recipient_lists(id),
+  total_recipients INTEGER NOT NULL,
 
-CREATE INDEX idx_contact_purchases_user_id ON contact_purchases(user_id);
-CREATE INDEX idx_contact_purchases_order_id ON contact_purchases(order_id);
-CREATE INDEX idx_contact_purchases_created_at ON contact_purchases(created_at DESC);
+  -- Personalization Strategy
+  personalization_rules JSONB,
+  -- Example: [{ "segment": "age_55_plus", "rule": "increase_font_size", "value": 18 }, { "segment": "income_100k_plus", "rule": "use_premium_image", "value": "luxury_home.jpg" }]
+  use_ai_personalization BOOLEAN DEFAULT false,
 
--- Subscriptions (NEW - Stripe integration)
-CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  stripe_customer_id VARCHAR(255) UNIQUE,
-  stripe_subscription_id VARCHAR(255) UNIQUE,
-  stripe_price_id VARCHAR(255),
-  status VARCHAR(50) NOT NULL DEFAULT 'trialing',
-  current_period_start TIMESTAMPTZ,
-  current_period_end TIMESTAMPTZ,
-  cancel_at_period_end BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+  -- A/B Testing
+  is_ab_test BOOLEAN DEFAULT false,
+  ab_test_config JSONB,
+  -- Example: { "variants": [{ "id": "A", "template_id": "...", "recipients_pct": 50 }, { "id": "B", "template_id": "...", "recipients_pct": 50 }] }
 
-CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
-CREATE INDEX idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
-
--- Usage Tracking (NEW - for billing)
-CREATE TABLE usage_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  usage_type VARCHAR(50) NOT NULL CHECK(usage_type IN ('contacts_purchased', 'mail_sent', 'ai_generation', 'api_call')),
-  quantity INTEGER NOT NULL DEFAULT 1,
-  metadata JSONB,
-  cost DECIMAL(10,2),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_usage_logs_user_id ON usage_logs(user_id);
-CREATE INDEX idx_usage_logs_type ON usage_logs(usage_type);
-CREATE INDEX idx_usage_logs_created_at ON usage_logs(created_at DESC);
-
--- Fulfillment Orders (NEW - PostGrid integration)
-CREATE TABLE fulfillment_orders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
-  postgrid_order_id VARCHAR(255) UNIQUE,
-  status VARCHAR(50) NOT NULL DEFAULT 'pending',
-  mail_pieces_count INTEGER NOT NULL,
-  total_cost DECIMAL(10,2) NOT NULL,
-  tracking_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- Scheduling
+  status TEXT NOT NULL DEFAULT 'draft', -- draft, scheduled, processing, sending, sent, completed, failed, cancelled
+  scheduled_send_date TIMESTAMPTZ,
+  processing_started_at TIMESTAMPTZ,
   sent_at TIMESTAMPTZ,
-  delivered_at TIMESTAMPTZ
+  completed_at TIMESTAMPTZ,
+
+  -- Costs
+  estimated_cost_per_unit NUMERIC(10,4),
+  total_estimated_cost NUMERIC(12,2),
+  actual_cost NUMERIC(12,2),
+
+  -- Performance Metrics (updated as responses come in)
+  total_printed INTEGER DEFAULT 0,
+  total_delivered INTEGER DEFAULT 0,
+  total_qr_scans INTEGER DEFAULT 0,
+  total_page_views INTEGER DEFAULT 0,
+  total_responses INTEGER DEFAULT 0,
+  total_conversions INTEGER DEFAULT 0,
+  response_rate NUMERIC(5,2),
+  conversion_rate NUMERIC(5,2),
+  total_revenue NUMERIC(12,2),
+  roi NUMERIC(8,2),
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_fulfillment_orders_user_id ON fulfillment_orders(user_id);
-CREATE INDEX idx_fulfillment_orders_campaign_id ON fulfillment_orders(campaign_id);
-CREATE INDEX idx_fulfillment_orders_status ON fulfillment_orders(status);
+CREATE INDEX idx_campaigns_org_status ON campaigns(organization_id, status);
+CREATE INDEX idx_campaigns_template ON campaigns(template_id);
+CREATE INDEX idx_campaigns_sent_at ON campaigns(sent_at DESC NULLS LAST);
 
--- Keep existing batch processing tables (add user_id)
--- Keep existing retail tables (for future reactivation)
--- Keep existing ElevenLabs call tracking tables
+-- Campaign Recipients (Individual Mail Pieces with Personalization)
+CREATE TABLE campaign_recipients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  recipient_id UUID NOT NULL REFERENCES recipients(id),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+
+  -- Personalization Output
+  personalized_canvas_json JSONB, -- Final Fabric.js JSON after variable substitution
+  personalized_pdf_url TEXT, -- Generated PDF URL in Supabase Storage
+  personalized_preview_url TEXT, -- Preview image URL
+
+  -- A/B Test Assignment
+  ab_variant_id TEXT, -- Which variant this recipient received (if ab test)
+
+  -- Tracking
+  tracking_code TEXT UNIQUE NOT NULL, -- Unique ID for QR code / PURL (e.g., "dr-abc123xyz")
+  qr_code_url TEXT, -- Generated QR code image URL
+  purl TEXT, -- Personalized URL: https://droplab.com/lp/dr-abc123xyz
+
+  -- Fulfillment Status (PostGrid/Lob integration)
+  print_status TEXT DEFAULT 'pending', -- pending, rendering, printed, shipped, delivered, returned, failed
+  print_job_id TEXT, -- External print provider job ID
+  print_cost NUMERIC(10,4),
+  shipped_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
+  tracking_url TEXT, -- USPS tracking URL
+
+  -- Response Tracking
+  first_view_at TIMESTAMPTZ, -- First landing page view
+  qr_scan_count INTEGER DEFAULT 0,
+  page_view_count INTEGER DEFAULT 0,
+  responded_at TIMESTAMPTZ, -- Form submission / conversion
+  conversion_type TEXT, -- form_submission, phone_call, appointment, purchase
+  conversion_value NUMERIC(10,2),
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_campaign_recipients_campaign ON campaign_recipients(campaign_id);
+CREATE INDEX idx_campaign_recipients_recipient ON campaign_recipients(recipient_id);
+CREATE INDEX idx_campaign_recipients_tracking ON campaign_recipients(tracking_code);
+CREATE INDEX idx_campaign_recipients_status ON campaign_recipients(campaign_id, print_status);
+
+-- Row Level Security
+ALTER TABLE recipient_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recipients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE campaign_recipients ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Users can view their organization's lists"
+  ON recipient_lists FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can create lists"
+  ON recipient_lists FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can view their organization's campaigns"
+  ON campaigns FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users with send permission can create campaigns"
+  ON campaigns FOR INSERT
+  WITH CHECK (
+    organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid() AND can_send_campaigns = true)
+  );
 ```
-
-**Checklist:**
-- [ ] Create SQL file with complete schema
-- [ ] Test schema in Supabase SQL editor
-- [ ] Verify all foreign keys work
-- [ ] Verify all indexes created
-- [ ] Document schema differences from SQLite
 
 ---
 
-#### Task 2.3: Row-Level Security (RLS) Policies
-
-**Critical for Multi-Tenancy:** Users must only see their own data.
+### **Phase 3: Intelligence & Analytics Schema (AI Atoms)**
 
 ```sql
--- Enable RLS on all tables
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE recipients ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dm_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE landing_pages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE brand_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE saved_audiences ENABLE ROW LEVEL SECURITY;
-ALTER TABLE contact_purchases ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fulfillment_orders ENABLE ROW LEVEL SECURITY;
+-- AI Design Analyses (Claude API Results)
+CREATE TABLE ai_design_analyses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
 
--- Users table policies
-CREATE POLICY "Users can view own profile"
-  ON users FOR SELECT
-  USING (auth.uid() = id);
+  -- Source
+  template_id UUID REFERENCES design_templates(id),
+  campaign_id UUID REFERENCES campaigns(id),
 
-CREATE POLICY "Users can update own profile"
-  ON users FOR UPDATE
-  USING (auth.uid() = id);
+  -- Analysis Input
+  canvas_json JSONB NOT NULL,
+  analysis_type TEXT NOT NULL, -- compliance, performance_prediction, optimization, accessibility, readability
 
--- Campaigns policies
-CREATE POLICY "Users can view own campaigns"
-  ON campaigns FOR SELECT
-  USING (auth.uid() = user_id);
+  -- AI Model Details
+  ai_model TEXT NOT NULL, -- claude-3-5-sonnet-20241022, gpt-4, etc.
+  ai_prompt TEXT NOT NULL,
+  ai_response JSONB NOT NULL, -- Full AI response
+  tokens_used INTEGER,
+  cost NUMERIC(10,6),
 
-CREATE POLICY "Users can create own campaigns"
-  ON campaigns FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  -- Extracted Insights (for fast querying without parsing JSON)
+  readability_score NUMERIC(4,2), -- 0-10 scale
+  visual_complexity_score NUMERIC(4,2), -- 0-10 scale (lower is better)
+  color_contrast_score NUMERIC(4,2), -- WCAG compliance score
+  cta_visibility_score NUMERIC(4,2), -- Call-to-action prominence
+  postal_compliance_score NUMERIC(4,2), -- Regulatory compliance
 
-CREATE POLICY "Users can update own campaigns"
-  ON campaigns FOR UPDATE
-  USING (auth.uid() = user_id);
+  -- Predictions (for performance analysis type)
+  predicted_response_rate_min NUMERIC(5,2),
+  predicted_response_rate_max NUMERIC(5,2),
+  predicted_response_rate_mean NUMERIC(5,2),
+  prediction_confidence NUMERIC(5,2), -- 0-100%
 
-CREATE POLICY "Users can delete own campaigns"
-  ON campaigns FOR DELETE
-  USING (auth.uid() = user_id);
+  -- Improvement Suggestions
+  improvement_suggestions JSONB,
+  -- Example: [{ "element": "headline", "issue": "Too small for 55+ demographic", "suggestion": "Increase font size to 18pt", "impact": "+0.3% response rate" }]
 
--- Recipients policies
-CREATE POLICY "Users can view own recipients"
-  ON recipients FOR SELECT
-  USING (auth.uid() = user_id);
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-CREATE POLICY "Users can create own recipients"
-  ON recipients FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+CREATE INDEX idx_ai_analyses_template ON ai_design_analyses(template_id);
+CREATE INDEX idx_ai_analyses_campaign ON ai_design_analyses(campaign_id);
+CREATE INDEX idx_ai_analyses_type ON ai_design_analyses(analysis_type, created_at DESC);
 
--- Landing pages are PUBLIC (accessed by tracking ID, not user)
-ALTER TABLE landing_pages DISABLE ROW LEVEL SECURITY;
+-- Postal Compliance Validation (Regulatory Rules Engine)
+CREATE TABLE postal_compliance_checks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  template_id UUID REFERENCES design_templates(id),
 
--- Events are PUBLIC (tracking doesn't require auth)
-ALTER TABLE events DISABLE ROW LEVEL SECURITY;
+  -- Validation Parameters
+  postal_country TEXT NOT NULL DEFAULT 'US',
+  mail_format TEXT NOT NULL, -- postcard, letter, selfmailer, doorhanger
+  mail_class TEXT, -- usps_first_class, usps_standard, etc.
 
--- Conversions are PUBLIC (tracking doesn't require auth)
-ALTER TABLE conversions DISABLE ROW LEVEL SECURITY;
+  -- Validation Results
+  is_compliant BOOLEAN NOT NULL,
+  compliance_score NUMERIC(5,2), -- 0-100% (percentage of rules passed)
 
--- DM Templates policies
-CREATE POLICY "Users can view own templates"
-  ON dm_templates FOR SELECT
-  USING (auth.uid() = user_id);
+  -- Issues Found
+  validation_errors JSONB, -- Array of critical issues
+  -- Example: [{ "rule": "USPS-BC-001", "severity": "error", "element_id": "text_5", "message": "Content in barcode clear zone", "autofix": {...} }]
+  validation_warnings JSONB, -- Array of warnings
 
-CREATE POLICY "Users can create own templates"
-  ON dm_templates FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  -- Auto-fix Capability
+  auto_fix_available BOOLEAN DEFAULT false,
+  auto_fix_applied BOOLEAN DEFAULT false,
+  auto_fix_changes JSONB, -- What changes would be made
 
--- Brand Profiles policies
-CREATE POLICY "Users can view own brand profile"
-  ON brand_profiles FOR SELECT
-  USING (auth.uid() = user_id);
+  -- Regulations Checked
+  regulations_version TEXT, -- Track which version of rules applied
+  rules_checked TEXT[], -- List of rule IDs checked
 
-CREATE POLICY "Users can upsert own brand profile"
-  ON brand_profiles FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-CREATE POLICY "Users can update own brand profile"
-  ON brand_profiles FOR UPDATE
-  USING (auth.uid() = user_id);
+CREATE INDEX idx_compliance_template ON postal_compliance_checks(template_id);
+CREATE INDEX idx_compliance_compliant ON postal_compliance_checks(is_compliant, postal_country);
 
--- Saved Audiences policies
-CREATE POLICY "Users can view own audiences"
-  ON saved_audiences FOR SELECT
-  USING (auth.uid() = user_id);
+-- Campaign Performance Data (Feeds ML Model Training)
+CREATE TABLE campaign_performance_data (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
 
-CREATE POLICY "Users can create own audiences"
-  ON saved_audiences FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  -- Design Features (extracted from Fabric.js canvas)
+  design_features JSONB NOT NULL,
+  -- Example: {
+  --   "colorPalette": ["#FF5722", "#2196F3", "#FFFFFF"],
+  --   "layoutDensity": 0.68,
+  --   "ctaPlacement": { "x": 0.8, "y": 0.7 },
+  --   "visualComplexity": 12,
+  --   "headlineFontSize": 24,
+  --   "textToWhitespaceRatio": 0.45,
+  --   "imageCount": 2,
+  --   "colorContrast": 4.5
+  -- }
 
-CREATE POLICY "Users can update own audiences"
-  ON saved_audiences FOR UPDATE
-  USING (auth.uid() = user_id);
+  -- Campaign Context
+  industry TEXT,
+  target_demographic JSONB,
+  mail_format TEXT,
+  paper_type TEXT, -- gloss, matte, recycled
+  mail_class TEXT,
 
-CREATE POLICY "Users can delete own audiences"
-  ON saved_audiences FOR DELETE
-  USING (auth.uid() = user_id);
+  -- Performance Results (ground truth for ML training)
+  sent_count INTEGER NOT NULL,
+  delivered_count INTEGER NOT NULL,
+  qr_scan_count INTEGER NOT NULL,
+  page_view_count INTEGER NOT NULL,
+  response_count INTEGER NOT NULL,
+  conversion_count INTEGER NOT NULL,
 
--- Contact Purchases policies
-CREATE POLICY "Users can view own purchases"
-  ON contact_purchases FOR SELECT
-  USING (auth.uid() = user_id);
+  response_rate NUMERIC(5,2) NOT NULL,
+  conversion_rate NUMERIC(5,2) NOT NULL,
+  cost_per_response NUMERIC(10,2),
+  roi NUMERIC(8,2),
 
-CREATE POLICY "Users can create own purchases"
-  ON contact_purchases FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  -- Segmented Performance (demographic breakdown)
+  segment_performance JSONB,
+  -- Example: [{ "segment": "age_35_44", "response_rate": 3.2 }, { "segment": "age_55_64", "response_rate": 2.1 }]
 
--- Subscriptions policies
-CREATE POLICY "Users can view own subscription"
-  ON subscriptions FOR SELECT
-  USING (auth.uid() = user_id);
+  -- ML Training Status
+  included_in_training_set BOOLEAN DEFAULT false,
+  training_quality_score NUMERIC(3,2), -- How reliable is this data? (0-1)
 
-CREATE POLICY "Users can update own subscription"
-  ON subscriptions FOR UPDATE
-  USING (auth.uid() = user_id);
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Usage Logs policies
-CREATE POLICY "Users can view own usage"
-  ON usage_logs FOR SELECT
-  USING (auth.uid() = user_id);
+CREATE INDEX idx_performance_data_campaign ON campaign_performance_data(campaign_id);
+CREATE INDEX idx_performance_data_training ON campaign_performance_data(included_in_training_set, training_quality_score DESC) WHERE included_in_training_set = true;
+CREATE INDEX idx_performance_data_design_features ON campaign_performance_data USING GIN (design_features);
 
-CREATE POLICY "Users can insert own usage"
-  ON usage_logs FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+-- Row Level Security
+ALTER TABLE ai_design_analyses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE postal_compliance_checks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE campaign_performance_data ENABLE ROW LEVEL SECURITY;
 
--- Fulfillment Orders policies
-CREATE POLICY "Users can view own orders"
-  ON fulfillment_orders FOR SELECT
-  USING (auth.uid() = user_id);
+-- Policies
+CREATE POLICY "Users can view their organization's AI analyses"
+  ON ai_design_analyses FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
 
-CREATE POLICY "Users can create own orders"
-  ON fulfillment_orders FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view their organization's compliance checks"
+  ON postal_compliance_checks FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can view their organization's performance data"
+  ON campaign_performance_data FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
 ```
-
-**Checklist:**
-- [ ] Enable RLS on all user-specific tables
-- [ ] Create SELECT policies for all tables
-- [ ] Create INSERT policies for all tables
-- [ ] Create UPDATE policies where needed
-- [ ] Create DELETE policies where needed
-- [ ] Disable RLS for public tracking tables
-- [ ] Test: User A cannot see User B's data
-- [ ] Test: Public tracking works without auth
 
 ---
 
-#### Task 2.4: Implement Supabase Client
+### **Phase 4: Collaboration & Version Control Schema**
 
-**File:** `lib/database/supabase-client.ts`
+```sql
+-- Design Versions (Git-like version control for canvases)
+CREATE TABLE design_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id UUID NOT NULL REFERENCES design_templates(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
 
-```typescript
-import { createClient, SupabaseClient as SupabaseType } from '@supabase/supabase-js';
-import { DatabaseClient } from './client-interface';
-import { Campaign, Recipient, /* ... other types */ } from './types';
+  -- Version Info
+  version_number INTEGER NOT NULL,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+  version_name TEXT, -- Optional human-readable label (e.g., "Final for CEO Review")
+  commit_message TEXT, -- Description of changes
 
-export class SupabaseClient implements DatabaseClient {
-  private supabase: SupabaseType;
+  -- Canvas State Snapshot
+  canvas_json JSONB NOT NULL,
+  variable_mappings JSONB,
 
-  constructor(supabaseUrl: string, supabaseKey: string) {
-    this.supabase = createClient(supabaseUrl, supabaseKey);
-  }
+  -- Change Tracking
+  changed_objects TEXT[], -- Array of Fabric.js object IDs that changed
+  change_summary JSONB, -- Structured diff: { "added": 2, "modified": 5, "deleted": 1 }
+  parent_version_id UUID REFERENCES design_versions(id), -- For branching/merging
 
-  async getAllCampaigns(userId?: string): Promise<Campaign[]> {
-    const query = this.supabase
-      .from('campaigns')
-      .select('*')
-      .order('created_at', { ascending: false });
+  -- File Size (for storage management)
+  canvas_json_size_bytes INTEGER,
 
-    // RLS will automatically filter by user_id
-    // No need to add .eq('user_id', userId) - RLS handles it!
+  created_at TIMESTAMPTZ DEFAULT NOW(),
 
-    const { data, error } = await query;
+  UNIQUE(template_id, version_number)
+);
 
-    if (error) throw new Error(`Failed to get campaigns: ${error.message}`);
+CREATE INDEX idx_versions_template ON design_versions(template_id, version_number DESC);
+CREATE INDEX idx_versions_creator ON design_versions(created_by);
 
-    return data as Campaign[];
-  }
+-- Design Comments (Annotation system for collaboration)
+CREATE TABLE design_comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id UUID NOT NULL REFERENCES design_templates(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
 
-  async getCampaignById(id: string, userId?: string): Promise<Campaign | null> {
-    const { data, error } = await this.supabase
-      .from('campaigns')
-      .select('*')
-      .eq('id', id)
-      .single();
+  -- Comment Details
+  author_id UUID NOT NULL REFERENCES auth.users(id),
+  comment_text TEXT NOT NULL,
 
-    if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
-      throw new Error(`Failed to get campaign: ${error.message}`);
-    }
+  -- Canvas Position (pin comment to specific object or location)
+  canvas_object_id TEXT, -- Fabric.js object ID
+  position_x NUMERIC(10,2), -- Canvas coordinates
+  position_y NUMERIC(10,2),
 
-    return data as Campaign;
-  }
+  -- Threading
+  parent_comment_id UUID REFERENCES design_comments(id),
+  thread_depth INTEGER DEFAULT 0,
 
-  async createCampaign(data: CampaignInput, userId: string): Promise<Campaign> {
-    const { data: campaign, error } = await this.supabase
-      .from('campaigns')
-      .insert({
-        user_id: userId,
-        name: data.name,
-        message: data.message,
-        company_name: data.companyName,
-        status: 'active'
-      })
-      .select()
-      .single();
+  -- Status
+  is_resolved BOOLEAN DEFAULT false,
+  resolved_by UUID REFERENCES auth.users(id),
+  resolved_at TIMESTAMPTZ,
 
-    if (error) throw new Error(`Failed to create campaign: ${error.message}`);
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-    return campaign as Campaign;
-  }
+CREATE INDEX idx_comments_template ON design_comments(template_id, created_at DESC);
+CREATE INDEX idx_comments_author ON design_comments(author_id);
+CREATE INDEX idx_comments_unresolved ON design_comments(template_id, is_resolved) WHERE is_resolved = false;
 
-  async updateCampaign(id: string, data: Partial<Campaign>, userId: string): Promise<Campaign> {
-    const { data: campaign, error } = await this.supabase
-      .from('campaigns')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single();
+-- Real-time Collaboration Sessions (Google Docs-style live editing)
+CREATE TABLE collaboration_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id UUID NOT NULL REFERENCES design_templates(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
 
-    if (error) throw new Error(`Failed to update campaign: ${error.message}`);
+  -- Session State
+  active_users JSONB NOT NULL DEFAULT '[]', -- Array of { "user_id": "...", "cursor_position": { "x": 100, "y": 200 }, "selected_object_id": "text_5" }
+  session_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    return campaign as Campaign;
-  }
+  -- Lock Status (for approval workflows)
+  is_locked BOOLEAN DEFAULT false,
+  locked_by UUID REFERENCES auth.users(id),
+  locked_at TIMESTAMPTZ,
+  lock_reason TEXT, -- "Awaiting CEO approval", etc.
 
-  async deleteCampaign(id: string, userId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('campaigns')
-      .delete()
-      .eq('id', id);
+  -- Session Metadata
+  total_edits INTEGER DEFAULT 0,
 
-    if (error) throw new Error(`Failed to delete campaign: ${error.message}`);
-  }
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-  // ... implement all other methods from DatabaseClient interface
+CREATE INDEX idx_collaboration_template ON collaboration_sessions(template_id);
+CREATE INDEX idx_collaboration_active ON collaboration_sessions(last_activity_at DESC);
 
-  // Helper: Get current user ID from auth session
-  async getCurrentUserId(): Promise<string | null> {
-    const { data: { session } } = await this.supabase.auth.getSession();
-    return session?.user?.id || null;
-  }
-}
+-- Design Approvals (Workflow management)
+CREATE TABLE design_approvals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id UUID NOT NULL REFERENCES design_templates(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+
+  -- Approval Request
+  requested_by UUID NOT NULL REFERENCES auth.users(id),
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  -- Approvers
+  approvers JSONB NOT NULL, -- Array of user IDs who must approve
+  approvals_received JSONB DEFAULT '[]', -- Array of { "user_id": "...", "approved": true/false, "comment": "...", "timestamp": "..." }
+
+  -- Status
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected, cancelled
+  final_decision_at TIMESTAMPTZ,
+  final_decision_by UUID REFERENCES auth.users(id),
+
+  -- Notes
+  request_message TEXT,
+  rejection_reason TEXT,
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_approvals_template ON design_approvals(template_id, status);
+CREATE INDEX idx_approvals_pending ON design_approvals(organization_id, status) WHERE status = 'pending';
+
+-- Row Level Security
+ALTER TABLE design_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE collaboration_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE design_approvals ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Users can view their organization's design versions"
+  ON design_versions FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can create versions"
+  ON design_versions FOR INSERT
+  WITH CHECK (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can view and create comments in their organization"
+  ON design_comments FOR ALL
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
 ```
-
-**Checklist:**
-- [ ] Implement all DatabaseClient methods
-- [ ] Use `.select()` for reads
-- [ ] Use `.insert()` for creates
-- [ ] Use `.update()` for updates
-- [ ] Use `.delete()` for deletes
-- [ ] Add proper error handling for all queries
-- [ ] Let RLS handle user_id filtering (don't add manual filters)
-- [ ] Test all CRUD operations
-- [ ] Test with multiple users (data isolation)
 
 ---
 
-#### Task 2.5: Data Migration (SQLite → Supabase)
+### **Phase 5: Marketplace & API Schema**
 
-**Goal:** Move existing demo/test data to Supabase
+```sql
+-- Template Marketplace Listings (Network Effects Engine)
+CREATE TABLE marketplace_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id UUID NOT NULL REFERENCES design_templates(id) ON DELETE CASCADE,
+  creator_organization_id UUID NOT NULL REFERENCES organizations(id),
 
-**File:** `scripts/migrate-to-supabase.ts`
+  -- Listing Details
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL, -- real_estate, retail, healthcare, automotive, nonprofit, financial, restaurant
+  tags TEXT[],
 
-```typescript
-import { SQLiteClient } from '@/lib/database/sqlite-client';
-import { SupabaseClient } from '@/lib/database/supabase-client';
+  -- Pricing
+  price NUMERIC(10,2) NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  license_type TEXT NOT NULL, -- single_use, unlimited, commercial
 
-async function migrate() {
-  const sqlite = new SQLiteClient('./dm-tracking.db');
-  const supabase = new SupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role for migration
+  -- Performance Stats (transparency = trust = more sales)
+  avg_response_rate NUMERIC(5,2), -- Average across all campaigns using this template
+  total_campaigns_using INTEGER DEFAULT 0,
+  verified_performance BOOLEAN DEFAULT false, -- Admin verified these stats are real
+  performance_sample_size INTEGER, -- How many campaigns this is based on
+
+  -- Ratings & Reviews
+  average_rating NUMERIC(3,2),
+  total_ratings INTEGER DEFAULT 0,
+  total_sales INTEGER DEFAULT 0,
+  total_revenue NUMERIC(12,2) DEFAULT 0,
+
+  -- Creator Payout
+  creator_revenue_share NUMERIC(5,2) DEFAULT 70.00, -- Creator gets 70%, platform gets 30%
+
+  -- Status & Visibility
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected, suspended
+  approved_at TIMESTAMPTZ,
+  approved_by UUID REFERENCES auth.users(id),
+  rejection_reason TEXT,
+  featured BOOLEAN DEFAULT false, -- Featured on marketplace homepage
+  featured_until TIMESTAMPTZ,
+
+  -- SEO & Discovery
+  search_keywords TEXT[], -- For internal search optimization
+  view_count INTEGER DEFAULT 0,
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_marketplace_category ON marketplace_templates(category, status, average_rating DESC) WHERE status = 'approved';
+CREATE INDEX idx_marketplace_featured ON marketplace_templates(featured, average_rating DESC) WHERE featured = true;
+CREATE INDEX idx_marketplace_performance ON marketplace_templates(avg_response_rate DESC) WHERE avg_response_rate IS NOT NULL;
+CREATE INDEX idx_marketplace_search ON marketplace_templates USING GIN (search_keywords);
+CREATE INDEX idx_marketplace_tags ON marketplace_templates USING GIN (tags);
+
+-- Template Purchases (Marketplace Transactions)
+CREATE TABLE template_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  marketplace_template_id UUID NOT NULL REFERENCES marketplace_templates(id),
+  buyer_organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  purchased_by UUID NOT NULL REFERENCES auth.users(id),
+
+  -- Transaction Details
+  purchase_price NUMERIC(10,2) NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  payment_provider TEXT, -- stripe, paypal
+  payment_provider_transaction_id TEXT,
+
+  -- Revenue Split
+  platform_fee NUMERIC(10,2) NOT NULL, -- 30% of sale
+  creator_payout NUMERIC(10,2) NOT NULL, -- 70% of sale
+  payout_status TEXT DEFAULT 'pending', -- pending, processed, failed
+  payout_processed_at TIMESTAMPTZ,
+
+  -- License
+  license_key UUID DEFAULT gen_random_uuid(),
+  license_type TEXT NOT NULL,
+  license_expires_at TIMESTAMPTZ, -- For time-limited licenses
+
+  purchased_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_purchases_buyer ON template_purchases(buyer_organization_id);
+CREATE INDEX idx_purchases_template ON template_purchases(marketplace_template_id);
+CREATE INDEX idx_purchases_creator_payout ON template_purchases(payout_status) WHERE payout_status = 'pending';
+
+-- Template Reviews (Social Proof)
+CREATE TABLE template_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  marketplace_template_id UUID NOT NULL REFERENCES marketplace_templates(id) ON DELETE CASCADE,
+  reviewer_organization_id UUID NOT NULL REFERENCES organizations(id),
+  reviewer_user_id UUID NOT NULL REFERENCES auth.users(id),
+  purchase_id UUID REFERENCES template_purchases(id), -- Verified purchase
+
+  -- Review Content
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  review_title TEXT,
+  review_text TEXT,
+
+  -- Campaign Context (did they actually use it?)
+  campaign_id UUID REFERENCES campaigns(id),
+  achieved_response_rate NUMERIC(5,2), -- What response rate did they get?
+
+  -- Verification
+  is_verified_purchase BOOLEAN DEFAULT false,
+  is_verified_performance BOOLEAN DEFAULT false, -- Admin verified their response rate claim
+
+  -- Helpfulness (for sorting reviews)
+  helpful_votes INTEGER DEFAULT 0,
+  unhelpful_votes INTEGER DEFAULT 0,
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_reviews_template ON template_reviews(marketplace_template_id, rating DESC);
+CREATE INDEX idx_reviews_verified ON template_reviews(marketplace_template_id, is_verified_purchase, rating DESC) WHERE is_verified_purchase = true;
+
+-- API Keys (Developer Platform)
+CREATE TABLE api_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+
+  -- Key Details
+  key_name TEXT NOT NULL,
+  api_key_hash TEXT NOT NULL UNIQUE, -- bcrypt hash of actual key
+  api_key_prefix TEXT NOT NULL, -- First 8 chars visible to user (e.g., "pk_live_")
+
+  -- Permissions (scopes)
+  scopes TEXT[] NOT NULL,
+  -- Available scopes: read:designs, write:designs, read:campaigns, write:campaigns, send:mail, read:analytics, write:webhooks
+
+  -- Rate Limiting
+  rate_limit_per_minute INTEGER DEFAULT 60,
+  rate_limit_per_day INTEGER DEFAULT 10000,
+
+  -- Usage Tracking
+  total_requests INTEGER DEFAULT 0,
+  last_used_at TIMESTAMPTZ,
+  last_used_ip INET,
+
+  -- Status
+  is_active BOOLEAN DEFAULT true,
+  expires_at TIMESTAMPTZ,
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_api_keys_org ON api_keys(organization_id);
+CREATE INDEX idx_api_keys_prefix ON api_keys(api_key_prefix);
+CREATE INDEX idx_api_keys_hash ON api_keys(api_key_hash);
+
+-- Webhooks (Event Notification System)
+CREATE TABLE webhooks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+
+  -- Webhook Configuration
+  event_types TEXT[] NOT NULL,
+  -- Available events: design.created, design.updated, campaign.created, campaign.sent, campaign.delivered,
+  --                   recipient.responded, recipient.converted, template.purchased
+  endpoint_url TEXT NOT NULL,
+  secret_key TEXT NOT NULL, -- For HMAC signature verification
+
+  -- Status
+  is_active BOOLEAN DEFAULT true,
+
+  -- Reliability Metrics
+  total_deliveries INTEGER DEFAULT 0,
+  successful_deliveries INTEGER DEFAULT 0,
+  failed_deliveries INTEGER DEFAULT 0,
+  last_delivery_at TIMESTAMPTZ,
+  last_delivery_status INTEGER, -- HTTP status code
+  consecutive_failures INTEGER DEFAULT 0, -- Auto-disable after 10 consecutive failures
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_webhooks_org ON webhooks(organization_id);
+CREATE INDEX idx_webhooks_active ON webhooks(organization_id, is_active) WHERE is_active = true;
+
+-- Webhook Delivery Log (Audit Trail)
+CREATE TABLE webhook_deliveries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  webhook_id UUID NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+
+  -- Delivery Details
+  event_type TEXT NOT NULL,
+  payload JSONB NOT NULL,
+
+  -- HTTP Request
+  request_headers JSONB,
+  request_signature TEXT, -- HMAC signature
+
+  -- HTTP Response
+  http_status_code INTEGER,
+  response_body TEXT,
+  response_time_ms INTEGER,
+
+  -- Retry Logic
+  attempt_number INTEGER DEFAULT 1,
+  max_attempts INTEGER DEFAULT 3,
+  next_retry_at TIMESTAMPTZ,
+
+  -- Status
+  delivery_status TEXT DEFAULT 'pending', -- pending, success, failed, retrying
+  error_message TEXT,
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_webhook_deliveries_webhook ON webhook_deliveries(webhook_id, created_at DESC);
+CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(delivery_status, next_retry_at) WHERE delivery_status = 'retrying';
+
+-- Row Level Security
+ALTER TABLE marketplace_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE template_purchases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE template_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE webhooks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE webhook_deliveries ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Anyone can view approved marketplace templates"
+  ON marketplace_templates FOR SELECT
+  USING (status = 'approved');
+
+CREATE POLICY "Creators can manage their own listings"
+  ON marketplace_templates FOR ALL
+  USING (creator_organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can view their organization's purchases"
+  ON template_purchases FOR SELECT
+  USING (buyer_organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Admins can manage API keys"
+  ON api_keys FOR ALL
+  USING (
+    organization_id IN (
+      SELECT organization_id FROM user_profiles
+      WHERE id = auth.uid() AND (role = 'admin' OR role = 'owner')
+    )
   );
 
-  // Create a default user for existing data
-  const defaultUser = await supabase.createUser({
-    email: 'demo@droplab.com',
-    fullName: 'Demo User',
-    companyName: 'DropLab Demo'
-  });
-
-  console.log('Migrating campaigns...');
-  const campaigns = await sqlite.getAllCampaigns();
-  for (const campaign of campaigns) {
-    await supabase.createCampaign({
-      name: campaign.name,
-      message: campaign.message,
-      companyName: campaign.company_name
-    }, defaultUser.id);
-  }
-
-  console.log('Migrating recipients...');
-  // ... migrate recipients
-
-  console.log('Migrating templates...');
-  // ... migrate templates
-
-  console.log('Migration complete!');
-}
-
-migrate().catch(console.error);
+CREATE POLICY "Admins can manage webhooks"
+  ON webhooks FOR ALL
+  USING (
+    organization_id IN (
+      SELECT organization_id FROM user_profiles
+      WHERE id = auth.uid() AND (role = 'admin' OR role = 'owner')
+    )
+  );
 ```
-
-**Checklist:**
-- [ ] Export all data from SQLite
-- [ ] Create default user in Supabase
-- [ ] Migrate campaigns (link to default user)
-- [ ] Migrate recipients (link to campaigns + default user)
-- [ ] Migrate templates (link to default user)
-- [ ] Migrate landing pages
-- [ ] Migrate brand profiles (link to default user)
-- [ ] Verify data integrity after migration
-- [ ] Test application with migrated data
 
 ---
 
-### Phase 3: Authentication (Week 2, Days 8-10)
+### **Phase 6: Analytics & Tracking Schema**
 
-**Status:** ⬜ Not Started
+```sql
+-- Tracking Events (QR scans, page views, conversions)
+CREATE TABLE tracking_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_recipient_id UUID NOT NULL REFERENCES campaign_recipients(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
 
-#### Task 3.1: Install Supabase Auth
+  -- Event Details
+  event_type TEXT NOT NULL, -- qr_scan, page_view, button_click, form_submit, form_view, phone_call, external_link
+  event_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
+  -- User Context
+  user_agent TEXT,
+  ip_address INET,
+  referrer TEXT,
+  device_type TEXT, -- mobile, tablet, desktop
+  browser TEXT,
+  os TEXT,
+
+  -- Geographic Data (from IP)
+  geo_country TEXT,
+  geo_region TEXT,
+  geo_city TEXT,
+
+  -- Event-Specific Data
+  event_data JSONB, -- Flexible JSON for event-specific fields
+  -- Examples:
+  --   qr_scan: { "scan_location": "mailbox", "scan_app": "native_camera" }
+  --   button_click: { "button_id": "book_appointment", "button_text": "Schedule Now" }
+  --   form_submit: { "form_data": {...}, "form_type": "contact" }
+
+  -- Conversion Attribution
+  is_conversion BOOLEAN DEFAULT false,
+  conversion_value NUMERIC(10,2),
+
+  -- Session Tracking
+  session_id UUID, -- Group events from same user session
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_tracking_events_recipient ON tracking_events(campaign_recipient_id);
+CREATE INDEX idx_tracking_events_org_time ON tracking_events(organization_id, event_timestamp DESC);
+CREATE INDEX idx_tracking_events_type ON tracking_events(event_type, event_timestamp DESC);
+CREATE INDEX idx_tracking_events_session ON tracking_events(session_id);
+
+-- Analytics Summaries (Pre-aggregated for Dashboard Performance)
+CREATE TABLE analytics_summaries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  campaign_id UUID REFERENCES campaigns(id), -- Null = org-wide summary
+
+  -- Time Period
+  period_start DATE NOT NULL,
+  period_end DATE NOT NULL,
+  granularity TEXT NOT NULL, -- daily, weekly, monthly
+
+  -- Volume Metrics
+  total_sent INTEGER DEFAULT 0,
+  total_delivered INTEGER DEFAULT 0,
+  total_qr_scans INTEGER DEFAULT 0,
+  total_page_views INTEGER DEFAULT 0,
+  total_responses INTEGER DEFAULT 0,
+  total_conversions INTEGER DEFAULT 0,
+
+  -- Rate Metrics (percentages)
+  delivery_rate NUMERIC(5,2),
+  qr_scan_rate NUMERIC(5,2),
+  response_rate NUMERIC(5,2),
+  conversion_rate NUMERIC(5,2),
+
+  -- Financial Metrics
+  total_revenue NUMERIC(12,2),
+  total_cost NUMERIC(12,2),
+  roi NUMERIC(8,2),
+
+  -- Engagement Metrics
+  avg_time_to_first_view_hours NUMERIC(8,2),
+  avg_page_views_per_recipient NUMERIC(5,2),
+  avg_session_duration_seconds INTEGER,
+
+  -- Segment Breakdown
+  segment_metrics JSONB, -- Performance by demographic segment
+  -- Example: { "age_35_44": { "response_rate": 3.2, "conversion_rate": 1.5 }, "age_55_64": { "response_rate": 2.1, "conversion_rate": 0.9 } }
+
+  -- Top Performers
+  top_performing_recipients JSONB, -- Top 10 recipients by conversion value
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE(organization_id, campaign_id, period_start, granularity)
+);
+
+CREATE INDEX idx_analytics_summaries_org_period ON analytics_summaries(organization_id, period_start DESC);
+CREATE INDEX idx_analytics_summaries_campaign ON analytics_summaries(campaign_id, period_start DESC);
+
+-- Row Level Security
+ALTER TABLE tracking_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analytics_summaries ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Users can view their organization's tracking events"
+  ON tracking_events FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can view their organization's analytics"
+  ON analytics_summaries FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+```
+
+---
+
+## 🚀 Implementation Phases (20 Weeks to Monopoly)
+
+### **Timeline Overview**
+
+| Phase | Duration | Focus | Deliverable |
+|-------|----------|-------|-------------|
+| Phase 1 | Weeks 1-2 | Foundation | Auth + Database deployed |
+| Phase 2 | Weeks 3-4 | Design Engine | Fabric.js editor working |
+| Phase 3 | Weeks 5-6 | VDP Engine | Batch personalization at scale |
+| Phase 4 | Weeks 7-8 | AI Intelligence | Compliance + Predictions |
+| Phase 5 | Weeks 9-10 | Campaign Management + Data Axle | End-to-end with audience targeting |
+| Phase 6 | Weeks 11-12 | Collaboration | Real-time multi-user editing |
+| Phase 7 | Weeks 13-14 | Marketplace | Template sharing + revenue |
+| Phase 8 | Weeks 15-16 | Developer API | Platform play |
+| Phase 9 | Weeks 17-18 | External Integrations | PostGrid, Stripe (Data Axle: Phase 5) |
+| Phase 10 | Weeks 19-20 | Polish & Launch | Beta with 50 users |
+
+---
+
+### **Phase 1: Foundation (Weeks 1-2)**
+
+**Goal**: Establish core infrastructure with authentication and database
+
+**Status**: ✅ Partially Complete (auth working, need database deployment)
+
+#### Completed Tasks:
+- ✅ Supabase project created
+- ✅ Authentication system (login/signup)
+- ✅ Protected routes with middleware
+- ✅ User context provider
+- ✅ Basic dashboard
+
+#### Remaining Tasks:
+
+**Task 1.1: Deploy Foundation Schema**
 ```bash
-npm install @supabase/ssr @supabase/supabase-js
+# Run all Phase 1 SQL migrations
+supabase db push migrations/01_foundation_identity.sql
+supabase db push migrations/02_foundation_design.sql
 ```
 
-**Checklist:**
-- [ ] Install dependencies
-- [ ] Verify package versions compatible with Next.js 15
+**Checklist**:
+- [ ] Deploy organizations table
+- [ ] Deploy user_profiles table
+- [ ] Deploy design_templates table
+- [ ] Deploy design_assets table
+- [ ] Test RLS policies work
+- [ ] Create seed data (3 test organizations)
+- [ ] Test multi-tenant isolation
+
+**Task 1.2: Supabase Storage Setup**
+
+Configure storage buckets for assets:
+- `design-assets` - User-uploaded images, logos, fonts
+- `generated-pdfs` - Campaign PDF outputs
+- `template-thumbnails` - Template preview images
+- `ai-backgrounds` - DALL-E generated backgrounds
+
+**Checklist**:
+- [ ] Create storage buckets
+- [ ] Configure access policies
+- [ ] Test file upload
+- [ ] Test file download
+- [ ] Set up CDN caching
+
+**Task 1.3: Create Database Client Abstraction**
+
+**File**: `lib/database/supabase-client.ts`
+
+Implement client wrapper for all database operations:
+- Campaign CRUD
+- Template CRUD
+- Asset management
+- User operations
+
+**Checklist**:
+- [ ] Implement SupabaseClient class
+- [ ] Add type-safe query methods
+- [ ] Add error handling
+- [ ] Test all CRUD operations
+
+**Testing Checkpoints**:
+- [ ] Create 3 test organizations
+- [ ] Create 5 test users across orgs
+- [ ] Verify User A cannot see User B's data
+- [ ] Test auth flows (signup, login, logout)
+- [ ] Test session management
+- [ ] Performance: Page load <2s
 
 ---
 
-#### Task 3.2: Configure Supabase Auth
+### **Phase 2: Design Engine Core (Weeks 3-4)**
 
-**File:** `lib/supabase/server.ts` (Server-side)
+**Goal**: Build Fabric.js canvas editor with template save/load
 
-```typescript
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+**Features**:
+- Drag-and-drop canvas editor
+- Text, image, shape, path tools
+- Variable field markers (separate storage pattern)
+- Template save/load
+- Asset library integration
 
-export function createClient() {
-  const cookieStore = cookies();
+**Implementation**:
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Handle cookie set errors
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-            // Handle cookie remove errors
-          }
-        },
-      },
-    }
-  );
-}
-```
+**Task 2.1: Fabric.js Canvas Component**
 
-**File:** `lib/supabase/client.ts` (Client-side)
-
-```typescript
-import { createBrowserClient } from '@supabase/ssr';
-
-export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-```
-
-**Checklist:**
-- [ ] Create server-side Supabase client
-- [ ] Create client-side Supabase client
-- [ ] Test both clients work correctly
-
----
-
-#### Task 3.3: Create Auth Pages
-
-**File:** `app/auth/login/page.tsx`
+**File**: `components/design-editor/canvas-editor.tsx`
 
 ```typescript
 'use client';
 
-import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { useEffect, useRef, useState } from 'react';
+import { fabric } from 'fabric';
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+interface CanvasEditorProps {
+  templateId?: string;
+  onSave?: (canvas: fabric.Canvas) => void;
+}
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+export function CanvasEditor({ templateId, onSave }: CanvasEditorProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    // Initialize Fabric.js canvas at 300 DPI (6" x 4" postcard = 1800px x 1200px)
+    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+      width: 1800,
+      height: 1200,
+      backgroundColor: '#FFFFFF'
     });
 
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
+    setCanvas(fabricCanvas);
+
+    // Load template if editing existing
+    if (templateId) {
+      loadTemplate(templateId, fabricCanvas);
     }
 
-    toast.success('Logged in successfully!');
-    router.push('/dashboard');
-    router.refresh();
+    return () => {
+      fabricCanvas.dispose();
+    };
+  }, [templateId]);
+
+  const loadTemplate = async (id: string, canvas: fabric.Canvas) => {
+    const response = await fetch(`/api/templates/${id}`);
+    const template = await response.json();
+
+    // Load canvas JSON
+    await canvas.loadFromJSON(template.canvas_json);
+
+    // CRITICAL: Apply variable mappings separately (Fabric.js v6 limitation)
+    const variableMappings = template.variable_mappings || {};
+    canvas.getObjects().forEach((obj, idx) => {
+      const mapping = variableMappings[idx.toString()];
+      if (mapping) {
+        obj.set('variableType', mapping.variableType);
+        obj.set('isReusable', mapping.isReusable);
+      }
+    });
+
+    canvas.renderAll();
+  };
+
+  const saveTemplate = async () => {
+    if (!canvas) return;
+
+    // Export canvas JSON
+    const canvasJSON = canvas.toJSON();
+
+    // Extract variable mappings (CRITICAL for VDP)
+    const variableMappings: Record<string, any> = {};
+    canvas.getObjects().forEach((obj: any, idx) => {
+      if (obj.variableType) {
+        variableMappings[idx.toString()] = {
+          variableType: obj.variableType,
+          isReusable: obj.isReusable || false
+        };
+      }
+    });
+
+    // Save to database
+    await fetch('/api/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        canvas_json: canvasJSON,
+        variable_mappings: variableMappings,
+        canvas_width: canvas.width,
+        canvas_height: canvas.height
+      })
+    });
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md p-8">
-        <h1 className="text-2xl font-bold mb-6">Login to DropLab</h1>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
-          </Button>
-        </form>
-
-        <p className="text-center mt-4 text-sm text-gray-600">
-          Don't have an account?{' '}
-          <a href="/auth/signup" className="text-blue-600 hover:underline">
-            Sign up
-          </a>
-        </p>
-      </Card>
+    <div className="canvas-container">
+      <canvas ref={canvasRef} />
+      <button onClick={saveTemplate}>Save Template</button>
     </div>
   );
 }
 ```
 
-**File:** `app/auth/signup/page.tsx`
+**Checklist**:
+- [ ] Initialize Fabric.js canvas at 300 DPI
+- [ ] Implement toolbar (text, image, shape, line)
+- [ ] Add variable marker tool
+- [ ] Implement save/load
+- [ ] Add undo/redo
+- [ ] Add object layering (z-index)
+- [ ] Add alignment guides
+- [ ] Test with 100+ objects
 
-(Similar structure, use `supabase.auth.signUp()`)
+**Task 2.2: Variable Marker System**
 
-**Checklist:**
-- [ ] Create login page
-- [ ] Create signup page
-- [ ] Create forgot password page
-- [ ] Add form validation
-- [ ] Add loading states
-- [ ] Add error handling
-- [ ] Test email/password signup
-- [ ] Test OAuth providers (optional: Google, GitHub)
+Allow users to mark canvas objects as variables (e.g., `{{recipient_name}}`).
+
+**UI**: Right-click object → "Mark as Variable" → Select variable type
+
+**Checklist**:
+- [ ] Create variable marker UI
+- [ ] Implement variable types (name, address, phone, qrCode, logo, message)
+- [ ] Visual indicator on canvas (purple border)
+- [ ] Store mappings separately from canvas_json
+- [ ] Test save/load preserves markers
+
+**Task 2.3: Asset Library Integration**
+
+**File**: `components/design-editor/asset-library.tsx`
+
+Drag assets from library onto canvas.
+
+**Checklist**:
+- [ ] Display uploaded assets
+- [ ] Drag-and-drop to canvas
+- [ ] Image optimization (resize, compress)
+- [ ] Font management
+- [ ] Search/filter assets
+
+**Testing Checkpoints**:
+- [ ] Create template with 20+ objects
+- [ ] Save and reload template
+- [ ] Verify variable mappings preserved
+- [ ] Drag 10 images onto canvas
+- [ ] Test undo/redo 50 times
+- [ ] Performance: Canvas render <500ms
 
 ---
 
-#### Task 3.4: Middleware for Route Protection
+### **Phase 3: VDP Engine (Weeks 5-6)**
 
-**File:** `middleware.ts`
+**Goal**: Variable Data Printing at scale (10,000+ personalized designs)
+
+**Features**:
+- CSV upload and parsing
+- Batch personalization engine
+- Dynamic QR code generation
+- PDF rendering (300 DPI, CMYK)
+- Progress tracking
+
+**Implementation**:
+
+**Task 3.1: CSV Upload & Parsing**
+
+**File**: `components/campaigns/csv-uploader.tsx`
+
+**Checklist**:
+- [ ] File upload component
+- [ ] CSV parsing with papaparse
+- [ ] Field mapping UI (CSV columns → database fields)
+- [ ] Validation (required fields, address format)
+- [ ] Preview table (first 10 rows)
+- [ ] Handle large files (>10,000 rows)
+
+**Task 3.2: Batch Personalization Engine**
+
+**File**: `lib/vdp/personalization-engine.ts`
 
 ```typescript
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+export async function personalizeTemplate(
+  template: DesignTemplate,
+  recipients: Recipient[],
+  options: PersonalizationOptions
+): Promise<PersonalizedDesign[]> {
+  const results: PersonalizedDesign[] = [];
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+  for (const recipient of recipients) {
+    // Clone canvas JSON
+    const canvas = new fabric.Canvas(null, {
+      width: template.canvas_width,
+      height: template.canvas_height
+    });
+
+    await canvas.loadFromJSON(template.canvas_json);
+
+    // Apply variable mappings
+    const variableMappings = template.variable_mappings || {};
+    canvas.getObjects().forEach((obj: any, idx) => {
+      const mapping = variableMappings[idx.toString()];
+
+      if (!mapping) return;
+
+      // Skip reusable elements (logo, brand colors)
+      if (mapping.isReusable) return;
+
+      // Replace variable with recipient data
+      switch (mapping.variableType) {
+        case 'recipientName':
+          if (obj.type === 'text') {
+            obj.set('text', `${recipient.recipient_name} ${recipient.recipient_lastname}`);
+          }
+          break;
+
+        case 'recipientAddress':
+          if (obj.type === 'text') {
+            obj.set('text', `${recipient.recipient_address_line1}\n${recipient.recipient_city}, ${recipient.recipient_state} ${recipient.recipient_zip}`);
+          }
+          break;
+
+        case 'qrCode':
+          // Generate unique QR code
+          const trackingCode = generateTrackingCode();
+          const qrCodeDataUrl = await generateQRCode(`https://droplab.com/lp/${trackingCode}`);
+
+          if (obj.type === 'image') {
+            await obj.setSrc(qrCodeDataUrl);
+          }
+          break;
+
+        // ... handle other variable types
+      }
+    });
+
+    // Render to high-DPI PNG
+    const dataUrl = canvas.toDataURL({
+      format: 'png',
+      quality: 1.0,
+      multiplier: 4 // 4x resolution for print
+    });
+
+    // Convert to PDF
+    const pdfUrl = await generatePDF(dataUrl, {
+      width: template.format_width_inches,
+      height: template.format_height_inches,
+      colorSpace: 'CMYK'
+    });
+
+    results.push({
+      recipient_id: recipient.id,
+      personalized_canvas_json: canvas.toJSON(),
+      personalized_pdf_url: pdfUrl,
+      tracking_code: trackingCode
+    });
+  }
+
+  return results;
+}
+```
+
+**Checklist**:
+- [ ] Implement personalization logic
+- [ ] Add progress tracking
+- [ ] Generate unique QR codes
+- [ ] Render to PDF (300 DPI)
+- [ ] Store PDFs in Supabase Storage
+- [ ] Handle errors gracefully
+- [ ] Optimize for speed (parallelize)
+
+**Task 3.3: QR Code & PURL Generation**
+
+**File**: `lib/tracking/qr-generator.ts`
+
+Generate unique tracking codes and QR codes for each recipient.
+
+**Checklist**:
+- [ ] Generate tracking codes (nanoid, 12 chars)
+- [ ] Create QR codes (qrcode library)
+- [ ] Store tracking codes in database
+- [ ] Create landing page routes (`/lp/[trackingCode]`)
+- [ ] Test QR codes scan correctly
+
+**Testing Checkpoints**:
+- [ ] Upload CSV with 100 recipients
+- [ ] Generate 100 personalized designs in <2 minutes
+- [ ] Verify all QR codes unique
+- [ ] Scan 10 QR codes with phone
+- [ ] Check PDF quality (300 DPI)
+- [ ] Performance: 10,000 recipients in <10 minutes
+
+---
+
+### **Phase 4: AI Intelligence Layer (Weeks 7-8)**
+
+**Goal**: AI-powered design analysis and postal compliance
+
+**Features**:
+- Postal compliance validator (USPS rules)
+- Design critique (readability, layout, color)
+- Response rate predictor
+- Automated improvement suggestions
+
+**Implementation**:
+
+**Task 4.1: Postal Compliance Validator**
+
+**File**: `lib/compliance/postal-validator.ts`
+
+```typescript
+export async function validatePostalCompliance(
+  canvas: fabric.Canvas,
+  format: string,
+  country: string
+): Promise<ComplianceResult> {
+  const issues: ComplianceIssue[] = [];
+
+  // USPS Postcard Rules (example)
+  if (format === 'postcard_4x6' && country === 'US') {
+    // Rule 1: Barcode Clear Zone (bottom 5/8")
+    const barcodeZone = {
+      top: canvas.height - (5/8 * 300), // 5/8" at 300 DPI
+      height: (5/8 * 300)
+    };
+
+    canvas.getObjects().forEach(obj => {
+      if (objectIntersects(obj, barcodeZone)) {
+        issues.push({
+          severity: 'error',
+          rule: 'USPS-BC-001',
+          element: obj.id,
+          message: 'Content in barcode clear zone will be rejected by USPS',
+          autofix: {
+            action: 'move',
+            params: { top: barcodeZone.top - obj.height - 18 }
+          }
+        });
+      }
+    });
+
+    // Rule 2: Safety Margin (1/8" from edges)
+    const safetyMargin = (1/8 * 300);
+    canvas.getObjects().forEach(obj => {
+      const edgeDistance = getMinEdgeDistance(obj, canvas);
+      if (edgeDistance < safetyMargin) {
+        issues.push({
+          severity: 'warning',
+          rule: 'USPS-SAFE-001',
+          element: obj.id,
+          message: `Element too close to edge (${edgeDistance}px). Move to ${safetyMargin}px minimum.`,
+          autofix: {
+            action: 'move',
+            params: { left: obj.left + (safetyMargin - edgeDistance) }
+          }
+        });
+      }
+    });
+  }
+
+  // AI-Powered Compliance Check (catch edge cases)
+  const aiAnalysis = await analyzeWithClaude({
+    canvas: canvas.toDataURL(),
+    regulations: getPostalRegs(country, format),
+    prompt: `Analyze this ${format} design for ${country} postal compliance.
+             Check for issues human rules might miss. Return JSON with issues found.`
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-        },
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Redirect to login if accessing protected routes without auth
-  if (!user && !request.nextUrl.pathname.startsWith('/auth')) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
-  }
-
-  // Redirect to dashboard if accessing auth routes while logged in
-  if (user && request.nextUrl.pathname.startsWith('/auth')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  return response;
-}
-
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - lp/ (public landing pages)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public|lp).*)',
-  ],
-};
-```
-
-**Checklist:**
-- [ ] Create middleware file
-- [ ] Configure protected routes
-- [ ] Allow public access to landing pages (/lp/*)
-- [ ] Allow public access to auth pages
-- [ ] Test: Unauthenticated users redirected to login
-- [ ] Test: Authenticated users can access dashboard
-- [ ] Test: Authenticated users redirected from /auth/* to dashboard
-
----
-
-#### Task 3.5: User Context Provider
-
-**File:** `lib/contexts/auth-context.tsx`
-
-```typescript
-'use client';
-
-import { createContext, useContext, useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  signOut: async () => {},
-});
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+  return {
+    is_compliant: issues.length === 0,
+    issues: [...issues, ...aiAnalysis.issues],
+    compliance_score: calculateComplianceScore(issues)
   };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
 }
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
 ```
 
-**Checklist:**
-- [ ] Create auth context
-- [ ] Add to root layout
-- [ ] Create useAuth hook
-- [ ] Test: User data available in components
-- [ ] Test: Sign out functionality
+**Checklist**:
+- [ ] Implement USPS postcard rules
+- [ ] Implement USPS letter rules
+- [ ] Add international regulations (UK, Canada)
+- [ ] Integrate Claude API for AI checks
+- [ ] Create auto-fix suggestions
+- [ ] Real-time validation in editor
+- [ ] Test with 50 known-bad designs
+
+**Task 4.2: Response Rate Predictor**
+
+**File**: `lib/ai/performance-predictor.ts`
+
+Use historical campaign data + Claude API to predict response rates.
+
+**Checklist**:
+- [ ] Extract design features from canvas
+- [ ] Query historical performance data
+- [ ] Build Claude prompt with features + history
+- [ ] Parse AI response (min/max/mean predictions)
+- [ ] Display in UI with confidence interval
+- [ ] Track prediction accuracy over time
+
+**Task 4.3: AI Design Critic**
+
+Analyze design quality and suggest improvements.
+
+**Checklist**:
+- [ ] Readability score (font size, contrast)
+- [ ] Visual hierarchy score (CTA visibility)
+- [ ] Color contrast checker (WCAG)
+- [ ] Layout density analysis
+- [ ] Improvement suggestions
+- [ ] A/B test variant generation
+
+**Testing Checkpoints**:
+- [ ] Validate 100 designs (mix of compliant/non-compliant)
+- [ ] Verify auto-fix corrections work
+- [ ] Compare AI predictions vs actual results (track accuracy)
+- [ ] Test with various industries and demographics
+- [ ] Performance: Validation <2 seconds
 
 ---
 
-### Phase 4: Data Axle Integration (Week 2-3, Days 11-17)
+### **Phase 5: Campaign Management + Data Axle Integration (Weeks 9-10)**
 
-**Status:** ⬜ Not Started
+**Goal**: End-to-end campaign creation with integrated audience targeting (Data Axle API)
 
-**Reference:** See `docs/DATA_AXLE_INTEGRATION_GUIDE.md` for complete details
+**Strategic Importance**: This phase creates the competitive moat by integrating audience targeting directly into the campaign workflow. No competitor offers this level of integration.
 
-#### Task 4.1: Setup Data Axle Account
+**Features**:
+- Campaign creation wizard (4 steps)
+- **Data Axle audience targeting** (NEW - 250M+ contacts)
+- CSV upload (existing path)
+- AI-powered audience recommendations
+- Real-time cost calculation
+- Campaign dashboard & analytics
 
-**Checklist:**
-- [ ] Sign up: https://platform.data-axle.com/auth_time/signup
-- [ ] Activate account via email
-- [ ] Generate API token
-- [ ] Test authentication with curl
-- [ ] Add token to `.env.local`
-- [ ] Contact partnerships team for reseller pricing
+**Competitive Advantage**:
+- ✅ **FREE count preview** (Data Axle Insights API)
+- ✅ **Zero upfront cost** (see exact audience size before purchasing)
+- ✅ **AI recommendations** (based on YOUR campaign performance data)
+- ✅ **End-to-end workflow** (Target → Design → Print → Track in ONE platform)
+
+**See**: `DATA_AXLE_INTEGRATION_SPEC.md` for complete technical specification
 
 ---
 
-#### Task 4.2: Create Data Axle Client
+#### **Week 9: Database & API Foundation**
 
-**File:** `lib/contacts/data-axle-client.ts`
+**Task 5.1: Deploy Data Axle Database Schema**
 
-(See DATA_AXLE_INTEGRATION_GUIDE.md Section 10 for complete code)
+**New Tables**:
 
-**Checklist:**
+```sql
+-- Saved Audience Filters (Reusable Targeting Profiles)
+CREATE TABLE audience_filters (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+
+  name TEXT NOT NULL,
+  description TEXT,
+  tags TEXT[],
+
+  filters JSONB NOT NULL, -- Data Axle filter configuration
+  last_count INTEGER,
+  last_count_updated_at TIMESTAMPTZ,
+  last_estimated_cost NUMERIC(12,2),
+
+  -- Performance Tracking (network effects data)
+  total_campaigns_using INTEGER DEFAULT 0,
+  avg_response_rate NUMERIC(5,2),
+  avg_conversion_rate NUMERIC(5,2),
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_audience_filters_org ON audience_filters(organization_id);
+CREATE INDEX idx_audience_filters_performance ON audience_filters(avg_response_rate DESC NULLS LAST);
+
+-- Contact Purchases (Transaction History)
+CREATE TABLE contact_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  purchased_by UUID NOT NULL REFERENCES auth.users(id),
+
+  filters JSONB NOT NULL,
+  contact_count INTEGER NOT NULL,
+
+  cost_per_contact NUMERIC(10,4) NOT NULL, -- Your cost from Data Axle
+  total_cost NUMERIC(12,2) NOT NULL,
+  user_charge_per_contact NUMERIC(10,4) NOT NULL, -- What you charge
+  total_user_charge NUMERIC(12,2) NOT NULL,
+  margin NUMERIC(12,2) GENERATED ALWAYS AS (total_user_charge - total_cost) STORED,
+
+  recipient_list_id UUID REFERENCES recipient_lists(id),
+  campaign_id UUID REFERENCES campaigns(id),
+  audience_filter_id UUID REFERENCES audience_filters(id),
+
+  provider TEXT DEFAULT 'data_axle',
+  status TEXT DEFAULT 'completed',
+
+  purchased_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_contact_purchases_org ON contact_purchases(organization_id);
+CREATE INDEX idx_contact_purchases_campaign ON contact_purchases(campaign_id);
+
+-- RLS Policies
+ALTER TABLE audience_filters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contact_purchases ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their organization's audience filters"
+  ON audience_filters FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+
+CREATE POLICY "Users can view their organization's contact purchases"
+  ON contact_purchases FOR SELECT
+  USING (organization_id IN (SELECT organization_id FROM user_profiles WHERE id = auth.uid()));
+```
+
+**Modify Existing Tables**:
+
+```sql
+-- Add Data Axle metadata to recipient_lists
+ALTER TABLE recipient_lists
+  ADD COLUMN data_axle_filters JSONB,
+  ADD COLUMN data_axle_purchase_id UUID REFERENCES contact_purchases(id),
+  ADD COLUMN data_axle_cost NUMERIC(12,2);
+
+-- Add demographics to recipients (from Data Axle Enhanced package)
+ALTER TABLE recipients
+  ADD COLUMN data_axle_person_id TEXT,
+  ADD COLUMN gender TEXT,
+  ADD COLUMN marital_status TEXT,
+  ADD COLUMN estimated_income INTEGER,
+  ADD COLUMN home_value_estimated INTEGER,
+  ADD COLUMN interests TEXT[];
+
+-- Add audience tracking to campaigns
+ALTER TABLE campaigns
+  ADD COLUMN audience_source TEXT DEFAULT 'csv_upload', -- 'csv_upload', 'data_axle'
+  ADD COLUMN audience_filter_id UUID REFERENCES audience_filters(id),
+  ADD COLUMN audience_cost NUMERIC(12,2),
+  ADD COLUMN audience_demographics JSONB; -- Summary stats
+```
+
+**Checklist**:
+- [ ] Deploy new tables (audience_filters, contact_purchases)
+- [ ] Modify existing tables (recipient_lists, recipients, campaigns)
+- [ ] Test RLS policies
+- [ ] Create seed data (3 test audiences)
+- [ ] Verify multi-tenant isolation
+
+---
+
+**Task 5.2: Data Axle API Client**
+
+**File**: `lib/data-axle/client.ts`
+
+**Implementation**: Production-ready TypeScript client (see `docs/DATA_AXLE_INTEGRATION_GUIDE.md` lines 1650-2057)
+
+**Key Features**:
+- Filter DSL builder (converts UI filters → Data Axle API format)
+- Count API (FREE - Insights API)
+- Purchase API (PAID - Search API with pagination)
+- Rate limiter (150 requests per 10 seconds)
+- Retry logic (exponential backoff)
+- Caching (5-minute TTL for counts)
+
+**Checklist**:
 - [ ] Implement DataAxleClient class
+- [ ] Build filter DSL converter
 - [ ] Add rate limiter (150 req/10s)
-- [ ] Implement getCount() method (Insights API)
-- [ ] Implement purchaseContacts() method (Search API)
-- [ ] Implement buildFilterDSL() method
-- [ ] Add retry logic with exponential backoff
+- [ ] Add retry logic (3 attempts, exponential backoff)
+- [ ] Test count API (FREE)
+- [ ] Test purchase API (buy 10 contacts)
+- [ ] Handle pagination (max 4,000 records per query)
 - [ ] Add error handling
-- [ ] Test with sample filters
 
----
-
-#### Task 4.3: Create API Routes
-
-**Files:**
-- `app/api/contacts/count/route.ts`
-- `app/api/contacts/purchase/route.ts`
-
-**Checklist:**
-- [ ] Create count endpoint (FREE - Insights API)
-- [ ] Create purchase endpoint (PAID - Search API)
-- [ ] Add authentication checks
-- [ ] Add usage tracking (for billing)
-- [ ] Add caching for count requests (5 min)
-- [ ] Test both endpoints with Postman/curl
-
----
-
-#### Task 4.4: Build Audience Targeting UI
-
-**File:** `app/campaigns/new/audience/page.tsx`
-
-(See DATA_AXLE_INTEGRATION_GUIDE.md Section 7 for complete code)
-
-**Checklist:**
-- [ ] Create page layout
-- [ ] Add filter controls (sliders, dropdowns, checkboxes)
-- [ ] Add prominent count display (updates real-time)
-- [ ] Add cost calculator
-- [ ] Implement debouncing (500ms)
-- [ ] Add "Save Audience" button
-- [ ] Add "Purchase Contacts" button
-- [ ] Test real-time count updates
-- [ ] Test purchase flow end-to-end
-
----
-
-#### Task 4.5: Saved Audiences Feature
-
-**Database:**
-Already created in Supabase schema (saved_audiences table)
-
-**Files:**
-- `app/audiences/page.tsx` - Audience library
-- `app/api/audiences/route.ts` - CRUD endpoints
-
-**Checklist:**
-- [ ] Create audience library page
-- [ ] Add "Save Audience" functionality
-- [ ] Add "Load Audience" functionality
-- [ ] Show historical count trends
-- [ ] Show performance metrics (conversion rate)
-- [ ] Test save/load/delete operations
-
----
-
-### Phase 5: PostGrid Fulfillment (Week 3-4, Days 18-24)
-
-**Status:** ⬜ Not Started
-
-#### Task 5.1: Setup PostGrid Account
-
-**Steps:**
-1. Sign up: https://www.postgrid.com/signup
-2. Pricing: $250/mo for 500 pieces
-3. Generate API key from dashboard
-4. Review documentation: https://docs.postgrid.com
-
-**Checklist:**
-- [ ] Account created
-- [ ] API key generated
-- [ ] Test API with sample request
-- [ ] Understand pricing structure
-- [ ] Add API key to `.env.local`
-
----
-
-#### Task 5.2: Create PostGrid Client
-
-**File:** `lib/printing/postgrid-client.ts`
-
-```typescript
-export interface PostGridAddress {
-  firstName: string;
-  lastName: string;
-  addressLine1: string;
-  city: string;
-  provinceOrState: string;
-  postalOrZip: string;
-  countryCode: string;
-}
-
-export interface PostGridMailPiece {
-  to: PostGridAddress;
-  from: PostGridAddress;
-  size: 'postcard_4x6' | 'postcard_6x9' | 'letter';
-  pdfUrl?: string; // URL to hosted PDF
-  htmlContent?: string; // Or inline HTML
-  mailType: 'usps_first_class' | 'usps_standard';
-}
-
-export class PostGridClient {
-  private apiKey: string;
-  private baseURL = 'https://api.postgrid.com/v1';
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
-
-  async createMailPiece(data: PostGridMailPiece): Promise<any> {
-    const response = await fetch(`${this.baseURL}/letters`, {
-      method: 'POST',
-      headers: {
-        'x-api-key': this.apiKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      throw new Error(`PostGrid error: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  async getBatchStatus(orderId: string): Promise<any> {
-    const response = await fetch(`${this.baseURL}/letters/${orderId}`, {
-      headers: { 'x-api-key': this.apiKey }
-    });
-
-    return response.json();
-  }
-
-  // ... more methods
-}
-```
-
-**Checklist:**
-- [ ] Implement PostGridClient class
-- [ ] Add createMailPiece() method
-- [ ] Add getBatchStatus() method
-- [ ] Add cancelOrder() method
-- [ ] Add webhook setup method
-- [ ] Test single mail piece creation
-- [ ] Test batch mailing
-
----
-
-#### Task 5.3: Update DM Creative Flow
-
-**File:** `app/dm-creative/page.tsx`
-
-**Changes:**
-- Add "Send via Mail" button (in addition to "Download PDF")
-- Show modal: "Send now ($0.68/piece) or Schedule for later?"
-- Create PostGrid order
-- Store order in fulfillment_orders table
-- Show confirmation with tracking
-
-**Checklist:**
-- [ ] Add "Send via Mail" button
-- [ ] Create send confirmation modal
-- [ ] Integrate with PostGrid API
-- [ ] Store order in database
-- [ ] Update UI to show order status
-- [ ] Test end-to-end: Create DM → Send via PostGrid
-
----
-
-#### Task 5.4: Fulfillment Dashboard
-
-**File:** `app/fulfillment/page.tsx`
-
-**Features:**
-- Order history (all PostGrid orders)
-- Status tracking (pending → printing → shipped → delivered)
-- Cost summary
-- Download proofs
-
-**Checklist:**
-- [ ] Create fulfillment dashboard page
-- [ ] Show order list with status
-- [ ] Add filtering by status
-- [ ] Add search by campaign/recipient
-- [ ] Show cost breakdown
-- [ ] Test with multiple orders
-
----
-
-#### Task 5.5: Webhook Endpoint
-
-**File:** `app/api/webhooks/postgrid/route.ts`
-
-```typescript
-export async function POST(req: Request) {
-  const event = await req.json();
-
-  if (event.type === 'mail.delivered') {
-    // Update order status in database
-    const db = getDatabase();
-    await db.updateFulfillmentOrder(event.data.id, {
-      status: 'delivered',
-      delivered_at: new Date().toISOString()
-    });
-
-    // Send notification to user
-    // await sendEmail(...)
-  }
-
-  return NextResponse.json({ received: true });
-}
-```
-
-**Checklist:**
-- [ ] Create webhook endpoint
-- [ ] Handle all PostGrid events (printed, shipped, delivered, failed)
-- [ ] Update database on each event
-- [ ] Send user notifications
-- [ ] Register webhook URL with PostGrid
-- [ ] Test with PostGrid webhook simulator
-
----
-
-### Phase 6: Stripe Billing (Week 4-5, Days 25-31)
-
-**Status:** ⬜ Not Started
-
-#### Task 6.1: Setup Stripe Account
-
-**Steps:**
-1. Sign up: https://stripe.com
-2. Complete business verification
-3. Create products/prices in Stripe Dashboard:
-   - Starter: $79/mo
-   - Professional: $249/mo
-   - Agency: $599/mo
-4. Create usage-based pricing for overages
-5. Generate API keys
-
-**Checklist:**
-- [ ] Account created and verified
-- [ ] Products created in Stripe Dashboard
-- [ ] Pricing configured
-- [ ] API keys generated (test + live)
-- [ ] Add keys to `.env.local`
-
----
-
-#### Task 6.2: Install Stripe SDK
-
+**Testing**:
 ```bash
-npm install stripe @stripe/stripe-js
-```
+# Unit tests
+npm run test lib/data-axle/client.test.ts
 
-**Checklist:**
-- [ ] Install dependencies
-- [ ] Verify package versions
+# Integration tests (requires real API key)
+npm run test:integration lib/data-axle/integration.test.ts
+```
 
 ---
 
-#### Task 6.3: Create Stripe Client
+**Task 5.3: API Routes**
 
-**File:** `lib/billing/stripe-client.ts`
+**File**: `app/api/contacts/count/route.ts` (FREE - no charge)
 
 ```typescript
-import Stripe from 'stripe';
+export async function POST(req: NextRequest) {
+  const filters = await req.json();
 
-export class StripeClient {
-  private stripe: Stripe;
+  // Check cache (5-min TTL)
+  const cached = cache.get(JSON.stringify(filters));
+  if (cached) return NextResponse.json({ ...cached, cached: true });
 
-  constructor(apiKey: string) {
-    this.stripe = new Stripe(apiKey, {
-      apiVersion: '2023-10-16',
-    });
-  }
+  // Call Data Axle Insights API (FREE)
+  const client = new DataAxleClient(process.env.DATA_AXLE_API_KEY!);
+  const result = await client.getCount(filters);
 
-  async createCustomer(user: User): Promise<Stripe.Customer> {
-    return await this.stripe.customers.create({
-      email: user.email,
-      name: user.fullName,
-      metadata: { userId: user.id }
-    });
-  }
+  // Calculate user charges
+  const estimatedCost = result.count * 0.15; // Your cost
+  const userCharge = result.count * 0.25;    // User charge
+  const margin = userCharge - estimatedCost;
 
-  async createSubscription(
-    customerId: string,
-    priceId: string
-  ): Promise<Stripe.Subscription> {
-    return await this.stripe.subscriptions.create({
-      customer: customerId,
-      items: [{ price: priceId }],
-      trial_period_days: 14,
-    });
-  }
+  // Cache result
+  cache.set(JSON.stringify(filters), { count: result.count, estimatedCost, userCharge, margin });
 
-  async createCheckoutSession(
-    priceId: string,
-    successUrl: string,
-    cancelUrl: string
-  ): Promise<Stripe.Checkout.Session> {
-    return await this.stripe.checkout.sessions.create({
-      mode: 'subscription',
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-    });
-  }
-
-  async trackUsage(
-    subscriptionItemId: string,
-    quantity: number,
-    timestamp: number
-  ): Promise<Stripe.UsageRecord> {
-    return await this.stripe.subscriptionItems.createUsageRecord(
-      subscriptionItemId,
-      { quantity, timestamp }
-    );
-  }
-
-  // ... more methods
+  return NextResponse.json({ count: result.count, estimatedCost, userCharge, margin, cached: false });
 }
 ```
 
-**Checklist:**
-- [ ] Implement StripeClient class
-- [ ] Add createCustomer() method
-- [ ] Add createSubscription() method
-- [ ] Add createCheckoutSession() method
-- [ ] Add trackUsage() method
-- [ ] Add cancelSubscription() method
-- [ ] Test all methods in test mode
-
----
-
-#### Task 6.4: Billing Dashboard
-
-**File:** `app/billing/page.tsx`
-
-**Features:**
-- Current plan display
-- Usage this month (contacts, mail pieces)
-- Plan limits and usage bars
-- Invoice history
-- Upgrade/downgrade buttons
-- Cancel subscription button
-
-**Checklist:**
-- [ ] Create billing page
-- [ ] Show current plan details
-- [ ] Show usage meters
-- [ ] Show invoice history
-- [ ] Add upgrade button (→ Stripe Checkout)
-- [ ] Add cancel subscription button
-- [ ] Test plan upgrades
-- [ ] Test plan downgrades
-
----
-
-#### Task 6.5: Stripe Webhooks
-
-**File:** `app/api/webhooks/stripe/route.ts`
+**File**: `app/api/contacts/purchase/route.ts` (PAID - authenticated)
 
 ```typescript
-import { headers } from 'next/headers';
-import Stripe from 'stripe';
+export async function POST(req: NextRequest) {
+  const { filters, maxContacts, recipientListName } = await req.json();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = headers().get('stripe-signature')!;
-
-  let event: Stripe.Event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (err) {
-    return new Response('Webhook signature verification failed', { status: 400 });
+  // Validate credits
+  const supabase = await createClient();
+  const { data: org } = await supabase.from('organizations').select('credits').single();
+  if (org.credits < maxContacts * 0.25) {
+    return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 });
   }
 
-  // Handle events
-  switch (event.type) {
-    case 'customer.subscription.updated':
-      // Update subscription in database
-      break;
-    case 'customer.subscription.deleted':
-      // Cancel subscription in database
-      break;
-    case 'invoice.payment_succeeded':
-      // Mark invoice as paid
-      break;
-    case 'invoice.payment_failed':
-      // Send notification, pause account
-      break;
+  // Purchase contacts
+  const client = new DataAxleClient(process.env.DATA_AXLE_API_KEY!);
+  const contacts = await client.purchaseContacts(filters, maxContacts);
+
+  // Import to database
+  const { data: recipientList } = await supabase.from('recipient_lists').insert({
+    name: recipientListName,
+    source_type: 'data_axle',
+    data_axle_filters: filters,
+    total_recipients: contacts.length
+  }).select().single();
+
+  for (const contact of contacts) {
+    await supabase.from('recipients').insert({
+      list_id: recipientList.id,
+      recipient_name: contact.first_name,
+      recipient_lastname: contact.last_name,
+      recipient_address_line1: contact.street,
+      recipient_city: contact.city,
+      recipient_state: contact.state,
+      recipient_zip: contact.zip,
+      recipient_email: contact.email,
+      recipient_phone: contact.phone,
+      data_axle_person_id: contact.person_id,
+      age_range: `${contact.age}-${contact.age + 4}`,
+      estimated_income: contact.estimated_income,
+      home_ownership: contact.homeowner ? 'owner' : 'renter',
+      interests: contact.behaviors
+    });
   }
 
-  return new Response(JSON.stringify({ received: true }));
+  // Deduct credits
+  await supabase.from('organizations').update({ credits: org.credits - (contacts.length * 0.25) });
+
+  return NextResponse.json({
+    success: true,
+    contactsPurchased: contacts.length,
+    recipientListId: recipientList.id,
+    totalCost: contacts.length * 0.15,
+    totalCharge: contacts.length * 0.25,
+    creditsRemaining: org.credits - (contacts.length * 0.25)
+  });
 }
 ```
 
-**Checklist:**
-- [ ] Create webhook endpoint
-- [ ] Handle subscription.updated
-- [ ] Handle subscription.deleted
-- [ ] Handle invoice.payment_succeeded
-- [ ] Handle invoice.payment_failed
-- [ ] Register webhook URL in Stripe Dashboard
-- [ ] Test with Stripe webhook tester
+**Checklist**:
+- [ ] Implement /api/contacts/count (with caching)
+- [ ] Implement /api/contacts/purchase (with authentication)
+- [ ] Implement /api/contacts/saved-audiences (CRUD)
+- [ ] Add request logging
+- [ ] Add error handling
+- [ ] Test with Postman/curl
 
 ---
 
-#### Task 6.6: Usage Metering Integration
+#### **Week 10: UI & Workflow Integration**
 
-**Goal:** Track contacts purchased and mail sent for billing
+**Task 5.4: Campaign Creation Wizard (Updated)**
 
-**File:** `lib/billing/usage-tracker.ts`
+**File**: `app/campaigns/new/page.tsx`
 
-```typescript
-export async function trackContactPurchase(userId: string, quantity: number) {
-  const db = getDatabase();
+**New 4-Step Wizard**:
+```
+Step 1: Select Template (existing)
+Step 2: Choose Audience Source (NEW)
+  ├─ Option A: Upload CSV
+  └─ Option B: Data Axle Targeting (NEW)
+Step 3: Review & Personalize (existing)
+Step 4: Schedule & Send (existing)
+```
 
-  // Log usage
-  await db.trackUsage(userId, 'contacts_purchased', quantity);
+**Checklist**:
+- [ ] Step 1: Template selector (existing)
+- [ ] **Step 2a: Audience source selector (NEW)** - Radio buttons for CSV vs Data Axle
+- [ ] **Step 2b: Data Axle audience builder (NEW)** - Filter UI with live count
+- [ ] Step 2c: CSV upload (existing)
+- [ ] Step 3: Personalization preview (existing)
+- [ ] **Step 4: Cost calculator (UPDATED)** - Include Data Axle costs
+- [ ] Progress indicator
+- [ ] Save draft functionality
 
-  // Send to Stripe (if on metered plan)
-  const subscription = await db.getSubscription(userId);
-  if (subscription?.metered) {
-    const stripe = new StripeClient(process.env.STRIPE_SECRET_KEY!);
-    await stripe.trackUsage(
-      subscription.stripe_subscription_item_id,
-      quantity,
-      Date.now()
-    );
-  }
+---
+
+**Task 5.5: Data Axle Audience Builder UI**
+
+**File**: `components/audience/audience-builder.tsx`
+
+**Key Features**:
+- **Real-time count display** (debounced 500ms updates)
+- **Filter controls**:
+  - Geography: State, City, ZIP, County
+  - Demographics: Age slider (18-100), Income slider ($0-$500K), Homeowner toggle
+  - Lifestyle: Interest checkboxes (golf, travel, fitness, luxury, etc.)
+- **Active filters summary** (badges showing current selections)
+- **Live cost calculator** (contacts × $0.25)
+- **AI recommendations panel** (suggested filters based on template history)
+- **Purchase flow** (confirmation modal → progress bar → success)
+
+**UI Mock**:
+```
+┌────────────────────────────────────────────────────────────────┐
+│  🎯 Target Your Audience                                      │
+├────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  1,250,000 contacts match your filters                   │ │
+│  │  Estimated cost: $312,500 ($0.25/contact)               │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│  📍 Location          👥 Demographics      🎯 Interests         │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    │
+│  │ State: CA    │    │ Age: 65-80   │    │ ☑ Golf       │    │
+│  │ City:        │    │ Income: $75K+│    │ ☑ Travel     │    │
+│  │ ZIP:         │    │ ☑ Homeowner  │    │ ☐ Fitness    │    │
+│  └──────────────┘    └──────────────┘    └──────────────┘    │
+│                                                                 │
+│  💡 AI Recommendation:                                         │
+│  Similar campaigns with these filters achieved 3.2% response   │
+│  rate. Expected ROI: 285% (based on 47 campaigns)             │
+│                                                                 │
+│  Active Filters: [CA] [Age: 65-80] [Homeowner] [Income: $75K+]│
+│                                                                 │
+│  [Save Audience]  [Purchase 5,000 Contacts - $1,250] ──►      │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation**: See `docs/DATA_AXLE_INTEGRATION_GUIDE.md` lines 1336-1645
+
+**Checklist**:
+- [ ] Geography filters (state, city, zip)
+- [ ] Demographics filters (age slider, income slider, homeowner toggle)
+- [ ] Lifestyle filters (interest checkboxes)
+- [ ] Real-time count display (debounced API calls)
+- [ ] Cost calculator (live updates)
+- [ ] Active filters summary
+- [ ] Purchase confirmation modal
+- [ ] Progress bar during purchase
+- [ ] Success state with redirect
+
+---
+
+**Task 5.6: AI Audience Recommendations**
+
+**File**: `lib/ai/audience-recommender.ts`
+
+**Purpose**: Suggest optimal filters based on historical template performance
+
+**Algorithm**:
+1. Query `campaign_performance_data` for all campaigns using this template
+2. Filter to top 20% by response rate (successful campaigns)
+3. Extract demographic patterns (average age, homeowner%, income, interests)
+4. Return recommended filters + expected performance
+
+**Example Output**:
+```json
+{
+  "suggestedFilters": {
+    "ageMin": 55,
+    "ageMax": 70,
+    "homeowner": true,
+    "incomeMin": 75000,
+    "interests": ["golf", "travel", "investing"]
+  },
+  "expectedResponseRate": 3.2,
+  "expectedROI": 285,
+  "confidence": 0.85,
+  "basedOnCampaigns": 47
 }
-
-export async function trackMailSent(userId: string, quantity: number) {
-  const db = getDatabase();
-
-  await db.trackUsage(userId, 'mail_sent', quantity);
-
-  // Send to Stripe
-  const subscription = await db.getSubscription(userId);
-  if (subscription?.metered) {
-    const stripe = new StripeClient(process.env.STRIPE_SECRET_KEY!);
-    await stripe.trackUsage(
-      subscription.stripe_subscription_item_id,
-      quantity,
-      Date.now()
-    );
-  }
-}
 ```
 
-**Checklist:**
-- [ ] Create usage tracker functions
-- [ ] Call trackContactPurchase() after Data Axle purchase
-- [ ] Call trackMailSent() after PostGrid order
-- [ ] Log all usage to database
-- [ ] Send usage to Stripe for metered billing
-- [ ] Test usage tracking end-to-end
+**File**: `components/audience/ai-recommendations-panel.tsx`
+
+**UI**: Card showing suggested filters, expected performance, and "Apply" button
+
+**Checklist**:
+- [ ] Implement audience-recommender.ts logic
+- [ ] Query historical campaign data
+- [ ] Calculate demographic averages
+- [ ] Return recommendations
+- [ ] Display in UI panel
+- [ ] "Apply Recommendations" button
 
 ---
 
-### Phase 7: User Experience (Week 5, Days 32-35)
+**Task 5.7: Saved Audiences Library**
 
-**Status:** ⬜ Not Started
+**File**: `components/audience/saved-audiences-library.tsx`
 
-#### Task 7.1: Dashboard Page
+**Purpose**: Browse and reuse successful filter configurations
 
-**File:** `app/dashboard/page.tsx`
+**Features**:
+- Grid view of saved audiences
+- Performance metrics per audience (avg response rate)
+- One-click apply
+- Sort by performance
 
-**Features:**
-- Welcome message
-- Quick stats (campaigns, mail sent, conversions)
-- Recent campaigns widget
-- Quick action cards
-- Recent activity feed
-
-**Checklist:**
-- [ ] Create dashboard page
-- [ ] Add welcome section
-- [ ] Add stats overview cards
-- [ ] Add recent campaigns list
-- [ ] Add quick actions (New Campaign, View Analytics)
-- [ ] Add recent activity feed
-- [ ] Test with real user data
+**Checklist**:
+- [ ] List saved audiences
+- [ ] Display performance metrics
+- [ ] One-click apply to current campaign
+- [ ] Delete saved audience
+- [ ] Sort/filter options
 
 ---
 
-#### Task 7.2: Onboarding Flow
+**Task 5.8: Campaign Dashboard**
 
-**File:** `app/onboarding/page.tsx`
+**File**: `app/campaigns/page.tsx`
 
-**4 Steps:**
-1. Welcome (platform overview)
-2. Company Profile (brand intelligence)
-3. API Keys (PostGrid, optional: OpenAI/Gemini/ElevenLabs)
-4. First Campaign (pre-filled template)
-
-**Checklist:**
-- [ ] Create onboarding wizard
-- [ ] Step 1: Welcome screen
-- [ ] Step 2: Company profile (reuse brand intelligence)
-- [ ] Step 3: API key setup
-- [ ] Step 4: First campaign tutorial
-- [ ] Add progress indicator
-- [ ] Add skip/back buttons
-- [ ] Redirect to dashboard on completion
-- [ ] Test complete onboarding flow
+**Checklist**:
+- [ ] Campaign list (table view)
+- [ ] Status badges (draft, processing, sent)
+- [ ] Performance metrics per campaign
+- [ ] **Audience source indicator** (CSV vs Data Axle badge)
+- [ ] Search/filter
+- [ ] Bulk actions (pause, cancel)
 
 ---
 
-#### Task 7.3: Updated Navigation
+**Task 5.9: Campaign Detail Page**
 
-**File:** `components/sidebar.tsx`
+**File**: `app/campaigns/[id]/page.tsx`
 
-**New Structure:**
-```
-🏠 Dashboard (new)
-──────────── CAMPAIGN CREATION ────────────
-🎯 Target Audience (new - Data Axle)
-✍️ AI Copywriting
-📬 DM Creative
-📤 Fulfillment (new - PostGrid orders)
-──────────── ANALYTICS & TRACKING ────────────
-📊 Analytics Dashboard
-📞 Call Tracking
-──────────── MANAGEMENT ────────────
-👥 Audiences (new - saved audiences)
-📋 Templates
-⚙️ Settings
-💳 Billing (new)
-```
-
-**Checklist:**
-- [ ] Update sidebar with new items
-- [ ] Remove retail module items
-- [ ] Add icons for new pages
-- [ ] Add active state highlighting
-- [ ] Add user menu (profile, logout)
-- [ ] Test navigation on all pages
+**Checklist**:
+- [ ] Campaign overview
+- [ ] **Audience source display** (filters used if Data Axle)
+- [ ] Recipient list
+- [ ] Performance chart (time-series)
+- [ ] **Demographic breakdown** (if Data Axle source)
+- [ ] Individual recipient tracking
+- [ ] Export results to CSV
 
 ---
 
-#### Task 7.4: UI/UX Polish
+#### **Testing Checkpoints**
 
-**Global Improvements:**
-- Add loading skeletons
-- Add empty states ("No campaigns yet")
-- Add error states with retry buttons
-- Add toast notifications for all actions
-- Add confirmation modals for destructive actions
-- Improve mobile responsiveness
+**Unit Tests**:
+- [ ] Filter DSL builder converts UI → Data Axle format correctly
+- [ ] Rate limiter enforces 150 req/10s
+- [ ] Retry logic works (exponential backoff)
+- [ ] Cost calculator accurate
 
-**Checklist:**
-- [ ] Add loading states to all async operations
-- [ ] Add empty states to all list views
-- [ ] Add error states with helpful messages
-- [ ] Add toast notifications (success/error)
-- [ ] Add confirmation modals (delete, cancel)
-- [ ] Test on mobile (iPhone, Android)
-- [ ] Test on tablet (iPad)
-- [ ] Test on desktop (various screen sizes)
+**Integration Tests**:
+- [ ] Count API returns correct count (simple filter)
+- [ ] Count API returns correct count (complex AND filter)
+- [ ] Purchase API buys exactly N contacts
+- [ ] Contacts imported to database correctly
+- [ ] Credits deducted correctly
 
----
+**E2E Tests**:
+- [ ] Full campaign creation flow (template → Data Axle → personalize → send)
+- [ ] CSV upload still works (existing path)
+- [ ] Saved audiences can be reused
+- [ ] AI recommendations display
+- [ ] Cost breakdown correct
 
-### Phase 8: Testing & Quality Assurance (Week 6, Days 36-38)
+**Performance Tests**:
+- [ ] Count API response time <500ms (p95)
+- [ ] Purchase API (100 contacts) <3 seconds
+- [ ] Purchase API (4,000 contacts) <30 seconds
+- [ ] Debounce prevents API spam
+- [ ] Cache hit rate >60%
 
-**Status:** ⬜ Not Started
-
-#### Task 8.1: End-to-End Testing
-
-**Test Scenarios:**
-
-1. **New User Signup Flow**
-   - [ ] Sign up with email
-   - [ ] Verify email
-   - [ ] Complete onboarding
-   - [ ] Create first campaign
-   - [ ] Purchase contacts from Data Axle
-   - [ ] Generate DM with AI
-   - [ ] Send via PostGrid
-   - [ ] View in analytics dashboard
-
-2. **Returning User Flow**
-   - [ ] Login
-   - [ ] View dashboard
-   - [ ] Create new campaign (skip onboarding)
-   - [ ] Use saved audience
-   - [ ] Send mail
-   - [ ] View analytics
-
-3. **Billing Flow**
-   - [ ] Start on free trial
-   - [ ] Use trial credits
-   - [ ] Upgrade to paid plan
-   - [ ] Purchase overages
-   - [ ] View invoice
-   - [ ] Cancel subscription
-
-4. **Multi-User Test**
-   - [ ] Create 2 test users
-   - [ ] User A creates campaign
-   - [ ] User B cannot see User A's campaign (RLS working)
-   - [ ] User A can see own campaigns
-   - [ ] User B can see own campaigns
+**Manual Tests**:
+- [ ] Test with Data Axle staging API
+- [ ] Create campaign with Data Axle audience (100 contacts)
+- [ ] Verify demographics imported correctly
+- [ ] Check cost calculations accurate
+- [ ] Test edge cases (0 results, API errors)
 
 ---
 
-#### Task 8.2: Performance Testing
+### **Phase 6: Collaboration (Weeks 11-12)**
 
-**Metrics to Test:**
-- [ ] Page load times (<3s for all pages)
-- [ ] Data Axle count API (<500ms)
-- [ ] Database query times (<100ms for simple queries)
-- [ ] Batch processing (1000 recipients in <2 min)
-- [ ] Real-time analytics updates (<30s)
+**Goal**: Real-time multi-user editing (Google Docs style)
 
-**Tools:**
-- Lighthouse (Chrome DevTools)
-- Vercel Analytics
-- Supabase Dashboard (query performance)
+**Features**:
+- WebSocket synchronization
+- Live cursor tracking
+- Comment threads
+- Version history
+- Approval workflows
+
+**Implementation**:
+
+**Task 6.1: Real-Time Sync (WebSocket)**
+
+**File**: `lib/collaboration/websocket-client.ts`
+
+Use Supabase Realtime for canvas synchronization.
+
+**Checklist**:
+- [ ] Set up Supabase Realtime channels
+- [ ] Broadcast canvas updates
+- [ ] Subscribe to updates from other users
+- [ ] Conflict resolution (last-write-wins)
+- [ ] Cursor position broadcast
+- [ ] Test with 5 concurrent users
+
+**Task 6.2: Version Control**
+
+**Checklist**:
+- [ ] Auto-save every 30 seconds
+- [ ] Manual save creates new version
+- [ ] Version list UI
+- [ ] Diff viewer (visual comparison)
+- [ ] Restore to previous version
+
+**Task 6.3: Comments & Annotations**
+
+**Checklist**:
+- [ ] Add comment button
+- [ ] Pin comment to canvas object
+- [ ] Comment threads
+- [ ] Resolve/unresolve
+- [ ] Mention users (@mentions)
+- [ ] Email notifications
+
+**Testing Checkpoints**:
+- [ ] 5 users edit same canvas simultaneously
+- [ ] Verify no data loss
+- [ ] Test conflict resolution
+- [ ] Create 50 versions, restore to v10
+- [ ] Test comment notifications
 
 ---
 
-#### Task 8.3: Security Audit
+### **Phase 7: Marketplace (Weeks 13-14)**
 
-**Checklist:**
-- [ ] RLS policies tested (users can't see each other's data)
-- [ ] API keys encrypted in database
-- [ ] Environment variables not exposed to client
-- [ ] CSRF protection enabled
-- [ ] Rate limiting on API routes
-- [ ] Input validation on all forms
-- [ ] SQL injection protection (using parameterized queries)
-- [ ] XSS protection (React escapes by default)
+**Goal**: Template marketplace with network effects
+
+**Features**:
+- Template submission
+- Performance-based ranking
+- Template purchases
+- Creator payouts
+- Review system
+
+**Implementation**:
+
+**Task 7.1: Template Submission Flow**
+
+**Checklist**:
+- [ ] "Publish to Marketplace" button
+- [ ] Submission form (title, description, category, price)
+- [ ] Admin approval queue
+- [ ] Rejection feedback
+
+**Task 7.2: Marketplace Browse**
+
+**File**: `app/marketplace/page.tsx`
+
+**Checklist**:
+- [ ] Category grid
+- [ ] Search with filters
+- [ ] Sort by: Rating, Response Rate, Price
+- [ ] Template preview modal
+- [ ] Purchase button
+
+**Task 7.3: Revenue Sharing**
+
+**Checklist**:
+- [ ] Stripe Connect integration (creator payouts)
+- [ ] Platform fee calculation (30%)
+- [ ] Payout dashboard for creators
+- [ ] Automatic monthly payouts
+
+**Testing Checkpoints**:
+- [ ] Submit 20 templates to marketplace
+- [ ] Test purchase flow
+- [ ] Verify creator receives 70% payout
+- [ ] Test review system
+- [ ] Check performance ranking updates
 
 ---
 
-#### Task 8.4: Browser Compatibility
+### **Phase 8-10: API, Integrations, Launch (Weeks 15-20)**
 
-**Test on:**
-- [ ] Chrome (latest)
-- [ ] Firefox (latest)
-- [ ] Safari (latest)
-- [ ] Edge (latest)
-- [ ] Mobile Safari (iOS)
-- [ ] Mobile Chrome (Android)
+(Abbreviated for space - full details in next planning iteration)
+
+**Phase 8**: Developer API (RESTful endpoints, webhooks, rate limiting)
+**Phase 9**: External Integrations (PostGrid fulfillment, Stripe billing)
+  - Note: Data Axle integration completed in Phase 5
+**Phase 10**: Polish & Beta Launch (50 users, feedback iteration)
 
 ---
 
-### Phase 9: Deployment (Week 6, Days 39-42)
+## 🧪 Recurring Testing Strategy
 
-**Status:** ⬜ Not Started
-
-#### Task 9.1: Environment Configuration
-
-**Vercel Environment Variables:**
-
+### Unit Tests (Every Feature)
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://xyz.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbG... (secret)
-
-# Data Axle
-DATA_AXLE_API_KEY=your_token (secret)
-DATA_AXLE_BASE_URL=https://api.data-axle.com/v1/people
-NEXT_PUBLIC_DATA_AXLE_COST_PER_CONTACT=0.15
-
-# PostGrid
-POSTGRID_API_KEY=your_token (secret)
-
-# Stripe
-STRIPE_SECRET_KEY=sk_live_... (secret)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_... (secret)
-
-# OpenAI (optional - for custom keys)
-OPENAI_API_KEY=sk-... (secret)
-
-# Gemini (for AI backgrounds)
-GEMINI_API_KEY=AIzaSy... (secret)
-
-# ElevenLabs (optional)
-ELEVENLABS_API_KEY=... (secret)
-
-# Application
-NEXT_PUBLIC_APP_URL=https://droplab.com
+npm run test
 ```
 
-**Checklist:**
-- [ ] Add all environment variables to Vercel
-- [ ] Mark sensitive keys as "Secret"
-- [ ] Test in staging environment first
-- [ ] Verify all API integrations work in production
+Test coverage targets:
+- Database queries: 90%
+- API routes: 85%
+- Canvas operations: 80%
+- AI integrations: 75%
+
+### Integration Tests (Every Phase)
+Test full user journeys:
+- Signup → Create Template → Send Campaign → View Analytics
+- Template Marketplace: Publish → Purchase → Use in Campaign
+- Collaboration: Multi-user edit → Comment → Approve
+
+### Performance Tests (Weekly)
+Benchmarks:
+- Page load: <2s
+- Canvas render: <500ms
+- VDP batch (1000 recipients): <2 min
+- Database queries: <100ms (p95)
+- API response: <200ms (p95)
+
+### Security Tests (Every Phase)
+- RLS bypass attempts
+- SQL injection attempts
+- XSS attempts
+- API authentication tests
+- Rate limit enforcement
 
 ---
 
-#### Task 9.2: Domain Setup
+## 📈 Success Metrics
 
-**Steps:**
-1. Purchase domain (e.g., droplab.com)
-2. Add domain to Vercel project
-3. Configure DNS records
-4. Enable SSL (automatic with Vercel)
-5. Test: https://droplab.com loads correctly
+### Technical (Launch)
+- [ ] 99.9% uptime
+- [ ] <2s page load times
+- [ ] <500ms canvas rendering
+- [ ] Zero critical security vulnerabilities
+- [ ] 100% RLS test coverage
 
-**Checklist:**
-- [ ] Domain purchased
-- [ ] Domain added to Vercel
-- [ ] DNS configured
-- [ ] SSL working
-- [ ] www redirect configured
+### Business (6 Months)
+- [ ] 1,000 active organizations
+- [ ] 10,000 campaigns sent
+- [ ] 100,000 designs created
+- [ ] 500 marketplace templates
+- [ ] $50K MRR
 
----
-
-#### Task 9.3: Database Optimization
-
-**Supabase Production Checklist:**
-- [ ] Review all indexes (add if missing)
-- [ ] Enable point-in-time recovery (PITR)
-- [ ] Set up daily backups
-- [ ] Configure connection pooling
-- [ ] Monitor query performance
-- [ ] Upgrade to Pro plan if needed (>500MB data)
+### AI/Data Moat (12 Months)
+- [ ] 100,000 campaigns in training dataset
+- [ ] Response rate predictions accurate within ±0.5%
+- [ ] 90% postal compliance pass rate
+- [ ] 10,000+ template purchases (network effects)
 
 ---
 
-#### Task 9.4: Monitoring Setup
+## 🏆 Competitive Moat Summary
 
-**Tools to Configure:**
-- [ ] Vercel Analytics (automatic)
-- [ ] Supabase Dashboard (query monitoring)
-- [ ] Sentry (error tracking) - optional
-- [ ] LogRocket (session replay) - optional
+**Why DropLab Wins**:
 
-**Key Metrics to Monitor:**
-- API response times
-- Error rates
-- User signups
-- Subscription conversions
-- Churn rate
+1. **Data Moat**: Proprietary campaign performance dataset → AI predictions improve with every campaign → impossible to replicate
 
----
+2. **Network Effects**: Marketplace templates ranked by proven performance → more users = more data = better templates → flywheel effect
 
-#### Task 9.5: Deploy to Production
+3. **Regulatory Expertise**: Postal compliance validator saves $500+ per failed print run → switching cost
 
-**Deployment Checklist:**
-- [ ] Merge all changes to main branch
-- [ ] Run final build locally (`npm run build`)
-- [ ] Fix any build errors
-- [ ] Push to GitHub
-- [ ] Vercel auto-deploys from main branch
-- [ ] Verify deployment success
-- [ ] Test all features in production
-- [ ] Monitor error logs for 24 hours
+4. **Vertical Integration**: Design → Personalize → Validate → Print → Track (end-to-end) → no need for external tools
+
+5. **AI Intelligence**: Response rate predictor uses YOUR data, not generic benchmarks → gets smarter over time
+
+6. **Developer Platform**: API enables ecosystem → agencies build custom workflows → lock-in
+
+**Canva Cannot Replicate**:
+- No access to campaign performance data (we own the pipeline)
+- No postal compliance (not their focus)
+- No VDP at scale (API limitations)
+- No campaign tracking (they don't send the mail)
+
+**Timeline to Monopoly**:
+- **Month 6**: 1,000 campaigns = early dataset
+- **Month 12**: 10,000 campaigns = statistically significant AI
+- **Month 24**: 100,000 campaigns = **impossible to catch up**
 
 ---
 
-### Phase 10: Beta Launch (Week 7+)
+## ✅ Next Immediate Actions
 
-**Status:** ⬜ Not Started
-
-#### Task 10.1: Beta User Recruitment
-
-**Target:** 50 beta users
-
-**Channels:**
-- [ ] Personal network (10 users)
-- [ ] LinkedIn outreach (20 users)
-- [ ] Reddit (r/entrepreneur, r/marketing)
-- [ ] Product Hunt (soft launch)
-- [ ] Direct mail to prospects (meta!)
-
-**Offer:** 50% off lifetime for first 100 users
+1. **Mark Task 1.1 as in_progress**: Deploy foundation schema
+2. **Create migration files**: Split SQL into manageable migration files
+3. **Test RLS policies**: Verify multi-tenant isolation works
+4. **Begin Phase 2**: Start Fabric.js canvas editor
 
 ---
 
-#### Task 10.2: Feedback Collection
+## 📚 Reference Documentation
 
-**Methods:**
-- [ ] In-app feedback widget
-- [ ] Post-campaign surveys
-- [ ] 1-on-1 user interviews (10 users)
-- [ ] Track feature usage (analytics)
-
-**Questions:**
-- What's the #1 feature you use most?
-- What's missing?
-- What's confusing?
-- Would you recommend DropLab? (NPS)
+- **Strategic Vision**: `New_Supabase_Platform.md`
+- **Development Guidelines**: `CLAUDE.md`
+- **Database Patterns**: `DATABASE_PATTERNS.md` (if exists)
+- **Previous Implementation**: `PHASE1_IMPLEMENTATION_COMPLETE.md` (if exists)
 
 ---
 
-#### Task 10.3: Iteration Based on Feedback
+**Last Updated**: 2025-10-30
+**Plan Version**: 2.0
+**Total Phases**: 10
+**Estimated Timeline**: 20 weeks
+**Target Launch**: Q2 2026
 
-**Process:**
-1. Collect feedback weekly
-2. Prioritize top 3 pain points
-3. Fix within 1 week
-4. Deploy and notify users
-5. Repeat
-
-**Checklist:**
-- [ ] Week 1 feedback collected
-- [ ] Week 1 fixes deployed
-- [ ] Week 2 feedback collected
-- [ ] Week 2 fixes deployed
-- [ ] Week 3 feedback collected
-- [ ] Week 3 fixes deployed
-- [ ] Week 4 feedback collected
-- [ ] Week 4 fixes deployed
-
----
-
-#### Task 10.4: Public Launch Preparation
-
-**Marketing Assets:**
-- [ ] Landing page (marketing site)
-- [ ] Demo video (2 min)
-- [ ] Product screenshots
-- [ ] Case studies (3 beta customers)
-- [ ] Pricing page
-- [ ] FAQ page
-- [ ] Blog post ("Launching DropLab")
-
-**Launch Channels:**
-- [ ] Product Hunt
-- [ ] Hacker News
-- [ ] LinkedIn
-- [ ] Twitter/X
-- [ ] Email to waitlist
-
----
-
-## 📁 File Structure Changes
-
-### New Files to Create
-
-```
-lib/
-├── supabase/
-│   ├── server.ts (new)
-│   └── client.ts (new)
-├── database/
-│   ├── client-interface.ts (new)
-│   ├── sqlite-client.ts (new)
-│   └── supabase-client.ts (new)
-├── contacts/
-│   ├── data-axle-client.ts (new)
-│   └── data-axle-types.ts (new)
-├── printing/
-│   └── postgrid-client.ts (new)
-├── billing/
-│   ├── stripe-client.ts (new)
-│   └── usage-tracker.ts (new)
-└── contexts/
-    └── auth-context.tsx (new)
-
-app/
-├── auth/
-│   ├── login/page.tsx (new)
-│   ├── signup/page.tsx (new)
-│   └── reset-password/page.tsx (new)
-├── dashboard/
-│   └── page.tsx (new)
-├── onboarding/
-│   └── page.tsx (new)
-├── campaigns/
-│   └── new/
-│       └── audience/page.tsx (new)
-├── audiences/
-│   └── page.tsx (new)
-├── fulfillment/
-│   └── page.tsx (new)
-├── billing/
-│   └── page.tsx (new)
-└── api/
-    ├── contacts/
-    │   ├── count/route.ts (new)
-    │   └── purchase/route.ts (new)
-    ├── audiences/
-    │   └── route.ts (new)
-    ├── webhooks/
-    │   ├── postgrid/route.ts (new)
-    │   └── stripe/route.ts (new)
-    └── billing/
-        └── route.ts (new)
-
-middleware.ts (new)
-```
-
-### Files to Deprecate (Hide)
-
-```
-app/
-├── retail/ (hide from nav)
-├── campaigns/
-│   ├── matrix/ (hide from nav)
-│   └── planning/ (hide from nav)
-└── store-groups/ (hide from nav)
-```
-
-**Action:** Add feature flag `ENABLE_RETAIL_MODULE=false` and update sidebar to conditionally show these routes.
-
----
-
-## 🚨 Risk Management
-
-### Critical Risks
-
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| **Data loss during migration** | High | Test migration on copy of database first, keep SQLite backup for 30 days |
-| **RLS policy bugs (users see each other's data)** | Critical | Extensive testing with multiple test users, automated tests |
-| **API rate limits (Data Axle, PostGrid)** | Medium | Implement rate limiters, queue systems, usage monitoring |
-| **Stripe webhook failures** | Medium | Retry logic, manual reconciliation process, monitoring |
-| **Breaking changes to existing campaigns** | High | Test all existing features after migration, maintain backward compatibility |
-
-### Rollback Strategy
-
-**If critical bug discovered post-launch:**
-
-1. **Immediate:** Revert Vercel deployment to previous version
-2. **Within 1 hour:** Fix bug in development
-3. **Within 4 hours:** Deploy fix to production
-4. **Within 24 hours:** Post-mortem and preventive measures
-
-**Database Rollback:**
-- Keep SQLite backup for 30 days
-- Supabase has point-in-time recovery (PITR)
-- Can restore to any point in last 7 days
-
----
-
-## ✅ Progress Tracking
-
-### Overall Progress
-
-- ⬜ **Phase 1:** Database Abstraction (0/5 tasks complete)
-- ⬜ **Phase 2:** Supabase Setup (0/5 tasks complete)
-- ⬜ **Phase 3:** Authentication (0/5 tasks complete)
-- ⬜ **Phase 4:** Data Axle Integration (0/5 tasks complete)
-- ⬜ **Phase 5:** PostGrid Fulfillment (0/5 tasks complete)
-- ⬜ **Phase 6:** Stripe Billing (0/6 tasks complete)
-- ⬜ **Phase 7:** User Experience (0/4 tasks complete)
-- ⬜ **Phase 8:** Testing & QA (0/4 tasks complete)
-- ⬜ **Phase 9:** Deployment (0/5 tasks complete)
-- ⬜ **Phase 10:** Beta Launch (0/4 tasks complete)
-
-**Total:** 0/48 major tasks complete (0%)
-
-### Weekly Goals
-
-**Week 1:**
-- [ ] Database abstraction layer complete
-- [ ] Supabase project set up
-- [ ] Schema migrated and tested
-
-**Week 2:**
-- [ ] Authentication working (login/signup)
-- [ ] RLS policies tested
-- [ ] Data Axle account set up
-
-**Week 3:**
-- [ ] Data Axle integration complete
-- [ ] Audience targeting UI working
-- [ ] PostGrid account set up
-
-**Week 4:**
-- [ ] PostGrid integration complete
-- [ ] Mail fulfillment working end-to-end
-- [ ] Stripe account set up
-
-**Week 5:**
-- [ ] Stripe billing complete
-- [ ] Dashboard and onboarding complete
-- [ ] All UI polish done
-
-**Week 6:**
-- [ ] All testing complete
-- [ ] Deployed to production
-- [ ] First beta users onboarded
-
----
-
-## 📚 Reference Documents
-
-**Primary References:**
-- This document (MASTER PLAN)
-- `docs/DATA_AXLE_INTEGRATION_GUIDE.md` - Complete Data Axle API documentation
-- `CLAUDE.md` - Development guidelines (updated to reference this plan)
-
-**Keep Updated:**
-- Mark tasks complete as you finish them (change ⬜ to ✅)
-- Add new tasks/discoveries to relevant phases
-- Update risk management section with new risks
-- Update progress tracking weekly
-
----
-
-## 🎯 Success Definition
-
-**DropLab transformation is COMPLETE when:**
-
-✅ Multi-tenant authentication working (users can sign up/login)
-✅ Supabase database operational (RLS policies enforced)
-✅ Data Axle integration working (real-time counts + contact purchase)
-✅ PostGrid integration working (mail can be sent via API)
-✅ Stripe billing working (subscriptions + usage metering)
-✅ All existing features preserved (copywriting, templates, analytics, etc.)
-✅ 10 beta users successfully created and sent campaigns
-✅ Zero critical bugs in production for 7 consecutive days
-
-**Post-Launch Definition of Success:**
-- 50 paying customers by Month 2
-- $5K MRR by Month 3
-- <5% monthly churn rate
-- 4.5+ star reviews from customers
-
----
-
-## 📞 Support & Resources
-
-**Technical Support:**
-- Supabase: https://supabase.com/docs
-- Data Axle: partnerships@data-axle.com
-- PostGrid: support@postgrid.com
-- Stripe: https://stripe.com/docs
-
-**Community:**
-- Supabase Discord
-- Next.js GitHub Discussions
-- r/SaaS (Reddit)
-
----
-
-**Last Updated:** October 28, 2025
-**Next Review:** Weekly (every Monday)
-**Document Owner:** Development Team
-
----
-
-**Remember:** This is the ONLY planning document. Keep it updated, refer to it daily, and celebrate each completed task! 🚀
+**Remember**: This is the SINGLE SOURCE OF TRUTH. Update daily. Mark tasks complete with ✅. Add new discoveries. Build the moat. 🚀

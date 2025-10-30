@@ -14,28 +14,80 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 All current and future development MUST follow the master transformation plan located at:
 
-**📋 `DROPLAB_TRANSFORMATION_PLAN.md`**
+**📋 `DROPLAB_TRANSFORMATION_PLAN.md`** (Version 2.0 - Updated 2025-10-30)
+
+**Strategic Vision**: Build the first "Figma meets Mailchimp for Physical Mail" platform - a monopolistic direct mail design platform with AI-powered features that Canva cannot replicate.
 
 This master plan contains:
-- Complete SaaS transformation roadmap (6-8 weeks, 10 phases)
-- Database migration strategy (SQLite → Supabase PostgreSQL)
-- Multi-tenancy architecture with Row-Level Security
-- Data Axle integration (audience targeting with free count preview)
-- PostGrid fulfillment integration (automated direct mail printing)
-- Stripe billing implementation (subscription + usage metering)
-- Authentication system (Supabase Auth)
-- Progress tracking with checkboxes (keep updated!)
+- **20-Week Implementation Roadmap** (10 phases)
+- **Atomic Database Schema** (designed from first principles using Elon Musk methodology)
+- **Fabric.js Canvas Editor** (300 DPI, VDP-ready)
+- **AI Intelligence Layer** (postal compliance, response rate prediction)
+- **Variable Data Printing Engine** (personalize 10,000+ designs at scale)
+- **Template Marketplace** (network effects through performance-based ranking)
+- **Real-time Collaboration** (Google Docs-style multi-user editing)
+- **Developer API** (platform play for ecosystem growth)
+- **Multi-tenancy with RLS** (Supabase PostgreSQL)
+- **Competitive Moat Strategy** (data moat + regulatory expertise + network effects)
+
+**Core Differentiators (vs Canva)**:
+1. **Proprietary Performance Data**: Campaign results feed AI predictions → impossible to replicate
+2. **Postal Compliance Validator**: Real-time USPS/international regulation checking → saves $500+ per failed print
+3. **VDP at Scale**: Programmatic Fabric.js control → personalize 10,000 pieces in minutes
+4. **End-to-End Pipeline**: Design → Validate → Print → Track → no external tools needed
+5. **Marketplace Network Effects**: Templates ranked by proven response rates → flywheel growth
 
 **Planning Guidelines:**
 - ✅ DO: Reference and update the master plan for all development work
-- ✅ DO: Mark tasks as completed with checkboxes in the plan
+- ✅ DO: Mark tasks as completed with ✅ in the plan
 - ✅ DO: Add new tasks discovered during implementation to the plan
+- ✅ DO: Follow atomic implementation approach (break features into fundamental components)
 - ❌ DO NOT: Create separate planning documents
 - ❌ DO NOT: Deviate from the plan without updating it first
+- ❌ DO NOT: Reference the old SQLite structure (this is a fresh A/B test approach)
 
 **Additional Technical Documentation:**
-- **Data Axle API Integration**: See `docs/DATA_AXLE_INTEGRATION_GUIDE.md` for complete API documentation, rate limiting, Filter DSL, and production-ready TypeScript code
-- **Database Patterns**: See `DATABASE_PATTERNS.md` for SQLite/Supabase query patterns
+- **Strategic Vision**: See `New_Supabase_Platform.md` for complete monopolistic platform strategy (15 key features, 90-day roadmap)
+- **Data Axle Integration**: See `DATA_AXLE_INTEGRATION_SPEC.md` for complete technical specification (Phase 5 - Weeks 9-10)
+  - Audience targeting with 250M+ contacts
+  - FREE count preview (Data Axle Insights API)
+  - AI-powered audience recommendations
+  - Complete database schema, API routes, UI components
+  - **Reference Guide**: `docs/DATA_AXLE_INTEGRATION_GUIDE.md` (API documentation, filter DSL, production code)
+- **Database Patterns**: See `DATABASE_PATTERNS.md` for SQLite/Supabase query patterns (legacy reference only)
+
+## Progress Tracking
+
+**How to Track Implementation Progress:**
+
+All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracking. Update as you complete work:
+
+**Format**:
+```markdown
+- [ ] Task not started
+- [x] Task completed
+```
+
+**Process**:
+1. Open `DROPLAB_TRANSFORMATION_PLAN.md`
+2. Navigate to current phase (e.g., Phase 1: Foundation)
+3. Find specific task (e.g., "Task 1.1: Deploy Foundation Schema")
+4. Mark checkboxes as completed: `- [ ]` → `- [x]`
+5. Commit changes with message: `"chore: Update progress - Phase X Task Y completed"`
+
+**Current Status**: See `DROPLAB_TRANSFORMATION_PLAN.md` for real-time progress
+
+**Phases Overview**:
+- **Phase 1** (Weeks 1-2): Foundation - Auth + Database ✅ **PARTIALLY COMPLETE**
+- **Phase 2** (Weeks 3-4): Design Engine - Fabric.js editor ⏳ **NEXT**
+- **Phase 3** (Weeks 5-6): VDP Engine - Batch personalization
+- **Phase 4** (Weeks 7-8): AI Intelligence - Compliance + Predictions
+- **Phase 5** (Weeks 9-10): Campaign Management + Data Axle - Audience targeting
+- **Phase 6** (Weeks 11-12): Collaboration - Real-time editing
+- **Phase 7** (Weeks 13-14): Marketplace - Template sharing
+- **Phase 8** (Weeks 15-16): Developer API - Platform play
+- **Phase 9** (Weeks 17-18): External Integrations - PostGrid, Stripe
+- **Phase 10** (Weeks 19-20): Polish & Launch - Beta with 50 users
 
 ## Project Overview
 
