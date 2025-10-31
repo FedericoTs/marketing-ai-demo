@@ -143,6 +143,39 @@ export function CanvasEditor({
 
     setCanvas(fabricCanvas);
 
+    // Keyboard event handler for delete functionality
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Delete or Backspace key is pressed
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Get the active object
+        const activeObject = fabricCanvas.getActiveObject();
+
+        if (activeObject) {
+          // Check if user is editing text (don't delete the object, let them edit)
+          const isEditingText = (activeObject as any).isEditing;
+
+          if (isEditingText) {
+            // User is editing text, don't interfere
+            return;
+          }
+
+          // Prevent default behavior (e.g., browser back navigation for Backspace)
+          e.preventDefault();
+
+          // Remove the object from canvas
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.discardActiveObject(); // Clear selection
+          fabricCanvas.renderAll();
+
+          // History will be automatically saved by object:removed event listener
+          console.log('🗑️ Deleted object:', activeObject.type);
+        }
+      }
+    };
+
+    // Add keyboard event listener
+    window.addEventListener('keydown', handleKeyDown);
+
     // Auto-fit canvas to screen after initialization
     // Delay to ensure Fabric.js DOM managers are fully initialized
     setTimeout(() => {
@@ -192,6 +225,9 @@ export function CanvasEditor({
     }, 250);
 
     return () => {
+      // Clean up keyboard event listener
+      window.removeEventListener('keydown', handleKeyDown);
+      // Dispose canvas
       fabricCanvas.dispose();
     };
   }, []);
