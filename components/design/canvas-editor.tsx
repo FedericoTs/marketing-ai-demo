@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, IText, Rect, Circle, FabricImage } from 'fabric';
+import { Canvas, IText, Rect, Circle as FabricCircle, FabricImage } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
   Type,
   Square,
-  Circle,
+  Circle as CircleIcon,
   Image as ImageIcon,
   Save,
   Download,
@@ -171,7 +171,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const addCircle = useCallback(() => {
     if (!canvas) return;
 
-    const circle = new Circle({
+    const circle = new FabricCircle({
       left: CANVAS_WIDTH / 2 - 100,
       top: CANVAS_HEIGHT / 2 - 100,
       radius: 100,
@@ -350,7 +350,7 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
             size="sm"
             onClick={() => { setSelectedTool('circle'); addCircle(); }}
           >
-            <Circle className="h-4 w-4 mr-2" />
+            <CircleIcon className="h-4 w-4 mr-2" />
             Circle
           </Button>
 
