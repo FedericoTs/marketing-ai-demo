@@ -287,13 +287,13 @@ export function LayersPanel({
     setLayers(newLayers);
 
     // Update canvas z-index (reverse because layers are displayed reversed)
-    const objects = canvas.getObjects();
+    // Fabric.js canvas manages objects in a stack, we need to reorder them
     const reversedNewLayers = [...newLayers].reverse();
-    reversedNewLayers.forEach((layer, index) => {
-      const objIndex = objects.indexOf(layer.object);
-      if (objIndex !== -1) {
-        layer.object.moveTo(index);
-      }
+
+    // Remove all objects and re-add in correct order
+    canvas.remove(...canvas.getObjects());
+    reversedNewLayers.forEach((layer) => {
+      canvas.add(layer.object);
     });
 
     canvas.renderAll();
