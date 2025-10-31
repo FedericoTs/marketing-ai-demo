@@ -7,8 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ColorPicker } from './color-picker';
 import { FontSelector } from './font-selector';
+import { VARIABLE_TYPES, type VariableType, getVariableTypeConfig } from '@/lib/design/variable-types';
 
 interface PropertyPanelProps {
   selectedObject: FabricObject | null;
@@ -49,6 +57,10 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
       fill: selectedObject.fill || '#000000',
       stroke: selectedObject.stroke || '#000000',
       strokeWidth: Math.round(selectedObject.strokeWidth ?? 0),
+
+      // Variable marker properties
+      variableType: (selectedObject as any).variableType || 'none',
+      isReusable: (selectedObject as any).isReusable || false,
     });
   }, [selectedObject, forceUpdate]); // Added forceUpdate dependency
 
@@ -75,6 +87,36 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
       selectedObject.set('fill', value);
     } else if (key === 'fontFamily' || key === 'fontSize' || key === 'fontWeight') {
       (selectedObject as IText).set(key as any, value);
+    } else if (key === 'variableType') {
+      // Handle variable marker changes
+      const variableConfig = getVariableTypeConfig(value as VariableType);
+      (selectedObject as any).variableType = value;
+      (selectedObject as any).isReusable = variableConfig.isReusable;
+
+      // Apply or remove visual styling
+      if (value !== 'none') {
+        // Apply purple border and styling for variables
+        selectedObject.set({
+          borderColor: '#9333ea',
+          borderScaleFactor: 3,
+          borderDashArray: [5, 5],
+          cornerColor: '#9333ea',
+          cornerSize: 8,
+          transparentCorners: false,
+        } as any);
+      } else {
+        // Remove variable styling
+        selectedObject.set({
+          borderColor: '#178cf9',
+          borderScaleFactor: 1,
+          borderDashArray: null,
+          cornerColor: '#178cf9',
+          cornerSize: 6,
+          transparentCorners: false,
+        } as any);
+      }
+
+      setProperties({ ...properties, variableType: value, isReusable: variableConfig.isReusable });
     } else {
       selectedObject.set(key as any, value);
     }
@@ -119,6 +161,12 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
               Text
             </TabsTrigger>
           )}
+          <TabsTrigger
+            value="variable"
+            className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 flex-shrink-0"
+          >
+            Variable
+          </TabsTrigger>
         </TabsList>
 
         {/* Transform Tab */}
@@ -308,6 +356,69 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
             </div>
           </TabsContent>
         )}
+
+        {/* Variable Tab */}
+        <TabsContent value="variable" className="flex-1 overflow-y-auto p-3 mt-0">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
+                Variable Data Type
+              </Label>
+              <Select
+                value={properties.variableType || 'none'}
+                onValueChange={(value) => updateProperty('variableType', value)}
+              >
+                <SelectTrigger className="h-9 text-xs bg-slate-50 border-slate-200 focus:bg-white transition-colors">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VARIABLE_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value} className="text-xs">
+                      <span className="mr-2">{type.icon}</span>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Variable Type Description */}
+              {properties.variableType && properties.variableType !== 'none' && (
+                <div className="mt-3 p-3 rounded-md bg-purple-50 border border-purple-200">
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">
+                      {getVariableTypeConfig(properties.variableType as VariableType).icon}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-purple-900 mb-1">
+                        {getVariableTypeConfig(properties.variableType as VariableType).label}
+                      </p>
+                      <p className="text-[10px] text-purple-700">
+                        {getVariableTypeConfig(properties.variableType as VariableType).description}
+                      </p>
+
+                      {/* Reusable Status */}
+                      <div className="mt-2 flex items-center gap-1">
+                        <div className={`h-1.5 w-1.5 rounded-full ${properties.isReusable ? 'bg-purple-600' : 'bg-orange-600'}`} />
+                        <span className="text-[10px] text-purple-600 font-medium">
+                          {properties.isReusable ? 'Reusable (same for all)' : 'Personalized (unique per recipient)'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Visual Indicator Info */}
+              {properties.variableType && properties.variableType !== 'none' && (
+                <div className="mt-2 p-2 rounded-md bg-slate-50 border border-slate-200">
+                  <p className="text-[10px] text-slate-600">
+                    <span className="font-medium">Visual Indicator:</span> This object will display a purple dashed border on the canvas to mark it as a variable.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
     </Card>
   );

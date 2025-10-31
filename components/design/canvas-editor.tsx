@@ -106,10 +106,24 @@ export function CanvasEditor({
           Object.entries(initialData.variableMappings).forEach(([idx, mapping]) => {
             const index = parseInt(idx);
             if (objects[index]) {
-              (objects[index] as any).variableType = mapping.variableType;
-              (objects[index] as any).isReusable = mapping.isReusable;
+              const obj = objects[index];
+              (obj as any).variableType = mapping.variableType;
+              (obj as any).isReusable = mapping.isReusable;
+
+              // Apply visual styling for variables
+              if (mapping.variableType && mapping.variableType !== 'none') {
+                obj.set({
+                  borderColor: '#9333ea',
+                  borderScaleFactor: 3,
+                  borderDashArray: [5, 5],
+                  cornerColor: '#9333ea',
+                  cornerSize: 8,
+                  transparentCorners: false,
+                } as any);
+              }
             }
           });
+          fabricCanvas.renderAll();
         }
       });
     }

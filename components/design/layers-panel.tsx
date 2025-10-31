@@ -40,6 +40,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { getVariableTypeConfig, type VariableType } from '@/lib/design/variable-types';
 
 interface LayersPanelProps {
   canvas: Canvas | null;
@@ -57,6 +58,7 @@ interface LayerItem {
   type: string;
   visible: boolean;
   locked: boolean;
+  variableType?: VariableType;
 }
 
 function LayerIcon({ type }: { type: string }) {
@@ -135,6 +137,16 @@ function SortableLayerItem({
 
       {/* Layer Name */}
       <span className="flex-1 text-xs truncate">{layer.name}</span>
+
+      {/* Variable Badge */}
+      {layer.variableType && layer.variableType !== 'none' && (
+        <div
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-100 border border-purple-300"
+          title={getVariableTypeConfig(layer.variableType).description}
+        >
+          <span className="text-xs">{getVariableTypeConfig(layer.variableType).icon}</span>
+        </div>
+      )}
 
       {/* Actions - visible on hover */}
       <div className={`flex items-center gap-0.5 transition-opacity ${isHovered || isSelected ? 'opacity-100' : 'opacity-0'}`}>
@@ -224,6 +236,7 @@ export function LayersPanel({
           type: obj.type || 'unknown',
           visible: obj.visible !== false,
           locked: obj.selectable === false,
+          variableType: objectAny.variableType || 'none',
         };
       }).reverse(); // Reverse to show top layers first
 
