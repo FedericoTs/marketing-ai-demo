@@ -588,6 +588,7 @@ export function CanvasEditor({
         isOpen={isNavMenuOpen}
         onClose={() => setIsNavMenuOpen(false)}
         hideButton={true}
+        alwaysCollapsible={true}
       />
 
       {/* Main Layout: 3 Columns */}

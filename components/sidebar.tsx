@@ -23,9 +23,10 @@ interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
   hideButton?: boolean;
+  alwaysCollapsible?: boolean; // If true, sidebar is hidden on all screen sizes unless opened
 }
 
-export function Sidebar({ isOpen, onClose, hideButton = false }: SidebarProps = {}) {
+export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible = false }: SidebarProps = {}) {
   const pathname = usePathname();
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -116,8 +117,9 @@ export function Sidebar({ isOpen, onClose, hideButton = false }: SidebarProps = 
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed lg:static inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r bg-slate-50 transition-transform duration-300 ease-in-out",
-        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        "fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col border-r bg-slate-50 transition-transform duration-300 ease-in-out",
+        !alwaysCollapsible && "lg:static",
+        isMobileMenuOpen ? "translate-x-0" : alwaysCollapsible ? "-translate-x-full" : "-translate-x-full lg:translate-x-0"
       )}>
       <div className="flex h-16 items-center border-b px-6">
         <div className="flex items-center gap-2">
