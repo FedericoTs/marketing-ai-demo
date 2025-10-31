@@ -127,7 +127,7 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
                   <Label className="text-xs text-slate-500">X</Label>
                   <Input
                     type="number"
-                    value={Math.round(properties.left)}
+                    value={Math.round(properties.left ?? 0) || 0}
                     onChange={(e) => updateProperty('left', parseFloat(e.target.value) || 0)}
                     className="h-7 text-xs bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                   />
@@ -136,7 +136,7 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
                   <Label className="text-xs text-slate-500">Y</Label>
                   <Input
                     type="number"
-                    value={Math.round(properties.top)}
+                    value={Math.round(properties.top ?? 0) || 0}
                     onChange={(e) => updateProperty('top', parseFloat(e.target.value) || 0)}
                     className="h-7 text-xs bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                   />
@@ -152,10 +152,10 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
                   <Label className="text-xs text-slate-500">Width</Label>
                   <Input
                     type="number"
-                    value={Math.round((properties.width || 100) * (properties.scaleX || 1)) || 0}
+                    value={Math.round(((properties.width ?? 100) * (properties.scaleX ?? 1))) || 1}
                     onChange={(e) => {
                       const newWidth = parseFloat(e.target.value) || 1;
-                      const baseWidth = properties.width || 100;
+                      const baseWidth = properties.width ?? 100;
                       updateProperty('scaleX', baseWidth > 0 ? newWidth / baseWidth : 1);
                     }}
                     className="h-7 text-xs bg-slate-50 border-slate-200 focus:bg-white transition-colors"
@@ -166,10 +166,10 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
                   <Label className="text-xs text-slate-500">Height</Label>
                   <Input
                     type="number"
-                    value={Math.round((properties.height || 100) * (properties.scaleY || 1)) || 0}
+                    value={Math.round(((properties.height ?? 100) * (properties.scaleY ?? 1))) || 1}
                     onChange={(e) => {
                       const newHeight = parseFloat(e.target.value) || 1;
-                      const baseHeight = properties.height || 100;
+                      const baseHeight = properties.height ?? 100;
                       updateProperty('scaleY', baseHeight > 0 ? newHeight / baseHeight : 1);
                     }}
                     className="h-7 text-xs bg-slate-50 border-slate-200 focus:bg-white transition-colors"
@@ -186,7 +186,7 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
                 <div className="flex items-center gap-1">
                   <Input
                     type="number"
-                    value={Math.round(properties.angle)}
+                    value={Math.round(properties.angle ?? 0) || 0}
                     onChange={(e) => updateProperty('angle', parseFloat(e.target.value) || 0)}
                     className="w-14 h-6 px-1.5 text-xs bg-slate-50 border-slate-200"
                     min={0}
@@ -212,8 +212,8 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
                 <div className="flex items-center gap-1">
                   <Input
                     type="number"
-                    value={Math.round(properties.opacity)}
-                    onChange={(e) => updateProperty('opacity', parseFloat(e.target.value) || 0)}
+                    value={Math.round(properties.opacity ?? 100) || 100}
+                    onChange={(e) => updateProperty('opacity', parseFloat(e.target.value) || 100)}
                     className="w-14 h-6 px-1.5 text-xs bg-slate-50 border-slate-200"
                     min={0}
                     max={100}
@@ -255,7 +255,7 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
                     <Label className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">Stroke Width</Label>
                     <Input
                       type="number"
-                      value={properties.strokeWidth}
+                      value={Math.round(properties.strokeWidth ?? 0) || 0}
                       onChange={(e) => updateProperty('strokeWidth', parseInt(e.target.value) || 0)}
                       className="w-14 h-6 px-1.5 text-xs bg-slate-50 border-slate-200"
                       min={0}
