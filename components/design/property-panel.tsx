@@ -27,32 +27,32 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
 
     setProperties({
       // Common properties
-      left: selectedObject.left || 0,
-      top: selectedObject.top || 0,
-      width: selectedObject.width || 0,
-      height: selectedObject.height || 0,
-      scaleX: selectedObject.scaleX || 1,
-      scaleY: selectedObject.scaleY || 1,
-      angle: selectedObject.angle || 0,
-      opacity: selectedObject.opacity !== undefined ? selectedObject.opacity * 100 : 100,
+      left: Math.round(selectedObject.left ?? 0),
+      top: Math.round(selectedObject.top ?? 0),
+      width: Math.round(selectedObject.width ?? 100),
+      height: Math.round(selectedObject.height ?? 100),
+      scaleX: selectedObject.scaleX ?? 1,
+      scaleY: selectedObject.scaleY ?? 1,
+      angle: Math.round(selectedObject.angle ?? 0),
+      opacity: selectedObject.opacity !== undefined ? Math.round(selectedObject.opacity * 100) : 100,
 
       // Text properties
       fontFamily: (selectedObject as IText).fontFamily || 'Arial',
-      fontSize: (selectedObject as IText).fontSize || 16,
-      fontWeight: (selectedObject as IText).fontWeight || 400,
+      fontSize: Math.round((selectedObject as IText).fontSize ?? 16),
+      fontWeight: (selectedObject as IText).fontWeight ?? 400,
       textColor: (selectedObject as IText).fill || '#000000',
 
       // Shape properties
       fill: selectedObject.fill || '#000000',
       stroke: selectedObject.stroke || '#000000',
-      strokeWidth: selectedObject.strokeWidth || 0,
+      strokeWidth: Math.round(selectedObject.strokeWidth ?? 0),
     });
   }, [selectedObject]);
 
   if (!selectedObject) {
     return (
-      <Card className="w-80 p-4 h-full overflow-y-auto">
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+      <Card className="w-full p-3 h-full overflow-y-auto border-0 rounded-none">
+        <div className="flex items-center justify-center h-full text-xs text-muted-foreground text-center px-2">
           Select an object to edit its properties
         </div>
       </Card>
@@ -81,12 +81,12 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
   };
 
   return (
-    <Card className="w-80 p-4 h-full overflow-y-auto">
-      <div className="space-y-6">
+    <Card className="w-full p-3 h-full overflow-y-auto border-0 rounded-none">
+      <div className="space-y-4">
         {/* Header */}
         <div>
-          <h3 className="text-lg font-semibold">Properties</h3>
-          <p className="text-sm text-muted-foreground capitalize">
+          <h3 className="text-sm font-semibold">Properties</h3>
+          <p className="text-xs text-muted-foreground capitalize">
             {selectedObject.type?.replace(/-/g, ' ')}
           </p>
         </div>
@@ -194,24 +194,28 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
               <Label className="text-xs">Width</Label>
               <Input
                 type="number"
-                value={Math.round(properties.width * properties.scaleX)}
+                value={Math.round((properties.width || 100) * (properties.scaleX || 1)) || 0}
                 onChange={(e) => {
-                  const newWidth = parseFloat(e.target.value) || 0;
-                  updateProperty('scaleX', newWidth / properties.width);
+                  const newWidth = parseFloat(e.target.value) || 1;
+                  const baseWidth = properties.width || 100;
+                  updateProperty('scaleX', baseWidth > 0 ? newWidth / baseWidth : 1);
                 }}
                 className="h-8 text-sm"
+                min={1}
               />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Height</Label>
               <Input
                 type="number"
-                value={Math.round(properties.height * properties.scaleY)}
+                value={Math.round((properties.height || 100) * (properties.scaleY || 1)) || 0}
                 onChange={(e) => {
-                  const newHeight = parseFloat(e.target.value) || 0;
-                  updateProperty('scaleY', newHeight / properties.height);
+                  const newHeight = parseFloat(e.target.value) || 1;
+                  const baseHeight = properties.height || 100;
+                  updateProperty('scaleY', baseHeight > 0 ? newHeight / baseHeight : 1);
                 }}
                 className="h-8 text-sm"
+                min={1}
               />
             </div>
           </div>

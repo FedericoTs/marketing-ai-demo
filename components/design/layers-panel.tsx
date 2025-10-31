@@ -291,11 +291,11 @@ export function LayersPanel({ canvas, onUpdate }: LayersPanelProps) {
   };
 
   return (
-    <Card className="w-80 p-4 h-full overflow-y-auto">
-      <div className="space-y-4">
+    <Card className="w-full p-3 h-full overflow-y-auto border-0 rounded-none">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Layers</h3>
-          <span className="text-sm text-muted-foreground">{layers.length}</span>
+          <h3 className="text-sm font-semibold">Layers</h3>
+          <span className="text-xs text-muted-foreground">{layers.length}</span>
         </div>
 
         {layers.length === 0 ? (

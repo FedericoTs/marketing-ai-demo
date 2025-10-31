@@ -16,12 +16,17 @@ import {
   ZoomIn,
   ZoomOut,
   Undo,
-  Redo
+  Redo,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeft,
+  PanelRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
 import { LayersPanel } from './layers-panel';
 import { AlignmentTools } from './alignment-tools';
+import { AIDesignAssistant } from './ai-design-assistant';
 
 // Canvas dimensions for 6x4 postcard at 300 DPI
 const CANVAS_WIDTH_INCHES = 6;
@@ -55,6 +60,8 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const [history, setHistory] = useState<string[]>([]);
   const [historyStep, setHistoryStep] = useState<number>(-1);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [showLayersPanel, setShowLayersPanel] = useState(true);
+  const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -204,15 +211,18 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
     input.type = 'file';
     input.accept = 'image/*';
 
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const imgUrl = event.target?.result as string;
 
-        FabricImage.fromURL(imgUrl, (img) => {
+        try {
+          // Fabric.js v6 async pattern
+          const img = await FabricImage.fromURL(imgUrl);
+
           // Scale image to fit canvas (max 50% width)
           const maxWidth = CANVAS_WIDTH * 0.5;
           const scale = maxWidth / (img.width || 1);
@@ -227,7 +237,11 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
           canvas.add(img);
           canvas.setActiveObject(img);
           canvas.renderAll();
-        });
+          toast.success('Image added to canvas');
+        } catch (error) {
+          console.error('Failed to load image:', error);
+          toast.error('Failed to load image');
+        }
       };
 
       reader.readAsDataURL(file);
@@ -441,12 +455,48 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
       {/* Main Layout: 3 Columns */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Layers */}
-        <div className="border-r">
-          <LayersPanel canvas={canvas} onUpdate={handleCanvasUpdate} />
-        </div>
+        {showLayersPanel && (
+          <div className="border-r w-60 flex-shrink-0">
+            <LayersPanel canvas={canvas} onUpdate={handleCanvasUpdate} />
+          </div>
+        )}
+
+        {/* Left Panel Toggle */}
+        {!showLayersPanel && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-r-md rounded-l-none h-12 w-6"
+            onClick={() => setShowLayersPanel(true)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        )}
 
         {/* Center - Canvas */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-4 overflow-auto">
+        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-4 overflow-auto relative">
+          {/* Panel Toggle Buttons */}
+          {showLayersPanel && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-2 top-2 z-10 h-8 w-8"
+              onClick={() => setShowLayersPanel(false)}
+            >
+              <PanelLeft className="h-4 w-4" />
+            </Button>
+          )}
+          {showPropertiesPanel && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 z-10 h-8 w-8"
+              onClick={() => setShowPropertiesPanel(false)}
+            >
+              <PanelRight className="h-4 w-4" />
+            </Button>
+          )}
+
           <div
             className="border-2 border-gray-300 shadow-lg bg-white"
             style={{
@@ -465,11 +515,28 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
           </div>
         </div>
 
+        {/* Right Panel Toggle */}
+        {!showPropertiesPanel && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-l-md rounded-r-none h-12 w-6"
+            onClick={() => setShowPropertiesPanel(true)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        )}
+
         {/* Right Panel - Properties */}
-        <div className="border-l">
-          <PropertyPanel selectedObject={selectedObject} onUpdate={handleCanvasUpdate} />
-        </div>
+        {showPropertiesPanel && (
+          <div className="border-l w-60 flex-shrink-0">
+            <PropertyPanel selectedObject={selectedObject} onUpdate={handleCanvasUpdate} />
+          </div>
+        )}
       </div>
+
+      {/* AI Design Assistant */}
+      <AIDesignAssistant canvas={canvas} onUpdate={handleCanvasUpdate} />
     </div>
   );
 }
