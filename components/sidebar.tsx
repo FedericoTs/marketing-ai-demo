@@ -75,7 +75,13 @@ export function Sidebar({ isOpen, onClose, hideButton = false }: SidebarProps = 
     });
   };
 
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const closeMobileMenu = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setInternalMenuOpen(false);
+    }
+  };
 
   return (
     <>
