@@ -26,7 +26,6 @@ import {
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
 import { LayersPanel } from './layers-panel';
-import { AlignmentTools } from './alignment-tools';
 import { AIDesignAssistant } from './ai-design-assistant';
 
 // Canvas dimensions for 6x4 postcard at 300 DPI
@@ -51,9 +50,20 @@ export interface CanvasEditorProps {
     canvasJSON?: string;
     variableMappings?: Record<string, any>;
   };
+  templateName?: string;
+  templateDescription?: string;
+  onTemplateNameChange?: (name: string) => void;
+  onTemplateDescriptionChange?: (description: string) => void;
 }
 
-export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
+export function CanvasEditor({
+  onSave,
+  initialData,
+  templateName,
+  templateDescription,
+  onTemplateNameChange,
+  onTemplateDescriptionChange
+}: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [selectedTool, setSelectedTool] = useState<string>('select');
@@ -63,8 +73,6 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   const [forceUpdate, setForceUpdate] = useState(0);
   const [showLayersPanel, setShowLayersPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
-  const [templateName, setTemplateName] = useState<string>('');
-  const [templateDescription, setTemplateDescription] = useState<string>('');
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -418,10 +426,14 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
   return (
     <div className="flex flex-col h-screen bg-slate-50">
       {/* Top Toolbar - Minimal Spline Style */}
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200">
-        {/* Left: Logo/Title */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-200">
+        {/* Left: Title */}
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-medium text-slate-700">Template Editor</h3>
+          <span className="text-xs text-slate-400">|</span>
+          <div className="text-xs text-slate-500">
+            {CANVAS_WIDTH} × {CANVAS_HEIGHT}px
+          </div>
         </div>
 
         {/* Center: Main Tools */}
@@ -556,13 +568,8 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
         </div>
       </div>
 
-      {/* Alignment Tools - Secondary Toolbar */}
-      <div className="px-4 py-1.5 bg-white border-b border-slate-100">
-        <AlignmentTools canvas={canvas} onUpdate={handleCanvasUpdate} />
-      </div>
-
       {/* Main Layout: 3 Columns */}
-      <div className="flex flex-1 overflow-hidden relative pb-16">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Left Panel - Layers */}
         {showLayersPanel && (
           <div className="w-60 flex-shrink-0 bg-white border-r border-slate-200">
@@ -571,8 +578,8 @@ export function CanvasEditor({ onSave, initialData }: CanvasEditorProps) {
               onUpdate={handleCanvasUpdate}
               templateName={templateName}
               templateDescription={templateDescription}
-              onTemplateNameChange={setTemplateName}
-              onTemplateDescriptionChange={setTemplateDescription}
+              onTemplateNameChange={onTemplateNameChange}
+              onTemplateDescriptionChange={onTemplateDescriptionChange}
             />
           </div>
         )}
