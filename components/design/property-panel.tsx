@@ -13,13 +13,15 @@ import { FontSelector } from './font-selector';
 interface PropertyPanelProps {
   selectedObject: FabricObject | null;
   onUpdate: () => void;
+  forceUpdate?: number; // Version counter that changes when object is modified
 }
 
-export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) {
+export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: PropertyPanelProps) {
   const [properties, setProperties] = useState<any>({});
   const [activeTab, setActiveTab] = useState('transform');
 
   // Load properties from selected object
+  // Re-runs when selectedObject changes OR when forceUpdate counter changes (object modified)
   useEffect(() => {
     if (!selectedObject) {
       setProperties({});
@@ -48,7 +50,7 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
       stroke: selectedObject.stroke || '#000000',
       strokeWidth: Math.round(selectedObject.strokeWidth ?? 0),
     });
-  }, [selectedObject]);
+  }, [selectedObject, forceUpdate]); // Added forceUpdate dependency
 
   if (!selectedObject) {
     return (
@@ -76,6 +78,9 @@ export function PropertyPanel({ selectedObject, onUpdate }: PropertyPanelProps) 
     } else {
       selectedObject.set(key as any, value);
     }
+
+    // Update coordinates after transformation (important for rotation, scaling, position)
+    selectedObject.setCoords();
 
     setProperties({ ...properties, [key]: value });
     onUpdate();

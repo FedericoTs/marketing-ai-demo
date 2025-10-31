@@ -423,8 +423,11 @@ export function CanvasEditor({
 
   // Trigger re-render when panels update canvas
   const handleCanvasUpdate = useCallback(() => {
+    if (canvas) {
+      canvas.renderAll();
+    }
     setForceUpdate(prev => prev + 1);
-  }, []);
+  }, [canvas]);
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
@@ -670,7 +673,7 @@ export function CanvasEditor({
         {/* Right Panel - Properties */}
         {showPropertiesPanel && (
           <div className="w-60 flex-shrink-0 bg-white border-l border-slate-200">
-            <PropertyPanel selectedObject={selectedObject} onUpdate={handleCanvasUpdate} />
+            <PropertyPanel selectedObject={selectedObject} onUpdate={handleCanvasUpdate} forceUpdate={forceUpdate} />
           </div>
         )}
       </div>
