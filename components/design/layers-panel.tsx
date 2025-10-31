@@ -318,7 +318,7 @@ export function LayersPanel({
   };
 
   return (
-    <Card className="w-full h-full overflow-hidden border-0 rounded-none bg-white border-r border-slate-200 flex flex-col">
+    <Card className="w-full h-full overflow-hidden overflow-x-hidden border-0 rounded-none bg-white border-r border-slate-200 flex flex-col">
       {/* Template Form Section */}
       <div className="border-b border-slate-200">
         <button

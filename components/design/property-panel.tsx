@@ -87,7 +87,7 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
   };
 
   return (
-    <Card className="w-full h-full overflow-hidden border-0 rounded-none bg-white border-l border-slate-200 flex flex-col">
+    <Card className="w-full h-full overflow-hidden overflow-x-hidden border-0 rounded-none bg-white border-l border-slate-200 flex flex-col">
       {/* Header */}
       <div className="px-3 py-3 border-b border-slate-200">
         <h3 className="text-xs font-semibold text-slate-700">Properties</h3>
@@ -98,23 +98,23 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="w-full rounded-none border-b border-slate-200 bg-white h-9 p-0 justify-start">
+        <TabsList className="w-full rounded-none border-b border-slate-200 bg-white h-9 p-0 justify-start overflow-x-hidden shrink-0">
           <TabsTrigger
             value="transform"
-            className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4"
+            className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 flex-shrink-0"
           >
             Transform
           </TabsTrigger>
           <TabsTrigger
             value="style"
-            className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4"
+            className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 flex-shrink-0"
           >
             Style
           </TabsTrigger>
           {isText && (
             <TabsTrigger
               value="text"
-              className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4"
+              className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 flex-shrink-0"
             >
               Text
             </TabsTrigger>
