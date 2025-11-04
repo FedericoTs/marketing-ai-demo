@@ -22,14 +22,19 @@ import {
   PanelLeft,
   PanelRight,
   Maximize2,
-  Menu
+  Menu,
+  FolderOpen,
+  Magnet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
 import { LayersPanel } from './layers-panel';
 import { AIDesignAssistant } from './ai-design-assistant';
+import { FormatSelector } from './format-selector';
+import { AssetLibraryPanel } from './asset-library-panel';
 import { Sidebar } from '@/components/sidebar';
 import { DEFAULT_FORMAT, type PrintFormat } from '@/lib/design/print-formats';
+import { detectAlignments, deduplicateLines, type AlignmentLine } from '@/lib/design/alignment-helpers';
 
 export interface CanvasEditorProps {
   format?: PrintFormat; // Print format (defaults to 4x6 postcard)
@@ -49,6 +54,9 @@ export interface CanvasEditorProps {
   templateDescription?: string;
   onTemplateNameChange?: (name: string) => void;
   onTemplateDescriptionChange?: (description: string) => void;
+  templateLibraryTrigger?: React.ReactNode;
+  onOpenTemplateLibrary?: () => void;
+  organizationId?: string; // For asset library
 }
 
 export function CanvasEditor({
@@ -59,7 +67,10 @@ export function CanvasEditor({
   templateName,
   templateDescription,
   onTemplateNameChange,
-  onTemplateDescriptionChange
+  onTemplateDescriptionChange,
+  templateLibraryTrigger,
+  onOpenTemplateLibrary,
+  organizationId = '00000000-0000-0000-0000-000000000000' // Default for testing
 }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
@@ -73,7 +84,10 @@ export function CanvasEditor({
   const [forceUpdate, setForceUpdate] = useState(0);
   const [showLayersPanel, setShowLayersPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
+  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  const [alignmentGuidesEnabled, setAlignmentGuidesEnabled] = useState(true);
+  const [alignmentLines, setAlignmentLines] = useState<AlignmentLine[]>([]);
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -82,52 +96,64 @@ export function CanvasEditor({
     console.log(`🎨 Initializing canvas with format: ${currentFormat.name}`);
     console.log(`   Dimensions: ${currentFormat.widthPixels}px × ${currentFormat.heightPixels}px (${currentFormat.widthInches}" × ${currentFormat.heightInches}" at ${currentFormat.dpi} DPI)`);
 
-    // Create canvas with format dimensions
-    const fabricCanvas = new Canvas(canvasRef.current, {
-      width: currentFormat.widthPixels,
-      height: currentFormat.heightPixels,
-      backgroundColor: '#ffffff',
-    });
+    // Declare variables in useEffect scope so cleanup can access them
+    let handleKeyDown: ((e: KeyboardEvent) => void) | null = null;
+    let fabricCanvas: Canvas | null = null;
 
-    // Load initial data if provided
-    if (initialData?.canvasJSON) {
-      fabricCanvas.loadFromJSON(initialData.canvasJSON, () => {
-        fabricCanvas.renderAll();
+    // Small delay to ensure DOM is ready and previous canvas is disposed
+    const initTimeout = setTimeout(() => {
+      if (!canvasRef.current) return;
 
-        // Apply variable mappings
-        if (initialData.variableMappings) {
-          const objects = fabricCanvas.getObjects();
-          Object.entries(initialData.variableMappings).forEach(([idx, mapping]) => {
-            const index = parseInt(idx);
-            if (objects[index]) {
-              const obj = objects[index];
-              (obj as any).variableType = mapping.variableType;
-              (obj as any).isReusable = mapping.isReusable;
-
-              // Apply visual styling for variables
-              if (mapping.variableType && mapping.variableType !== 'none') {
-                obj.set({
-                  borderColor: '#9333ea',
-                  borderScaleFactor: 3,
-                  borderDashArray: [5, 5],
-                  cornerColor: '#9333ea',
-                  cornerSize: 8,
-                  transparentCorners: false,
-                } as any);
-              }
-            }
-          });
-          fabricCanvas.renderAll();
-        }
+      // Create canvas with format dimensions
+      fabricCanvas = new Canvas(canvasRef.current, {
+        width: currentFormat.widthPixels,
+        height: currentFormat.heightPixels,
+        backgroundColor: '#ffffff',
       });
-    }
 
-    // Save initial state to history
-    saveToHistory(fabricCanvas);
+      // Load initial data if provided
+      if (initialData?.canvasJSON) {
+        console.log('📂 Loading canvas from JSON data...');
+        fabricCanvas.loadFromJSON(initialData.canvasJSON, () => {
+          console.log('✅ Canvas JSON loaded, rendering...');
+          fabricCanvas.renderAll();
 
-    // Listen for object modifications
-    fabricCanvas.on('object:modified', () => saveToHistory(fabricCanvas));
-    fabricCanvas.on('object:added', () => saveToHistory(fabricCanvas));
+          // Apply variable mappings
+          if (initialData.variableMappings) {
+            console.log('🏷️ Applying variable mappings...');
+            const objects = fabricCanvas.getObjects();
+            Object.entries(initialData.variableMappings).forEach(([idx, mapping]) => {
+              const index = parseInt(idx);
+              if (objects[index]) {
+                const obj = objects[index];
+                (obj as any).variableType = mapping.variableType;
+                (obj as any).isReusable = mapping.isReusable;
+
+                // Apply visual styling for variables
+                if (mapping.variableType && mapping.variableType !== 'none') {
+                  obj.set({
+                    borderColor: '#9333ea',
+                    borderScaleFactor: 3,
+                    borderDashArray: [5, 5],
+                    cornerColor: '#9333ea',
+                    cornerSize: 8,
+                    transparentCorners: false,
+                  } as any);
+                }
+              }
+            });
+            fabricCanvas.renderAll();
+            console.log('✅ Variable mappings applied');
+          }
+        });
+      }
+
+      // Save initial state to history
+      saveToHistory(fabricCanvas);
+
+      // Listen for object modifications
+      fabricCanvas.on('object:modified', () => saveToHistory(fabricCanvas));
+      fabricCanvas.on('object:added', () => saveToHistory(fabricCanvas));
     fabricCanvas.on('object:removed', () => saveToHistory(fabricCanvas));
 
     // Listen for selection changes
@@ -135,10 +161,40 @@ export function CanvasEditor({
     fabricCanvas.on('selection:updated', (e: any) => setSelectedObject(e.selected?.[0] || null));
     fabricCanvas.on('selection:cleared', () => setSelectedObject(null));
 
+    // Alignment guides event listeners
+    fabricCanvas.on('object:moving', (e: any) => {
+      if (!alignmentGuidesEnabled) return;
+
+      const movingObject = e.target;
+      if (!movingObject) return;
+
+      const allObjects = fabricCanvas.getObjects().filter(obj => obj !== movingObject);
+      const alignments = detectAlignments(
+        movingObject,
+        allObjects,
+        currentFormat.widthPixels,
+        currentFormat.heightPixels
+      );
+
+      // Show alignment guidelines (visual only, no auto-snap)
+      const uniqueLines = deduplicateLines(alignments.lines);
+      setAlignmentLines(uniqueLines);
+    });
+
+    fabricCanvas.on('object:modified', () => {
+      // Clear alignment lines when object stops moving
+      setAlignmentLines([]);
+    });
+
+    fabricCanvas.on('mouse:up', () => {
+      // Also clear on mouse up (safety net)
+      setAlignmentLines([]);
+    });
+
     setCanvas(fabricCanvas);
 
     // Keyboard event handler for delete functionality
-    const handleKeyDown = (e: KeyboardEvent) => {
+    handleKeyDown = (e: KeyboardEvent) => {
       // Check if Delete or Backspace key is pressed
       if (e.key === 'Delete' || e.key === 'Backspace') {
         // Get the active object
@@ -168,7 +224,9 @@ export function CanvasEditor({
     };
 
     // Add keyboard event listener
-    window.addEventListener('keydown', handleKeyDown);
+    if (handleKeyDown) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
 
     // Auto-fit canvas to screen after initialization
     // Delay to ensure Fabric.js DOM managers are fully initialized
@@ -218,14 +276,86 @@ export function CanvasEditor({
         });
       }
     }, 250);
+    }, 50); // Close initTimeout setTimeout
 
     return () => {
+      clearTimeout(initTimeout);
       // Clean up keyboard event listener
-      window.removeEventListener('keydown', handleKeyDown);
-      // Dispose canvas
-      fabricCanvas.dispose();
+      if (handleKeyDown) {
+        window.removeEventListener('keydown', handleKeyDown);
+      }
+      // Dispose canvas safely
+      try {
+        if (fabricCanvas && fabricCanvas.dispose) {
+          fabricCanvas.dispose();
+        }
+      } catch (err) {
+        console.warn('Canvas disposal warning:', err);
+      }
     };
-  }, [currentFormat, initialData?.canvasJSON, initialData?.variableMappings]);
+  }, [currentFormat, initialData]);
+
+  // Render alignment guide lines
+  useEffect(() => {
+    if (!canvas) return;
+
+    const renderAlignmentLines = () => {
+      const ctx = canvas.getContext();
+      if (!ctx) return;
+
+      // Don't call renderAll() here - we're already in after:render event
+      // Just draw the alignment lines on top of the existing render
+      if (alignmentLines.length === 0) return;
+
+      // Save context state
+      ctx.save();
+
+      // Set line style (magenta dashed lines)
+      ctx.strokeStyle = '#FF00FF';
+      ctx.lineWidth = 1 / canvas.getZoom(); // Adjust for zoom
+      ctx.setLineDash([5 / canvas.getZoom(), 5 / canvas.getZoom()]);
+
+      // Draw each alignment line
+      alignmentLines.forEach(line => {
+        ctx.beginPath();
+        if (line.type === 'vertical') {
+          ctx.moveTo(line.position, line.start);
+          ctx.lineTo(line.position, line.end);
+        } else {
+          ctx.moveTo(line.start, line.position);
+          ctx.lineTo(line.end, line.position);
+        }
+        ctx.stroke();
+      });
+
+      // Restore context state
+      ctx.restore();
+    };
+
+    // Render lines on every canvas render
+    canvas.on('after:render', renderAlignmentLines);
+
+    return () => {
+      canvas.off('after:render', renderAlignmentLines);
+    };
+  }, [canvas, alignmentLines]);
+
+  // Keyboard shortcut: Cmd/Ctrl + ; to toggle alignment guides
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Cmd (Mac) or Ctrl (Windows/Linux) + semicolon
+      if ((e.metaKey || e.ctrlKey) && e.key === ';') {
+        e.preventDefault();
+        setAlignmentGuidesEnabled(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Save canvas state to history
   const saveToHistory = useCallback((canvas: Canvas) => {
@@ -265,8 +395,8 @@ export function CanvasEditor({
     if (!canvas) return;
 
     const text = new IText('Double-click to edit', {
-      left: CANVAS_WIDTH / 2,
-      top: CANVAS_HEIGHT / 2,
+      left: currentFormat.widthPixels / 2,
+      top: currentFormat.heightPixels / 2,
       fontSize: 60, // Scaled for 300 DPI
       fontFamily: 'Arial',
       fill: '#000000',
@@ -285,8 +415,8 @@ export function CanvasEditor({
     if (!canvas) return;
 
     const rect = new Rect({
-      left: CANVAS_WIDTH / 2,
-      top: CANVAS_HEIGHT / 2,
+      left: currentFormat.widthPixels / 2,
+      top: currentFormat.heightPixels / 2,
       width: 300,
       height: 200,
       fill: '#FF6B35',
@@ -307,8 +437,8 @@ export function CanvasEditor({
     if (!canvas) return;
 
     const circle = new FabricCircle({
-      left: CANVAS_WIDTH / 2,
-      top: CANVAS_HEIGHT / 2,
+      left: currentFormat.widthPixels / 2,
+      top: currentFormat.heightPixels / 2,
       radius: 100,
       fill: '#4ECDC4',
       stroke: '#000000',
@@ -344,12 +474,12 @@ export function CanvasEditor({
           const img = await FabricImage.fromURL(imgUrl);
 
           // Scale image to fit canvas (max 50% width)
-          const maxWidth = CANVAS_WIDTH * 0.5;
+          const maxWidth = currentFormat.widthPixels * 0.5;
           const scale = maxWidth / (img.width || 1);
 
           img.set({
-            left: CANVAS_WIDTH / 2,
-            top: CANVAS_HEIGHT / 2,
+            left: currentFormat.widthPixels / 2,
+            top: currentFormat.heightPixels / 2,
             scaleX: scale,
             scaleY: scale,
             originX: 'center',
@@ -372,6 +502,42 @@ export function CanvasEditor({
 
     input.click();
   }, [canvas]);
+
+  // Add asset from library
+  const addAssetToCanvas = useCallback(async (asset: any) => {
+    if (!canvas) return;
+
+    try {
+      // Use signed URL to load image
+      const imgUrl = asset.signedUrl || asset.storage_url;
+      const img = await FabricImage.fromURL(imgUrl, {
+        crossOrigin: 'anonymous'
+      });
+
+      // Scale image to fit canvas (max 50% width)
+      const maxWidth = currentFormat.widthPixels * 0.5;
+      const scale = maxWidth / (img.width || 1);
+
+      img.set({
+        left: currentFormat.widthPixels / 2,
+        top: currentFormat.heightPixels / 2,
+        scaleX: scale,
+        scaleY: scale,
+        originX: 'center',
+        originY: 'center',
+        centeredRotation: true,
+      });
+
+      canvas.add(img);
+      canvas.setActiveObject(img);
+      canvas.renderAll();
+      saveToHistory(canvas);
+      toast.success(`${asset.name} added to canvas`);
+    } catch (error) {
+      console.error('Failed to load asset:', error);
+      toast.error('Failed to load asset');
+    }
+  }, [canvas, currentFormat]);
 
   // Delete selected object
   const deleteSelected = useCallback(() => {
@@ -397,8 +563,8 @@ export function CanvasEditor({
 
     // Update CSS dimensions to match zoom
     canvas.setDimensions({
-      width: CANVAS_WIDTH * newZoom,
-      height: CANVAS_HEIGHT * newZoom
+      width: currentFormat.widthPixels * newZoom,
+      height: currentFormat.heightPixels * newZoom
     }, { cssOnly: true });
 
     canvas.renderAll();
@@ -414,8 +580,8 @@ export function CanvasEditor({
 
     // Update CSS dimensions to match zoom
     canvas.setDimensions({
-      width: CANVAS_WIDTH * newZoom,
-      height: CANVAS_HEIGHT * newZoom
+      width: currentFormat.widthPixels * newZoom,
+      height: currentFormat.heightPixels * newZoom
     }, { cssOnly: true });
 
     canvas.renderAll();
@@ -554,7 +720,7 @@ export function CanvasEditor({
           <h3 className="text-sm font-medium text-slate-700">Template Editor</h3>
           <span className="text-xs text-slate-400">|</span>
           <div className="text-xs text-slate-500">
-            {CANVAS_WIDTH} × {CANVAS_HEIGHT}px
+            {currentFormat.widthPixels} × {currentFormat.heightPixels}px
           </div>
         </div>
 
@@ -647,7 +813,7 @@ export function CanvasEditor({
           >
             <ZoomOut className="h-4 w-4" />
           </Button>
-          <span className="text-xs text-slate-600 w-12 text-center">{Math.round((canvas?.getZoom() || DISPLAY_SCALE) * 100)}%</span>
+          <span className="text-xs text-slate-600 w-12 text-center">{Math.round((canvas?.getZoom() || 0.25) * 100)}%</span>
           <Button
             variant="ghost"
             size="icon"
@@ -666,10 +832,55 @@ export function CanvasEditor({
           >
             <Maximize2 className="h-4 w-4" />
           </Button>
+
+          <div className="w-px h-5 bg-slate-200 mx-1" />
+
+          {/* Alignment Guides Toggle */}
+          <Button
+            variant={alignmentGuidesEnabled ? "default" : "ghost"}
+            size="icon"
+            className={`h-8 w-8 ${alignmentGuidesEnabled ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'hover:bg-slate-100'}`}
+            onClick={() => setAlignmentGuidesEnabled(!alignmentGuidesEnabled)}
+            title={`Alignment Guides ${alignmentGuidesEnabled ? 'On' : 'Off'} (Cmd/Ctrl + ;)`}
+          >
+            <Magnet className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
+          {onOpenTemplateLibrary && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs hover:bg-slate-100"
+              onClick={onOpenTemplateLibrary}
+              title="Browse Templates"
+            >
+              <FolderOpen className="h-4 w-4 mr-1.5" />
+              Templates
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs hover:bg-slate-100"
+            onClick={() => setShowAssetLibrary(!showAssetLibrary)}
+            title="Toggle Asset Library"
+          >
+            <ImageIcon className="h-4 w-4 mr-1.5" />
+            Assets
+          </Button>
+          <FormatSelector
+            canvas={canvas}
+            currentFormat={currentFormat}
+            onFormatChange={(newFormat) => {
+              setCurrentFormat(newFormat);
+              if (onFormatChange) {
+                onFormatChange(newFormat);
+              }
+            }}
+          />
           <Button
             variant="ghost"
             size="sm"
@@ -779,10 +990,23 @@ export function CanvasEditor({
             <PropertyPanel selectedObject={selectedObject} onUpdate={handleCanvasUpdate} forceUpdate={forceUpdate} />
           </div>
         )}
+
+        {/* Asset Library Panel */}
+        {showAssetLibrary && (
+          <div className="w-72 flex-shrink-0 bg-white border-l border-slate-200">
+            <AssetLibraryPanel
+              organizationId={organizationId}
+              onAssetSelect={addAssetToCanvas}
+            />
+          </div>
+        )}
       </div>
 
       {/* AI Design Assistant */}
       <AIDesignAssistant canvas={canvas} onUpdate={handleCanvasUpdate} />
+
+      {/* Template Library Dialog Trigger (hidden, controlled by parent) */}
+      {templateLibraryTrigger}
     </div>
   );
 }
