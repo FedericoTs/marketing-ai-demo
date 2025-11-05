@@ -278,7 +278,8 @@ export async function getTemplateById(id: string) {
 }
 
 export async function getOrganizationTemplates(organizationId: string, status?: string) {
-  const supabase = createUserClient();
+  // Use admin client for API routes (bypasses RLS, but we filter by organization_id)
+  const supabase = createAdminClient();
 
   let query = supabase
     .from('design_templates')

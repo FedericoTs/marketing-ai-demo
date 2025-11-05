@@ -129,9 +129,9 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
   };
 
   return (
-    <Card className="w-full h-full overflow-hidden overflow-x-hidden border-0 rounded-none bg-white border-l border-slate-200 flex flex-col">
+    <Card className="w-full h-full overflow-hidden border-0 rounded-none bg-white border-l border-slate-200 flex flex-col">
       {/* Header */}
-      <div className="px-3 py-3 border-b border-slate-200">
+      <div className="px-3 py-3 border-b border-slate-200 shrink-0">
         <h3 className="text-xs font-semibold text-slate-700">Properties</h3>
         <p className="text-[10px] text-slate-500 capitalize mt-0.5">
           {selectedObject.type?.replace(/-/g, ' ')}
@@ -139,35 +139,37 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="w-full rounded-none border-b border-slate-200 bg-white h-9 p-0 justify-start overflow-x-hidden shrink-0">
-          <TabsTrigger
-            value="transform"
-            className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 flex-shrink-0"
-          >
-            Transform
-          </TabsTrigger>
-          <TabsTrigger
-            value="style"
-            className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 flex-shrink-0"
-          >
-            Style
-          </TabsTrigger>
-          {isText && (
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+        <div className="shrink-0 overflow-x-auto">
+          <TabsList className="w-full rounded-none border-b border-slate-200 bg-white h-9 p-0 justify-start inline-flex">
             <TabsTrigger
-              value="text"
-              className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 flex-shrink-0"
+              value="transform"
+              className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 whitespace-nowrap"
             >
-              Text
+              Transform
             </TabsTrigger>
-          )}
-          <TabsTrigger
-            value="variable"
-            className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 flex-shrink-0"
-          >
-            Variable
-          </TabsTrigger>
-        </TabsList>
+            <TabsTrigger
+              value="style"
+              className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 whitespace-nowrap"
+            >
+              Style
+            </TabsTrigger>
+            {isText && (
+              <TabsTrigger
+                value="text"
+                className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 whitespace-nowrap"
+              >
+                Text
+              </TabsTrigger>
+            )}
+            <TabsTrigger
+              value="variable"
+              className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 whitespace-nowrap"
+            >
+              Variable
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Transform Tab */}
         <TabsContent value="transform" className="flex-1 overflow-y-auto p-3 mt-0">

@@ -23,8 +23,7 @@ import {
   PanelRight,
   Maximize2,
   Menu,
-  FolderOpen,
-  Magnet
+  FolderOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
@@ -34,7 +33,6 @@ import { FormatSelector } from './format-selector';
 import { AssetLibraryPanel } from './asset-library-panel';
 import { Sidebar } from '@/components/sidebar';
 import { DEFAULT_FORMAT, type PrintFormat } from '@/lib/design/print-formats';
-import { detectAlignments, deduplicateLines, type AlignmentLine } from '@/lib/design/alignment-helpers';
 
 export interface CanvasEditorProps {
   format?: PrintFormat; // Print format (defaults to 4x6 postcard)
@@ -81,13 +79,18 @@ export function CanvasEditor({
   const [selectedObject, setSelectedObject] = useState<FabricObject | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [historyStep, setHistoryStep] = useState<number>(-1);
+  const historyStepRef = useRef<number>(-1); // Sync ref to avoid stale closures
+  const isLoadingHistoryRef = useRef<boolean>(false); // Prevent saving during undo/redo
   const [forceUpdate, setForceUpdate] = useState(0);
   const [showLayersPanel, setShowLayersPanel] = useState(true);
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
   const [showAssetLibrary, setShowAssetLibrary] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
-  const [alignmentGuidesEnabled, setAlignmentGuidesEnabled] = useState(true);
-  const [alignmentLines, setAlignmentLines] = useState<AlignmentLine[]>([]);
+
+  // Keep ref in sync with state (avoid stale closures)
+  useEffect(() => {
+    historyStepRef.current = historyStep;
+  }, [historyStep]);
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -160,36 +163,6 @@ export function CanvasEditor({
     fabricCanvas.on('selection:created', (e: any) => setSelectedObject(e.selected?.[0] || null));
     fabricCanvas.on('selection:updated', (e: any) => setSelectedObject(e.selected?.[0] || null));
     fabricCanvas.on('selection:cleared', () => setSelectedObject(null));
-
-    // Alignment guides event listeners
-    fabricCanvas.on('object:moving', (e: any) => {
-      if (!alignmentGuidesEnabled) return;
-
-      const movingObject = e.target;
-      if (!movingObject) return;
-
-      const allObjects = fabricCanvas.getObjects().filter(obj => obj !== movingObject);
-      const alignments = detectAlignments(
-        movingObject,
-        allObjects,
-        currentFormat.widthPixels,
-        currentFormat.heightPixels
-      );
-
-      // Show alignment guidelines (visual only, no auto-snap)
-      const uniqueLines = deduplicateLines(alignments.lines);
-      setAlignmentLines(uniqueLines);
-    });
-
-    fabricCanvas.on('object:modified', () => {
-      // Clear alignment lines when object stops moving
-      setAlignmentLines([]);
-    });
-
-    fabricCanvas.on('mouse:up', () => {
-      // Also clear on mouse up (safety net)
-      setAlignmentLines([]);
-    });
 
     setCanvas(fabricCanvas);
 
@@ -295,100 +268,175 @@ export function CanvasEditor({
     };
   }, [currentFormat, initialData]);
 
-  // Render alignment guide lines
-  useEffect(() => {
-    if (!canvas) return;
-
-    const renderAlignmentLines = () => {
-      const ctx = canvas.getContext();
-      if (!ctx) return;
-
-      // Don't call renderAll() here - we're already in after:render event
-      // Just draw the alignment lines on top of the existing render
-      if (alignmentLines.length === 0) return;
-
-      // Save context state
-      ctx.save();
-
-      // Set line style (magenta dashed lines)
-      ctx.strokeStyle = '#FF00FF';
-      ctx.lineWidth = 1 / canvas.getZoom(); // Adjust for zoom
-      ctx.setLineDash([5 / canvas.getZoom(), 5 / canvas.getZoom()]);
-
-      // Draw each alignment line
-      alignmentLines.forEach(line => {
-        ctx.beginPath();
-        if (line.type === 'vertical') {
-          ctx.moveTo(line.position, line.start);
-          ctx.lineTo(line.position, line.end);
-        } else {
-          ctx.moveTo(line.start, line.position);
-          ctx.lineTo(line.end, line.position);
-        }
-        ctx.stroke();
-      });
-
-      // Restore context state
-      ctx.restore();
-    };
-
-    // Render lines on every canvas render
-    canvas.on('after:render', renderAlignmentLines);
-
-    return () => {
-      canvas.off('after:render', renderAlignmentLines);
-    };
-  }, [canvas, alignmentLines]);
-
-  // Keyboard shortcut: Cmd/Ctrl + ; to toggle alignment guides
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check for Cmd (Mac) or Ctrl (Windows/Linux) + semicolon
-      if ((e.metaKey || e.ctrlKey) && e.key === ';') {
-        e.preventDefault();
-        setAlignmentGuidesEnabled(prev => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
   // Save canvas state to history
   const saveToHistory = useCallback((canvas: Canvas) => {
-    const json = JSON.stringify(canvas.toJSON());
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyStep + 1);
-      newHistory.push(json);
-      return newHistory.slice(-50); // Keep last 50 states
-    });
-    setHistoryStep(prev => Math.min(prev + 1, 49));
-  }, [historyStep]);
+    // Skip if we're loading history (undo/redo in progress)
+    if (isLoadingHistoryRef.current) {
+      console.log('⏭️ SKIPPING SAVE - Loading flag is TRUE (undo/redo in progress)');
+      return;
+    }
+
+    try {
+      const json = JSON.stringify(canvas.toJSON());
+      const currentStep = historyStepRef.current; // Use ref for current value
+      console.log('💾 Saving to history, current step:', currentStep, '| loading flag:', isLoadingHistoryRef.current);
+
+      setHistory(prev => {
+        // Truncate future history if we're not at the end
+        const newHistory = prev.slice(0, currentStep + 1);
+        // Add new state
+        newHistory.push(json);
+        // Keep last 100 states (increased from 50 for better UX)
+        const trimmed = newHistory.slice(-100);
+        console.log('📚 History updated, new length:', trimmed.length);
+        console.log('   Trimmed from step:', currentStep + 1, 'items in history:', prev.length, '→', trimmed.length);
+        return trimmed;
+      });
+
+      // Update step
+      const newStep = Math.min(currentStep + 1, 99); // Max 100 states (0-99)
+      historyStepRef.current = newStep; // Update ref immediately
+      setHistoryStep(newStep);
+      console.log('📍 History step updated:', currentStep, '→', newStep);
+    } catch (error) {
+      console.error('❌ Failed to save history:', error);
+    }
+  }, []); // No dependencies - uses ref for current step
 
   // Undo
   const handleUndo = useCallback(() => {
-    if (!canvas || historyStep <= 0) return;
+    const currentStep = historyStepRef.current;
+    console.log('⏪ UNDO CLICKED - historyStep:', currentStep, 'history length:', history.length);
 
-    const newStep = historyStep - 1;
-    canvas.loadFromJSON(history[newStep], () => {
-      canvas.renderAll();
-      setHistoryStep(newStep);
-    });
-  }, [canvas, history, historyStep]);
+    if (!canvas) {
+      console.warn('⚠️ No canvas available');
+      return;
+    }
+
+    if (currentStep <= 0) {
+      console.warn('⚠️ Already at oldest state');
+      toast.info('Nothing to undo');
+      return;
+    }
+
+    const newStep = currentStep - 1;
+    const historyData = history[newStep];
+
+    if (!historyData) {
+      console.warn('⚠️ No history data at step', newStep);
+      console.warn('   History array:', history);
+      toast.error('History data not found');
+      return;
+    }
+
+    try {
+      console.log('🔄 Parsing history data...');
+      const jsonData = JSON.parse(historyData);
+      console.log('✅ JSON parsed, loading to canvas...');
+
+      // Set flag to prevent saving during load
+      console.log('🚫 Setting loading flag TRUE - blocking all saves');
+      isLoadingHistoryRef.current = true;
+
+      canvas.loadFromJSON(jsonData, () => {
+        console.log('✅ loadFromJSON callback started');
+        console.log('   Loading flag:', isLoadingHistoryRef.current);
+
+        canvas.renderAll();
+        console.log('   renderAll() called');
+
+        historyStepRef.current = newStep; // Update ref immediately
+        setHistoryStep(newStep);
+        console.log('   History step updated to:', newStep);
+
+        canvas.discardActiveObject(); // Clear selection after undo
+        console.log('   discardActiveObject() called');
+
+        canvas.requestRenderAll();
+        console.log('   requestRenderAll() called');
+
+        // CRITICAL: Delay clearing flag to allow async events to finish
+        console.log('⏳ Waiting 100ms before clearing loading flag...');
+        setTimeout(() => {
+          isLoadingHistoryRef.current = false;
+          console.log('✅ UNDO COMPLETE - Loading flag cleared, new step:', newStep);
+          toast.success(`Undo (${history.length - newStep - 1} more available)`);
+        }, 100);
+      });
+    } catch (error) {
+      console.error('❌ Undo failed:', error);
+      isLoadingHistoryRef.current = false; // Clear flag on error
+      toast.error('Failed to undo');
+    }
+  }, [canvas, history]); // historyStep removed - using ref instead
 
   // Redo
   const handleRedo = useCallback(() => {
-    if (!canvas || historyStep >= history.length - 1) return;
+    const currentStep = historyStepRef.current;
+    console.log('⏩ REDO CLICKED - historyStep:', currentStep, 'history length:', history.length);
 
-    const newStep = historyStep + 1;
-    canvas.loadFromJSON(history[newStep], () => {
-      canvas.renderAll();
-      setHistoryStep(newStep);
-    });
-  }, [canvas, history, historyStep]);
+    if (!canvas) {
+      console.warn('⚠️ No canvas available');
+      return;
+    }
+
+    if (currentStep >= history.length - 1) {
+      console.warn('⚠️ Already at newest state');
+      toast.info('Nothing to redo');
+      return;
+    }
+
+    const newStep = currentStep + 1;
+    const historyData = history[newStep];
+
+    if (!historyData) {
+      console.warn('⚠️ No history data at step', newStep);
+      console.warn('   History array:', history);
+      toast.error('History data not found');
+      return;
+    }
+
+    try {
+      console.log('🔄 Parsing history data...');
+      const jsonData = JSON.parse(historyData);
+      console.log('✅ JSON parsed, loading to canvas...');
+
+      // Set flag to prevent saving during load
+      console.log('🚫 Setting loading flag TRUE - blocking all saves');
+      isLoadingHistoryRef.current = true;
+
+      canvas.loadFromJSON(jsonData, () => {
+        console.log('✅ loadFromJSON callback started');
+        console.log('   Loading flag:', isLoadingHistoryRef.current);
+
+        canvas.renderAll();
+        console.log('   renderAll() called');
+
+        historyStepRef.current = newStep; // Update ref immediately
+        setHistoryStep(newStep);
+        console.log('   History step updated to:', newStep);
+
+        canvas.discardActiveObject(); // Clear selection after redo
+        console.log('   discardActiveObject() called');
+
+        canvas.requestRenderAll();
+        console.log('   requestRenderAll() called');
+
+        // CRITICAL: Delay clearing flag to allow async events to finish
+        console.log('⏳ Waiting 100ms before clearing loading flag...');
+        setTimeout(() => {
+          isLoadingHistoryRef.current = false;
+          const remainingRedos = history.length - newStep - 1;
+          console.log('✅ REDO COMPLETE - Loading flag cleared, new step:', newStep);
+          toast.success(`Redo (${remainingRedos} more available)`);
+        }, 100);
+      });
+    } catch (error) {
+      console.error('❌ Redo failed:', error);
+      isLoadingHistoryRef.current = false; // Clear flag on error
+      toast.error('Failed to redo');
+    }
+  }, [canvas, history]); // historyStep removed - using ref instead
 
   // Add text
   const addText = useCallback(() => {
@@ -648,11 +696,35 @@ export function CanvasEditor({
       });
 
       // Generate preview image (scaled down)
+      // Save current viewport and display state
+      const currentZoom = canvas.getZoom();
+      const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+      const currentWidth = canvas.getWidth();
+      const currentHeight = canvas.getHeight();
+
+      // Reset to full resolution for clean preview generation
+      canvas.setZoom(1);
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      canvas.setDimensions({
+        width: currentFormat.widthPixels,
+        height: currentFormat.heightPixels
+      }, { cssOnly: true });
+      canvas.renderAll();
+
       const preview = canvas.toDataURL({
         format: 'png',
         quality: 0.8,
-        multiplier: 0.2, // Small preview
+        multiplier: 0.2, // Small preview (20% of full size)
       });
+
+      // Restore original state
+      canvas.setViewportTransform(currentVpt);
+      canvas.setZoom(currentZoom);
+      canvas.setDimensions({
+        width: currentWidth,
+        height: currentHeight
+      }, { cssOnly: true });
+      canvas.renderAll();
 
       onSave({
         canvasJSON,
@@ -672,37 +744,92 @@ export function CanvasEditor({
   const downloadPNG = useCallback(() => {
     if (!canvas) return;
 
-    // Temporarily set zoom to 1:1 for export
-    const currentZoom = canvas.getZoom();
-    canvas.setZoom(1);
-    // Note: Don't update CSS dimensions here - export is instant and we restore immediately
+    try {
+      console.log('📥 Starting PNG export...');
+      console.log('   Canvas dimensions (internal):', currentFormat.widthPixels, 'x', currentFormat.heightPixels);
 
-    const dataURL = canvas.toDataURL({
-      format: 'png',
-      quality: 1.0,
-      multiplier: 1, // Full 300 DPI resolution
-    });
+      // Save current viewport and display state
+      const currentZoom = canvas.getZoom();
+      const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+      console.log('   Current zoom:', currentZoom);
+      console.log('   Current viewport:', currentVpt);
 
-    // Restore zoom
-    canvas.setZoom(currentZoom);
-    // CSS dimensions remain unchanged since we only temporarily changed zoom
+      // Get current CSS dimensions
+      const currentWidth = canvas.getWidth();
+      const currentHeight = canvas.getHeight();
+      console.log('   Current CSS dimensions:', currentWidth, 'x', currentHeight);
 
-    // Download
-    const link = document.createElement('a');
-    link.download = `design-${Date.now()}.png`;
-    link.href = dataURL;
-    link.click();
+      // Reset to full resolution for export
+      // 1. Reset zoom to 1:1
+      canvas.setZoom(1);
 
-    toast.success('Downloaded as PNG!');
-  }, [canvas]);
+      // 2. Reset viewport transform to identity
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+      // 3. Reset CSS dimensions to match internal dimensions
+      canvas.setDimensions({
+        width: currentFormat.widthPixels,
+        height: currentFormat.heightPixels
+      }, { cssOnly: true });
+
+      // 4. Force re-render at full resolution
+      canvas.renderAll();
+      console.log('✅ Canvas reset to full resolution for export');
+
+      // Export at full resolution
+      const dataURL = canvas.toDataURL({
+        format: 'png',
+        quality: 1.0,
+        multiplier: 1, // Export at actual canvas internal dimensions (300 DPI)
+      });
+
+      console.log('✅ Canvas exported to data URL');
+      console.log('   Data URL length:', dataURL.length, 'characters');
+
+      // Restore original state
+      // 1. Restore viewport transform
+      canvas.setViewportTransform(currentVpt);
+
+      // 2. Restore zoom
+      canvas.setZoom(currentZoom);
+
+      // 3. Restore CSS dimensions
+      canvas.setDimensions({
+        width: currentWidth,
+        height: currentHeight
+      }, { cssOnly: true });
+
+      // 4. Force re-render with restored state
+      canvas.renderAll();
+      console.log('✅ Canvas state restored');
+
+      // Download the image
+      const link = document.createElement('a');
+      link.download = `design-${currentFormat.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+
+      toast.success(`Exported ${currentFormat.name} at ${currentFormat.widthPixels}×${currentFormat.heightPixels}px!`);
+      console.log('✅ PNG export complete');
+    } catch (error) {
+      console.error('❌ Export failed:', error);
+      toast.error('Failed to export PNG');
+    }
+  }, [canvas, currentFormat]);
 
   // Trigger re-render when panels update canvas
   const handleCanvasUpdate = useCallback(() => {
     if (canvas) {
       canvas.renderAll();
+
+      // Save to history for property changes (color, opacity, etc.)
+      // This ensures undo/redo works for PropertyPanel changes
+      // The saveToHistory function already checks isLoadingHistoryRef to skip during undo/redo
+      console.log('🎨 Property changed via panel, saving to history');
+      saveToHistory(canvas);
     }
     setForceUpdate(prev => prev + 1);
-  }, [canvas]);
+  }, [canvas, saveToHistory]);
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
@@ -831,19 +958,6 @@ export function CanvasEditor({
             title="Fit to Screen"
           >
             <Maximize2 className="h-4 w-4" />
-          </Button>
-
-          <div className="w-px h-5 bg-slate-200 mx-1" />
-
-          {/* Alignment Guides Toggle */}
-          <Button
-            variant={alignmentGuidesEnabled ? "default" : "ghost"}
-            size="icon"
-            className={`h-8 w-8 ${alignmentGuidesEnabled ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'hover:bg-slate-100'}`}
-            onClick={() => setAlignmentGuidesEnabled(!alignmentGuidesEnabled)}
-            title={`Alignment Guides ${alignmentGuidesEnabled ? 'On' : 'Off'} (Cmd/Ctrl + ;)`}
-          >
-            <Magnet className="h-4 w-4" />
           </Button>
         </div>
 

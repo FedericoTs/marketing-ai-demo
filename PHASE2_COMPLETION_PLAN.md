@@ -145,11 +145,21 @@ Help users precisely align objects with visual guides and magnetic snapping
 - ✅ Thumbnails generate correctly
 
 **Alignment Guides**:
-- ✅ Guides appear when dragging objects
-- ✅ Visual alignment guides (magenta dashed lines) - Automatic snapping removed per user request
-- ✅ Toggle on/off works
-- ✅ Keyboard shortcut (Cmd/Ctrl + ;) works
-- ✅ Smooth performance with 50+ objects
+- ❌ Removed per user request (feature proved too complex for current scope)
+- ✅ Canvas editor fully functional without alignment guides
+
+**Undo/Redo System**:
+- ✅ 100-state history buffer (increased from 50)
+- ✅ Works for object creation, movement, scaling, rotation
+- ✅ Works for property changes (color, opacity, fonts, etc.)
+- ✅ Protected against race conditions during undo/redo operations
+- ✅ User feedback with remaining undo/redo count
+- ✅ Comprehensive error handling and logging
+
+**Canvas Export**:
+- ✅ Full-resolution PNG export (300 DPI)
+- ✅ Exports entire canvas (fixed viewport transform issue)
+- ✅ Multi-format support (4×6 Postcard, 6×11 Postcard, Letter, etc.)
 
 **Overall**:
 - ✅ All Phase 2 checkpoints passed
