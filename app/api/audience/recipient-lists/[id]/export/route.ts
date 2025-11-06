@@ -129,7 +129,7 @@ export async function GET(
     });
 
     // Add metadata rows
-    if (contact.metadata && Object.keys(contacts[0].metadata).length > 0) {
+    if (contacts[0]?.metadata && Object.keys(contacts[0].metadata).length > 0) {
       const metadataKeys = Object.keys(contacts[0].metadata);
       const metadataHeaders = headers.concat(metadataKeys.map(k => escapeCSV(k)));
       csvRows[0] = metadataHeaders.join(',');
