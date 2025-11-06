@@ -45,10 +45,7 @@ export async function GET(request: Request) {
         total_recipients,
         data_axle_filters,
         created_at,
-        created_by,
-        user_profiles!recipient_lists_created_by_fkey (
-          full_name
-        )
+        created_by
       `)
       .eq('organization_id', userProfile.organization_id)
       .order('created_at', { ascending: false });
@@ -59,6 +56,24 @@ export async function GET(request: Request) {
         { error: 'Failed to fetch recipient lists', details: listsError.message },
         { status: 500 }
       );
+    }
+
+    // Fetch user profiles for the creators
+    const creatorIds = recipientLists?.map(list => list.created_by).filter(Boolean) || [];
+    let userProfilesMap: Record<string, string> = {};
+
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, full_name')
+        .in('id', creatorIds);
+
+      if (profiles) {
+        userProfilesMap = profiles.reduce((acc, profile) => {
+          acc[profile.id] = profile.full_name;
+          return acc;
+        }, {} as Record<string, string>);
+      }
     }
 
     // Get contact purchase info for Data Axle lists
@@ -79,10 +94,10 @@ export async function GET(request: Request) {
       }
     }
 
-    // Enrich recipient lists with purchase info
+    // Enrich recipient lists with purchase info and creator names
     const enrichedLists = recipientLists?.map(list => ({
       ...list,
-      created_by_name: list.user_profiles?.full_name || 'Unknown',
+      created_by_name: userProfilesMap[list.created_by] || 'Unknown',
       purchase_info: purchaseInfo[list.id] || null,
     }));
 
