@@ -1,10 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, IText, Rect, Circle as FabricCircle, FabricImage, FabricObject } from 'fabric';
+import { Canvas, IText, Textbox, Rect, Circle as FabricCircle, FabricImage, FabricObject } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import {
   Type,
   Square,
@@ -19,11 +26,14 @@ import {
   Redo,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   PanelLeft,
   PanelRight,
   Maximize2,
   Menu,
-  FolderOpen
+  FolderOpen,
+  Eye,
+  Pencil
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
@@ -33,6 +43,8 @@ import { FormatSelector } from './format-selector';
 import { AssetLibraryPanel } from './asset-library-panel';
 import { Sidebar } from '@/components/sidebar';
 import { DEFAULT_FORMAT, type PrintFormat } from '@/lib/design/print-formats';
+import { hasVariables, extractFieldNames, applyVariableChipStyling, removeVariableChipStyling } from '@/lib/design/variable-parser';
+import { VARIABLE_MARKER_STYLES } from '@/lib/design/variable-types';
 
 export interface CanvasEditorProps {
   format?: PrintFormat; // Print format (defaults to 4x6 postcard)
@@ -86,6 +98,7 @@ export function CanvasEditor({
   const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
   const [showAssetLibrary, setShowAssetLibrary] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false); // Toggle for showing/hiding variable chip styling
 
   // Keep ref in sync with state (avoid stale closures)
   useEffect(() => {
@@ -159,20 +172,203 @@ export function CanvasEditor({
       fabricCanvas.on('object:added', () => saveToHistory(fabricCanvas));
     fabricCanvas.on('object:removed', () => saveToHistory(fabricCanvas));
 
+    // Handle textbox scaling: convert scaleY to height to prevent text distortion
+    fabricCanvas.on('object:scaling', (e: any) => {
+      const obj = e.target;
+      if (obj && (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text')) {
+        // For horizontal scaling (width change)
+        if (obj.scaleX && obj.scaleX !== 1) {
+          const newWidth = (obj.width || 100) * obj.scaleX;
+          obj.set({
+            width: newWidth,
+            scaleX: 1,
+          });
+        }
+
+        // For vertical scaling (height change) - convert to height property
+        if (obj.scaleY && obj.scaleY !== 1) {
+          const newHeight = (obj.height || 100) * obj.scaleY;
+          obj.set({
+            height: newHeight,
+            scaleY: 1,
+          });
+        }
+
+        obj.setCoords();
+        fabricCanvas.renderAll();
+      }
+    });
+
     // Listen for selection changes
     fabricCanvas.on('selection:created', (e: any) => setSelectedObject(e.selected?.[0] || null));
     fabricCanvas.on('selection:updated', (e: any) => setSelectedObject(e.selected?.[0] || null));
     fabricCanvas.on('selection:cleared', () => setSelectedObject(null));
 
+    // Auto-detect variables in text using {variableName} syntax
+    fabricCanvas.on('text:changed', (e: any) => {
+      const textObj = e.target;
+      if (textObj && (textObj.type === 'textbox' || textObj.type === 'i-text' || textObj.type === 'text')) {
+        const textContent = textObj.text || '';
+        const previousFieldNames = textObj.variableFieldNames || [];
+
+        // Check if text contains variables like {firstName}, {lastName}, etc.
+        if (hasVariables(textContent)) {
+          const fieldNames = extractFieldNames(textContent);
+
+          // Check if variable list changed (only show toast when variables actually change)
+          const fieldNamesChanged =
+            previousFieldNames.length !== fieldNames.length ||
+            !previousFieldNames.every((name: string) => fieldNames.includes(name)) ||
+            !fieldNames.every((name: string) => previousFieldNames.includes(name));
+
+          // Mark as variable type 'custom'
+          textObj.set({
+            variableType: 'custom',
+            variableFieldNames: fieldNames, // Store detected field names
+            isReusable: false,
+            // Apply visual styling (purple border)
+            borderColor: VARIABLE_MARKER_STYLES.borderColor,
+            borderScaleFactor: VARIABLE_MARKER_STYLES.borderWidth,
+            borderDashArray: VARIABLE_MARKER_STYLES.borderDashArray,
+            cornerColor: VARIABLE_MARKER_STYLES.cornerColor,
+            cornerSize: VARIABLE_MARKER_STYLES.cornerSize,
+            transparentCorners: VARIABLE_MARKER_STYLES.transparentCorners,
+          });
+
+          // Apply chip-style highlighting (purple text + background) to {variable} text
+          // Only apply if NOT in Preview Mode
+          if (!isPreviewMode) {
+            applyVariableChipStyling(textObj);
+          }
+
+          // Only show toast if variables changed
+          if (fieldNamesChanged) {
+            console.log(`🔮 Auto-detected ${fieldNames.length} variable(s):`, fieldNames.join(', '));
+            toast.success(`Detected ${fieldNames.length} variable${fieldNames.length > 1 ? 's' : ''}: ${fieldNames.join(', ')}`);
+          }
+        } else {
+          // Remove variable styling if no variables detected
+          if (textObj.variableType === 'custom') {
+            textObj.set({
+              variableType: 'none',
+              variableFieldNames: undefined,
+              borderColor: '#000000',
+              borderScaleFactor: 1,
+              borderDashArray: null,
+              cornerColor: '#000000',
+              cornerSize: 7,
+              transparentCorners: false,
+            });
+          }
+        }
+
+        textObj.setCoords();
+        fabricCanvas.renderAll();
+      }
+    });
+
     setCanvas(fabricCanvas);
 
     // Keyboard event handler for delete functionality
     handleKeyDown = (e: KeyboardEvent) => {
-      // Check if Delete or Backspace key is pressed
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        // Get the active object
-        const activeObject = fabricCanvas.getActiveObject();
+      const activeObject = fabricCanvas.getActiveObject();
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
 
+      // Undo/Redo shortcuts (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z)
+      if (cmdKey && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          // Redo
+          handleRedo();
+        } else {
+          // Undo
+          handleUndo();
+        }
+        return;
+      }
+
+      // Text formatting shortcuts (only when text is selected, NOT editing)
+      if (activeObject && (activeObject.type === 'i-text' || activeObject.type === 'text' || activeObject.type === 'textbox')) {
+        const isEditingText = (activeObject as any).isEditing;
+
+        // Only apply shortcuts when text object is selected but NOT being edited
+        if (!isEditingText && cmdKey) {
+          const textObj = activeObject as any;
+
+          // Cmd/Ctrl+B - Bold
+          if (e.key === 'b' || e.key === 'B') {
+            e.preventDefault();
+            const newWeight = textObj.fontWeight === 700 ? 400 : 700;
+            textObj.set('fontWeight', newWeight);
+            textObj.setCoords();
+            fabricCanvas.renderAll();
+            saveToHistory(fabricCanvas);
+            toast.success(newWeight === 700 ? 'Bold applied' : 'Bold removed');
+            return;
+          }
+
+          // Cmd/Ctrl+I - Italic
+          if (e.key === 'i' || e.key === 'I') {
+            e.preventDefault();
+            const newStyle = textObj.fontStyle === 'italic' ? 'normal' : 'italic';
+            textObj.set('fontStyle', newStyle);
+            textObj.setCoords();
+            fabricCanvas.renderAll();
+            saveToHistory(fabricCanvas);
+            toast.success(newStyle === 'italic' ? 'Italic applied' : 'Italic removed');
+            return;
+          }
+
+          // Cmd/Ctrl+U - Underline
+          if (e.key === 'u' || e.key === 'U') {
+            e.preventDefault();
+            const newUnderline = !textObj.underline;
+            textObj.set('underline', newUnderline);
+            textObj.setCoords();
+            fabricCanvas.renderAll();
+            saveToHistory(fabricCanvas);
+            toast.success(newUnderline ? 'Underline applied' : 'Underline removed');
+            return;
+          }
+
+          // Cmd/Ctrl+Shift+L - Align Left
+          if (e.shiftKey && (e.key === 'l' || e.key === 'L')) {
+            e.preventDefault();
+            textObj.set('textAlign', 'left');
+            textObj.setCoords();
+            fabricCanvas.renderAll();
+            saveToHistory(fabricCanvas);
+            toast.success('Aligned left');
+            return;
+          }
+
+          // Cmd/Ctrl+Shift+E - Align Center
+          if (e.shiftKey && (e.key === 'e' || e.key === 'E')) {
+            e.preventDefault();
+            textObj.set('textAlign', 'center');
+            textObj.setCoords();
+            fabricCanvas.renderAll();
+            saveToHistory(fabricCanvas);
+            toast.success('Aligned center');
+            return;
+          }
+
+          // Cmd/Ctrl+Shift+R - Align Right
+          if (e.shiftKey && (e.key === 'r' || e.key === 'R')) {
+            e.preventDefault();
+            textObj.set('textAlign', 'right');
+            textObj.setCoords();
+            fabricCanvas.renderAll();
+            saveToHistory(fabricCanvas);
+            toast.success('Aligned right');
+            return;
+          }
+        }
+      }
+
+      // Delete/Backspace - Remove selected object
+      if (e.key === 'Delete' || e.key === 'Backspace') {
         if (activeObject) {
           // Check if user is editing text (don't delete the object, let them edit)
           const isEditingText = (activeObject as any).isEditing;
@@ -442,21 +638,177 @@ export function CanvasEditor({
   const addText = useCallback(() => {
     if (!canvas) return;
 
-    const text = new IText('Double-click to edit', {
-      left: currentFormat.widthPixels / 2,
-      top: currentFormat.heightPixels / 2,
+    // Use Textbox instead of IText to enable text wrapping and prevent stretching
+    const text = new Textbox('Double-click to edit', {
+      left: currentFormat.widthPixels / 2 - 300, // Offset by half width
+      top: currentFormat.heightPixels / 2 - 50, // Offset by half height
+      width: 600, // Default width for text box (wraps at this width)
       fontSize: 60, // Scaled for 300 DPI
-      fontFamily: 'Arial',
+      fontFamily: 'Inter',
+      fontWeight: 400, // Explicit weight prevents font switching in edit mode
       fill: '#000000',
-      originX: 'center',
-      originY: 'center',
+      textAlign: 'center',
+      originX: 'left',
+      originY: 'top',
       centeredRotation: true,
+      // CRITICAL: Prevent text from stretching when resizing
+      lockScalingFlip: true, // Prevent flipping during resize
+      lockUniScaling: false, // Allow independent width/height resizing
+      // Allow width resizing but text reflows instead of stretching
+      splitByGrapheme: true, // Better word wrapping
+      // Note: scaleX and scaleY are converted to width/height by object:scaling event
     });
 
     canvas.add(text);
     canvas.setActiveObject(text);
     canvas.renderAll();
-  }, [canvas]);
+
+    // Save to history
+    saveToHistory(canvas);
+
+    toast.success('Text box added! Resize width to wrap text.');
+  }, [canvas, currentFormat, saveToHistory]);
+
+  // Add Title (H1 - Large heading style)
+  const addTitle = useCallback(() => {
+    if (!canvas) return;
+
+    const title = new Textbox('Your Title Here', {
+      left: currentFormat.widthPixels / 2 - 400,
+      top: 100,
+      width: 800,
+      fontSize: 96, // Large title size
+      fontFamily: 'Inter',
+      fontWeight: 800, // ExtraBold
+      fill: '#000000',
+      textAlign: 'center',
+      originX: 'left',
+      originY: 'top',
+      centeredRotation: true,
+      lockScalingFlip: true,
+      lockUniScaling: false,
+      splitByGrapheme: true,
+    });
+
+    canvas.add(title);
+    canvas.setActiveObject(title);
+    canvas.renderAll();
+    saveToHistory(canvas);
+    toast.success('Title added (H1)');
+  }, [canvas, currentFormat, saveToHistory]);
+
+  // Add Heading (H2 - Section heading style)
+  const addHeading = useCallback(() => {
+    if (!canvas) return;
+
+    const heading = new Textbox('Section Heading', {
+      left: 100,
+      top: 250,
+      width: 700,
+      fontSize: 72, // Medium heading size
+      fontFamily: 'Inter',
+      fontWeight: 700, // Bold
+      fill: '#000000',
+      textAlign: 'left',
+      originX: 'left',
+      originY: 'top',
+      centeredRotation: true,
+      lockScalingFlip: true,
+      lockUniScaling: false,
+      splitByGrapheme: true,
+    });
+
+    canvas.add(heading);
+    canvas.setActiveObject(heading);
+    canvas.renderAll();
+    saveToHistory(canvas);
+    toast.success('Heading added (H2)');
+  }, [canvas, currentFormat, saveToHistory]);
+
+  // Add Subheading (H3 - Subsection heading style)
+  const addSubheading = useCallback(() => {
+    if (!canvas) return;
+
+    const subheading = new Textbox('Subheading Text', {
+      left: 100,
+      top: 400,
+      width: 600,
+      fontSize: 48, // Smaller heading size
+      fontFamily: 'Inter',
+      fontWeight: 600, // SemiBold
+      fill: '#000000',
+      textAlign: 'left',
+      originX: 'left',
+      originY: 'top',
+      centeredRotation: true,
+      lockScalingFlip: true,
+      lockUniScaling: false,
+      splitByGrapheme: true,
+    });
+
+    canvas.add(subheading);
+    canvas.setActiveObject(subheading);
+    canvas.renderAll();
+    saveToHistory(canvas);
+    toast.success('Subheading added (H3)');
+  }, [canvas, currentFormat, saveToHistory]);
+
+  // Add Body Text (Regular paragraph text)
+  const addBodyText = useCallback(() => {
+    if (!canvas) return;
+
+    const bodyText = new Textbox('Start typing your body text here. This is perfect for paragraphs and longer content.', {
+      left: 100,
+      top: 550,
+      width: 800,
+      fontSize: 32, // Regular body text size
+      fontFamily: 'Inter',
+      fontWeight: 400, // Regular
+      fill: '#000000',
+      textAlign: 'left',
+      lineHeight: 1.5, // Better readability
+      originX: 'left',
+      originY: 'top',
+      centeredRotation: true,
+      lockScalingFlip: true,
+      lockUniScaling: false,
+      splitByGrapheme: true,
+    });
+
+    canvas.add(bodyText);
+    canvas.setActiveObject(bodyText);
+    canvas.renderAll();
+    saveToHistory(canvas);
+    toast.success('Body text added');
+  }, [canvas, currentFormat, saveToHistory]);
+
+  // Add Caption (Small supplementary text)
+  const addCaption = useCallback(() => {
+    if (!canvas) return;
+
+    const caption = new Textbox('Caption or small text', {
+      left: 100,
+      top: 750,
+      width: 500,
+      fontSize: 20, // Small caption size
+      fontFamily: 'Inter',
+      fontWeight: 300, // Light
+      fill: '#666666',
+      textAlign: 'left',
+      originX: 'left',
+      originY: 'top',
+      centeredRotation: true,
+      lockScalingFlip: true,
+      lockUniScaling: false,
+      splitByGrapheme: true,
+    });
+
+    canvas.add(caption);
+    canvas.setActiveObject(caption);
+    canvas.renderAll();
+    saveToHistory(canvas);
+    toast.success('Caption added');
+  }, [canvas, currentFormat, saveToHistory]);
 
   // Add rectangle
   const addRectangle = useCallback(() => {
@@ -817,6 +1169,35 @@ export function CanvasEditor({
     }
   }, [canvas, currentFormat]);
 
+  // Toggle Preview Mode (show/hide variable chip styling)
+  const togglePreviewMode = useCallback(() => {
+    if (!canvas) return;
+
+    const newPreviewMode = !isPreviewMode;
+    setIsPreviewMode(newPreviewMode);
+
+    // Apply or remove chip styling from all text objects with variables
+    const objects = canvas.getObjects();
+    objects.forEach((obj: any) => {
+      if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text') {
+        const textContent = obj.text || '';
+
+        if (hasVariables(textContent)) {
+          if (newPreviewMode) {
+            // Preview Mode: Remove chip styling (plain text)
+            removeVariableChipStyling(obj);
+          } else {
+            // Edit Mode: Apply chip styling (purple text + background)
+            applyVariableChipStyling(obj);
+          }
+        }
+      }
+    });
+
+    canvas.renderAll();
+    toast.success(newPreviewMode ? 'Preview Mode (variables as plain text)' : 'Edit Mode (variables highlighted)');
+  }, [canvas, isPreviewMode]);
+
   // Trigger re-render when panels update canvas
   const handleCanvasUpdate = useCallback(() => {
     if (canvas) {
@@ -878,15 +1259,60 @@ export function CanvasEditor({
           <div className="w-px h-5 bg-slate-200 mx-1" />
 
           {/* Add Tools */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-slate-100"
-            onClick={() => { setSelectedTool('text'); addText(); }}
-            title="Add Text"
-          >
-            <Type className="h-4 w-4" />
-          </Button>
+          {/* Text Presets Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 hover:bg-slate-100 gap-1"
+                title="Add Text"
+              >
+                <Type className="h-4 w-4" />
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => { setSelectedTool('text'); addTitle(); }} className="cursor-pointer">
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-bold text-sm">Title (H1)</span>
+                  <span className="text-xs text-muted-foreground">96px Inter</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSelectedTool('text'); addHeading(); }} className="cursor-pointer">
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-semibold text-sm">Heading (H2)</span>
+                  <span className="text-xs text-muted-foreground">72px Inter</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSelectedTool('text'); addSubheading(); }} className="cursor-pointer">
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-medium text-sm">Subheading (H3)</span>
+                  <span className="text-xs text-muted-foreground">48px Inter</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => { setSelectedTool('text'); addBodyText(); }} className="cursor-pointer">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm">Body Text</span>
+                  <span className="text-xs text-muted-foreground">32px Inter Regular</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setSelectedTool('text'); addCaption(); }} className="cursor-pointer">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs">Caption</span>
+                  <span className="text-xs text-muted-foreground">20px Inter Light</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => { setSelectedTool('text'); addText(); }} className="cursor-pointer">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm">Custom Text</span>
+                  <span className="text-xs text-muted-foreground">60px Inter</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="icon"
@@ -995,6 +1421,30 @@ export function CanvasEditor({
               }
             }}
           />
+
+          <div className="w-px h-5 bg-slate-200 mx-1" />
+
+          {/* Preview Mode Toggle - Shows action to take, not current state */}
+          <Button
+            variant={isPreviewMode ? "default" : "ghost"}
+            size="sm"
+            className={`h-8 text-xs ${isPreviewMode ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'hover:bg-slate-100'}`}
+            onClick={togglePreviewMode}
+            title={isPreviewMode ? 'Switch to Edit Mode (show variable styling)' : 'Switch to Preview Mode (hide variable styling)'}
+          >
+            {isPreviewMode ? (
+              <>
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                Edit
+              </>
+            ) : (
+              <>
+                <Eye className="h-3.5 w-3.5 mr-1.5" />
+                Preview
+              </>
+            )}
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -1100,7 +1550,7 @@ export function CanvasEditor({
 
         {/* Right Panel - Properties */}
         {showPropertiesPanel && (
-          <div className="w-60 flex-shrink-0 bg-white border-l border-slate-200">
+          <div className="w-72 flex-shrink-0 bg-white border-l border-slate-200">
             <PropertyPanel selectedObject={selectedObject} onUpdate={handleCanvasUpdate} forceUpdate={forceUpdate} />
           </div>
         )}

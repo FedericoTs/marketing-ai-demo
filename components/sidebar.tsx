@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  Settings, Home, Menu, X, Library
+  Settings, Home, Menu, X, Library, Target, Shield, LogOut
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 // DropLab Direct Mail Platform - Simplified Navigation (Phase 1-2)
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home, section: "main" },
   { name: "Design Templates", href: "/templates", icon: Library, section: "main", badge: "NEW" },
+  { name: "Audiences", href: "/audiences", icon: Target, section: "main", badge: "NEW" },
+  { name: "Admin", href: "/admin", icon: Shield, section: "main", adminOnly: true },
   { name: "Settings", href: "/settings", icon: Settings, section: "main" },
 ];
 
@@ -29,8 +32,11 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible = false, showCloseButton = false }: SidebarProps = {}) {
   const pathname = usePathname();
+  const router = useRouter();
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Use external control if provided, otherwise use internal state
   const isMobileMenuOpen = isOpen !== undefined ? isOpen : internalMenuOpen;
@@ -65,6 +71,23 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
     }
   }, [pathname]);
 
+  // Check if current user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/check-admin');
+        if (response.ok) {
+          const data = await response.json();
+          setIsAdmin(data.isAdmin || false);
+        }
+      } catch (error) {
+        console.error('Failed to check admin status in sidebar:', error);
+        setIsAdmin(false);
+      }
+    };
+    checkAdminStatus();
+  }, []);
+
   const toggleSection = (sectionId: string) => {
     setCollapsedSections(prev => {
       const next = new Set(prev);
@@ -82,6 +105,19 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
       onClose();
     } else {
       setInternalMenuOpen(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -144,7 +180,15 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
       </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         {sections.map((section) => {
-          const sectionItems = navigation.filter((item) => item.section === section.id);
+          const sectionItems = navigation.filter((item) => {
+            // Filter by section
+            if (item.section !== section.id) return false;
+
+            // Filter out admin-only items if user is not admin
+            if ((item as any).adminOnly && !isAdmin) return false;
+
+            return true;
+          });
           if (sectionItems.length === 0) return null;
 
           const isCollapsed = collapsedSections.has(section.id);
@@ -202,8 +246,23 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
           );
         })}
       </nav>
-      <div className="border-t p-4">
-        <p className="text-xs text-slate-500">
+
+      {/* Logout Button */}
+      <div className="border-t p-3">
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className={cn(
+            "flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+            isLoggingOut
+              ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+              : "text-slate-700 hover:bg-red-50 hover:text-red-600"
+          )}
+        >
+          <LogOut className="h-5 w-5" />
+          <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+        </button>
+        <p className="text-xs text-slate-500 mt-3 px-3">
           DropLab Platform
         </p>
       </div>

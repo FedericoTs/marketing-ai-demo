@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -14,6 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Strikethrough,
+  Type,
+} from 'lucide-react';
 import { ColorPicker } from './color-picker';
 import { FontSelector } from './font-selector';
 import { VARIABLE_TYPES, type VariableType, getVariableTypeConfig } from '@/lib/design/variable-types';
@@ -51,6 +63,12 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
       fontFamily: (selectedObject as IText).fontFamily || 'Arial',
       fontSize: Math.round((selectedObject as IText).fontSize ?? 16),
       fontWeight: (selectedObject as IText).fontWeight ?? 400,
+      fontStyle: (selectedObject as IText).fontStyle || 'normal',
+      underline: (selectedObject as IText).underline || false,
+      linethrough: (selectedObject as IText).linethrough || false,
+      textAlign: (selectedObject as IText).textAlign || 'left',
+      lineHeight: (selectedObject as IText).lineHeight || 1.16,
+      charSpacing: (selectedObject as IText).charSpacing || 0,
       textColor: (selectedObject as IText).fill || '#000000',
 
       // Shape properties
@@ -74,7 +92,7 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
     );
   }
 
-  const isText = selectedObject.type === 'i-text' || selectedObject.type === 'text';
+  const isText = selectedObject.type === 'i-text' || selectedObject.type === 'text' || selectedObject.type === 'textbox';
   const isShape = selectedObject.type === 'rect' || selectedObject.type === 'circle';
 
   const updateProperty = (key: string, value: any) => {
@@ -148,12 +166,14 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
             >
               Transform
             </TabsTrigger>
-            <TabsTrigger
-              value="style"
-              className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 whitespace-nowrap"
-            >
-              Style
-            </TabsTrigger>
+            {!isText && (
+              <TabsTrigger
+                value="style"
+                className="text-xs rounded-none data-[state=active]:bg-slate-50 data-[state=active]:text-slate-900 data-[state=active]:shadow-none h-9 px-4 whitespace-nowrap"
+              >
+                Style
+              </TabsTrigger>
+            )}
             {isText && (
               <TabsTrigger
                 value="text"
@@ -340,6 +360,7 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
         {isText && (
           <TabsContent value="text" className="flex-1 overflow-y-auto p-3 mt-0">
             <div className="space-y-4">
+              {/* Font */}
               <FontSelector
                 fontFamily={properties.fontFamily}
                 fontSize={properties.fontSize}
@@ -350,6 +371,149 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
                 label="Font"
               />
 
+              {/* Text Style (Bold, Italic, Underline, Strikethrough) */}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
+                  Text Style
+                </Label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 ${properties.fontWeight === 700 ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200'}`}
+                    onClick={() => updateProperty('fontWeight', properties.fontWeight === 700 ? 400 : 700)}
+                    title="Bold (Cmd+B)"
+                  >
+                    <Bold className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 ${properties.fontStyle === 'italic' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200'}`}
+                    onClick={() => updateProperty('fontStyle', properties.fontStyle === 'italic' ? 'normal' : 'italic')}
+                    title="Italic (Cmd+I)"
+                  >
+                    <Italic className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 ${properties.underline ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200'}`}
+                    onClick={() => updateProperty('underline', !properties.underline)}
+                    title="Underline (Cmd+U)"
+                  >
+                    <UnderlineIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 ${properties.linethrough ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200'}`}
+                    onClick={() => updateProperty('linethrough', !properties.linethrough)}
+                    title="Strikethrough"
+                  >
+                    <Strikethrough className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Text Alignment */}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
+                  Alignment
+                </Label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 ${properties.textAlign === 'left' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200'}`}
+                    onClick={() => updateProperty('textAlign', 'left')}
+                    title="Align Left (Cmd+Shift+L)"
+                  >
+                    <AlignLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 ${properties.textAlign === 'center' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200'}`}
+                    onClick={() => updateProperty('textAlign', 'center')}
+                    title="Align Center (Cmd+Shift+C)"
+                  >
+                    <AlignCenter className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 ${properties.textAlign === 'right' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200'}`}
+                    onClick={() => updateProperty('textAlign', 'right')}
+                    title="Align Right (Cmd+Shift+R)"
+                  >
+                    <AlignRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-9 ${properties.textAlign === 'justify' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200'}`}
+                    onClick={() => updateProperty('textAlign', 'justify')}
+                    title="Justify"
+                  >
+                    <AlignJustify className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Line Height */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
+                    Line Height
+                  </Label>
+                  <Input
+                    type="number"
+                    value={properties.lineHeight?.toFixed(2) || '1.16'}
+                    onChange={(e) => updateProperty('lineHeight', parseFloat(e.target.value) || 1.16)}
+                    className="w-16 h-6 px-1.5 text-xs bg-slate-50 border-slate-200"
+                    min={0.5}
+                    max={3}
+                    step={0.1}
+                  />
+                </div>
+                <Slider
+                  value={[properties.lineHeight || 1.16]}
+                  onValueChange={([value]) => updateProperty('lineHeight', value)}
+                  min={0.5}
+                  max={3}
+                  step={0.05}
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Letter Spacing */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-medium text-slate-600 uppercase tracking-wide">
+                    Letter Spacing
+                  </Label>
+                  <Input
+                    type="number"
+                    value={Math.round(properties.charSpacing || 0)}
+                    onChange={(e) => updateProperty('charSpacing', parseInt(e.target.value) || 0)}
+                    className="w-16 h-6 px-1.5 text-xs bg-slate-50 border-slate-200"
+                    min={-200}
+                    max={800}
+                    step={10}
+                  />
+                </div>
+                <Slider
+                  value={[properties.charSpacing || 0]}
+                  onValueChange={([value]) => updateProperty('charSpacing', value)}
+                  min={-200}
+                  max={800}
+                  step={10}
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Text Color */}
               <ColorPicker
                 color={properties.textColor}
                 onChange={(value) => updateProperty('textColor', value)}

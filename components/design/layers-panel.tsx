@@ -355,19 +355,29 @@ export function LayersPanel({
               <Label className="text-xs text-slate-600">Template Name</Label>
               <Input
                 value={templateName || ''}
-                onChange={(e) => onTemplateNameChange?.(e.target.value)}
+                onChange={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                  onTemplateNameChange?.(e.target.value);
+                }}
+                onFocus={(e) => e.stopPropagation()} // Prevent focus events from bubbling
                 placeholder="e.g., Summer Sale Postcard"
                 className="h-7 text-xs bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                autoComplete="off"
               />
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-slate-600">Description</Label>
               <Textarea
                 value={templateDescription || ''}
-                onChange={(e) => onTemplateDescriptionChange?.(e.target.value)}
+                onChange={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                  onTemplateDescriptionChange?.(e.target.value);
+                }}
+                onFocus={(e) => e.stopPropagation()} // Prevent focus events from bubbling
                 placeholder="Describe this template..."
                 className="text-xs resize-none bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                 rows={3}
+                autoComplete="off"
               />
             </div>
           </div>
