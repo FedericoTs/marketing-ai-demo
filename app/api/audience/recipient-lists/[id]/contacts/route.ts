@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function GET(
   request: Request,
@@ -18,6 +18,7 @@ export async function GET(
     const search = searchParams.get('search') || '';
 
     const supabase = await createServerClient();
+    const serviceSupabase = createServiceClient();
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -43,8 +44,8 @@ export async function GET(
       );
     }
 
-    // Check feature flag for contact details
-    const { data: orgData } = await supabase
+    // Check feature flag for contact details (use service role)
+    const { data: orgData } = await serviceSupabase
       .from('organizations')
       .select('feature_flags')
       .eq('id', userProfile.organization_id)
@@ -59,8 +60,8 @@ export async function GET(
       );
     }
 
-    // Verify the recipient list belongs to user's organization
-    const { data: recipientList, error: listError } = await supabase
+    // Verify the recipient list belongs to user's organization (use service role)
+    const { data: recipientList, error: listError } = await serviceSupabase
       .from('recipient_lists')
       .select('id, name, organization_id, total_recipients, source, created_at')
       .eq('id', id)
@@ -77,8 +78,8 @@ export async function GET(
     // Calculate pagination
     const offset = (page - 1) * limit;
 
-    // Build query for contacts
-    let query = supabase
+    // Build query for contacts (use service role)
+    let query = serviceSupabase
       .from('recipients')
       .select('*', { count: 'exact' })
       .eq('recipient_list_id', id)
