@@ -74,14 +74,26 @@ export function SavedAudienceLibrary({
       const response = await fetch("/api/audience/recipient-lists");
 
       if (!response.ok) {
-        throw new Error("Failed to fetch recipient lists");
+        const errorData = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+          console.log("Not authenticated - showing empty state");
+          setRecipientLists([]);
+          return;
+        }
+
+        console.error("Failed to fetch recipient lists:", errorData);
+        throw new Error(errorData.error || "Failed to fetch recipient lists");
       }
 
       const data = await response.json();
       setRecipientLists(data.lists || []);
     } catch (error: any) {
       console.error("Error fetching recipient lists:", error);
-      toast.error("Failed to load contacts");
+      // Don't show error toast for auth issues - just show empty state
+      if (error.message !== "Authentication required") {
+        toast.error("Failed to load contacts");
+      }
     } finally {
       setLoading(false);
     }
