@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   try {
@@ -58,12 +58,13 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch user profiles for the creators
+    // Fetch user profiles for the creators (using service role to bypass RLS)
     const creatorIds = recipientLists?.map(list => list.created_by).filter(Boolean) || [];
     let userProfilesMap: Record<string, string> = {};
 
     if (creatorIds.length > 0) {
-      const { data: profiles } = await supabase
+      const serviceSupabase = createServiceClient();
+      const { data: profiles } = await serviceSupabase
         .from('user_profiles')
         .select('id, full_name')
         .in('id', creatorIds);

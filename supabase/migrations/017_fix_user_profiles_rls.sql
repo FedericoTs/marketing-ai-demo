@@ -1,19 +1,23 @@
 /**
- * Migration 017: Fix user_profiles RLS for organization-wide visibility
+ * Migration 017: Fix user_profiles RLS - FINAL SOLUTION
  *
- * Problem: Users could only see their own profile (id = auth.uid())
- * This broke API queries that join recipient_lists with user_profiles to get creator names
+ * Problem: API needed to fetch user_profiles to show creator names in recipient_lists
  *
- * Solution: Create SECURITY DEFINER function to avoid infinite recursion
+ * Attempted Solutions:
+ * 1. ❌ Added FK hint in Supabase query - Failed (PGRST200: FK not found)
+ * 2. ❌ Added RLS policy with subquery - Failed (infinite recursion 42P17)
+ * 3. ❌ Added RLS policy with SECURITY DEFINER function - Failed (permission denied 42501)
  *
- * CRITICAL: The original approach caused infinite recursion:
- * - RLS policy on user_profiles queried user_profiles
- * - Creating a circular dependency: user_profiles → user_profiles → user_profiles...
+ * Final Solution: Use service role client for user_profiles queries
+ * - recipient_lists queries use regular client (RLS enforced)
+ * - user_profiles queries for display names use service client (bypass RLS)
+ * - Safe because we only fetch profiles for creator_ids from RLS-protected recipient_lists
  *
- * Fix: SECURITY DEFINER function bypasses RLS, then policy uses function result
+ * This migration creates a helper function for future use, but the API doesn't use it.
+ * The function is kept for potential future needs.
  */
 
--- Step 1: Create SECURITY DEFINER function to get user's organization (bypasses RLS)
+-- Step 1: Create SECURITY DEFINER function (for potential future use)
 CREATE OR REPLACE FUNCTION public.get_user_organization_id()
 RETURNS UUID
 LANGUAGE plpgsql
@@ -33,14 +37,9 @@ BEGIN
 END;
 $$;
 
--- Step 2: Drop old recursive policy if it exists
+-- Step 2: Drop any existing organization-wide viewing policy (causes issues)
 DROP POLICY IF EXISTS "Users can view profiles in their organization" ON user_profiles;
 
--- Step 3: Create safe RLS policy using the SECURITY DEFINER function (no recursion)
-CREATE POLICY "Users can view profiles in their organization"
-ON user_profiles
-FOR SELECT
-TO public
-USING (
-  organization_id = public.get_user_organization_id()
-);
+-- Note: The existing "Users can view their own profile" policy is sufficient
+-- for normal operations. For fetching other users' profiles (e.g., creator names),
+-- the API uses service role client which bypasses RLS.
