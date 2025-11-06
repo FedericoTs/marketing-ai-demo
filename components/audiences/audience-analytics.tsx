@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
@@ -7,8 +8,19 @@ import {
   TrendingUp,
   Target,
   BarChart3,
-  PieChart
+  PieChart,
+  Loader2
 } from "lucide-react";
+import { toast } from "sonner";
+
+interface AnalyticsData {
+  totalAudiences: number;
+  totalContactsPurchased: number;
+  totalSpent: number;
+  avgConversionRate: number;
+  topPerformers: any[];
+  savedAudiences: any[];
+}
 
 /**
  * Audience Analytics - Performance Overview
@@ -21,14 +33,47 @@ import {
  * - Top performing audiences
  */
 export function AudienceAnalytics() {
-  // TODO: Replace with actual database query
-  const mockStats = {
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalAudiences: 0,
     totalContactsPurchased: 0,
     totalSpent: 0,
     avgConversionRate: 0,
     topPerformers: [],
+    savedAudiences: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/audience/analytics');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics');
+      }
+
+      const data = await response.json();
+      setAnalytics(data.analytics);
+    } catch (error: any) {
+      console.error('Error fetching analytics:', error);
+      toast.error('Failed to load analytics');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -43,7 +88,7 @@ export function AudienceAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-slate-900">
-              {mockStats.totalAudiences}
+              {analytics.totalAudiences}
             </div>
             <p className="text-xs text-slate-500 mt-1">
               Saved segments
@@ -60,7 +105,7 @@ export function AudienceAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-slate-900">
-              {mockStats.totalContactsPurchased.toLocaleString()}
+              {analytics.totalContactsPurchased.toLocaleString()}
             </div>
             <p className="text-xs text-slate-500 mt-1">
               Across all campaigns
@@ -77,7 +122,7 @@ export function AudienceAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-slate-900">
-              ${mockStats.totalSpent.toLocaleString()}
+              ${analytics.totalSpent.toLocaleString()}
             </div>
             <p className="text-xs text-slate-500 mt-1">
               On audience targeting
@@ -94,17 +139,17 @@ export function AudienceAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-slate-900">
-              {mockStats.avgConversionRate.toFixed(1)}%
+              {analytics.avgConversionRate.toFixed(1)}%
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Across all audiences
+              Coming soon - requires campaign tracking
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Empty State */}
-      {mockStats.totalAudiences === 0 && (
+      {analytics.totalAudiences === 0 && (
         <Card className="border-2 border-dashed border-slate-200">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-purple-100">
@@ -121,24 +166,25 @@ export function AudienceAnalytics() {
       )}
 
       {/* Top Performers (when data is available) */}
-      {mockStats.totalAudiences > 0 && (
+      {analytics.totalAudiences > 0 && (
         <>
           <Card>
             <CardHeader>
               <CardTitle>Top Performing Audiences</CardTitle>
               <CardDescription>
-                Ranked by conversion rate
+                Coming soon - requires campaign tracking
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockStats.topPerformers.length === 0 ? (
+                {analytics.topPerformers.length === 0 ? (
                   <div className="py-8 text-center text-slate-500">
                     <PieChart className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-                    <p>No campaign data available yet</p>
+                    <p>Campaign performance tracking will be added in future updates</p>
+                    <p className="text-xs mt-2">Track conversion rates and ROI per audience</p>
                   </div>
                 ) : (
-                  mockStats.topPerformers.map((audience: any, index) => (
+                  analytics.topPerformers.map((audience: any, index) => (
                     <div
                       key={audience.id}
                       className="flex items-center justify-between rounded-lg border p-4"
@@ -182,15 +228,15 @@ export function AudienceAnalytics() {
                 Cost Savings vs. External Brokers
               </CardTitle>
               <CardDescription>
-                Estimated savings using Data Axle integration
+                Free audience count previews via Data Axle integration
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-green-700 mb-2">
-                $0
+                Unlimited
               </div>
               <p className="text-sm text-green-800">
-                Saved by targeting precisely and previewing counts for free
+                Preview audience sizes for free before purchasing • Typically $50-100 per broker quote
               </p>
             </CardContent>
           </Card>

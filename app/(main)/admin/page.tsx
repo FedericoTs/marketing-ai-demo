@@ -26,6 +26,7 @@ import {
   Users,
   Activity,
   AlertCircle,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,11 +53,26 @@ interface User {
   created_at: string;
 }
 
+interface Organization {
+  id: string;
+  name: string;
+  feature_flags: {
+    csv_export_enabled?: boolean;
+    contact_details_enabled?: boolean;
+    recipient_list_reuse_enabled?: boolean;
+    audience_analytics_enabled?: boolean;
+    batch_export_enabled?: boolean;
+  };
+  created_at: string;
+}
+
 export default function AdminDashboard() {
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isLoadingOrgs, setIsLoadingOrgs] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -74,6 +90,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchTiers();
     fetchUsers();
+    fetchOrganizations();
   }, []);
 
   const fetchTiers = async () => {
@@ -118,6 +135,27 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchOrganizations = async () => {
+    setIsLoadingOrgs(true);
+    try {
+      const response = await fetch("/api/admin/organizations");
+      if (!response.ok) {
+        if (response.status === 403) {
+          toast.error("Admin access required");
+          return;
+        }
+        throw new Error("Failed to fetch organizations");
+      }
+
+      const data = await response.json();
+      setOrganizations(data.organizations || []);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load organizations");
+    } finally {
+      setIsLoadingOrgs(false);
+    }
+  };
+
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
       const response = await fetch(`/api/admin/users/${userId}/role`, {
@@ -136,6 +174,36 @@ export default function AdminDashboard() {
       fetchUsers(); // Refresh users list
     } catch (error: any) {
       toast.error(error.message || "Failed to update user role");
+    }
+  };
+
+  const updateFeatureFlag = async (
+    organizationId: string,
+    flagName: string,
+    enabled: boolean
+  ) => {
+    try {
+      const response = await fetch("/api/admin/feature-flags", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId,
+          flagName,
+          enabled,
+          reason: `${enabled ? "Enabled" : "Disabled"} ${flagName.replace(/_/g, " ")} via admin dashboard`,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update feature flag");
+      }
+
+      const data = await response.json();
+      toast.success(data.message || "Feature flag updated successfully");
+      fetchOrganizations(); // Refresh organizations list
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update feature flag");
     }
   };
 
@@ -597,6 +665,141 @@ export default function AdminDashboard() {
                 ))}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Feature Flags Management Section */}
+      <Card className="mt-8">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Settings className="h-6 w-6 text-blue-600" />
+            <div>
+              <CardTitle>Feature Flags Management</CardTitle>
+              <CardDescription>
+                Control platform features per organization for access management
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoadingOrgs ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-slate-500">Loading organizations...</div>
+            </div>
+          ) : organizations.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-600">No organizations found</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {organizations.map((org) => (
+                <div
+                  key={org.id}
+                  className="p-6 border border-slate-200 rounded-lg bg-slate-50"
+                >
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">{org.name}</h3>
+                    <p className="text-sm text-slate-500">
+                      Organization ID: {org.id.slice(0, 8)}...
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* CSV Export Enabled */}
+                    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium text-slate-900">
+                          CSV Export
+                        </Label>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Allow users to export contact lists to CSV files
+                        </p>
+                      </div>
+                      <Switch
+                        checked={org.feature_flags.csv_export_enabled !== false}
+                        onCheckedChange={(checked) =>
+                          updateFeatureFlag(org.id, "csv_export_enabled", checked)
+                        }
+                      />
+                    </div>
+
+                    {/* Contact Details Enabled */}
+                    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium text-slate-900">
+                          Contact Details
+                        </Label>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Allow users to view detailed contact information
+                        </p>
+                      </div>
+                      <Switch
+                        checked={org.feature_flags.contact_details_enabled !== false}
+                        onCheckedChange={(checked) =>
+                          updateFeatureFlag(org.id, "contact_details_enabled", checked)
+                        }
+                      />
+                    </div>
+
+                    {/* Recipient List Reuse */}
+                    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium text-slate-900">
+                          Recipient List Reuse
+                        </Label>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Allow reusing purchased contact lists for multiple campaigns
+                        </p>
+                      </div>
+                      <Switch
+                        checked={org.feature_flags.recipient_list_reuse_enabled !== false}
+                        onCheckedChange={(checked) =>
+                          updateFeatureFlag(org.id, "recipient_list_reuse_enabled", checked)
+                        }
+                      />
+                    </div>
+
+                    {/* Audience Analytics */}
+                    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium text-slate-900">
+                          Audience Analytics
+                        </Label>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Enable advanced audience targeting analytics and insights
+                        </p>
+                      </div>
+                      <Switch
+                        checked={org.feature_flags.audience_analytics_enabled !== false}
+                        onCheckedChange={(checked) =>
+                          updateFeatureFlag(org.id, "audience_analytics_enabled", checked)
+                        }
+                      />
+                    </div>
+
+                    {/* Batch Export */}
+                    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200 md:col-span-2">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium text-slate-900">
+                          Batch Export
+                        </Label>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Allow exporting multiple recipient lists in batch operations
+                        </p>
+                      </div>
+                      <Switch
+                        checked={org.feature_flags.batch_export_enabled !== false}
+                        onCheckedChange={(checked) =>
+                          updateFeatureFlag(org.id, "batch_export_enabled", checked)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
