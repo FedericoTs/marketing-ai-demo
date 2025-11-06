@@ -21,7 +21,8 @@ import {
   Eye,
   Download,
   Loader2,
-  Database
+  Database,
+  List
 } from "lucide-react";
 import { toast } from "sonner";
 import type { SavedAudience } from "@/lib/audience";
@@ -130,7 +131,7 @@ export function SavedAudienceLibrary({
   return (
     <div className="space-y-6">
       {/* Search & Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
@@ -140,14 +141,26 @@ export function SavedAudienceLibrary({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button
-          size="lg"
-          className="bg-purple-600 hover:bg-purple-700"
-          onClick={onCreateNew}
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Buy More Contacts
-        </Button>
+        <div className="flex items-center gap-3">
+          {filteredLists.length > 0 && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => router.push("/audiences/lists")}
+            >
+              <List className="mr-2 h-5 w-5" />
+              View All Lists
+            </Button>
+          )}
+          <Button
+            size="lg"
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={onCreateNew}
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Buy More Contacts
+          </Button>
+        </div>
       </div>
 
       {/* Empty State */}
