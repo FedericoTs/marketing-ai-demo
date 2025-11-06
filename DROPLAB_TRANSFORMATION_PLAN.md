@@ -7,9 +7,9 @@
 
 **Strategic Vision**: Build the first "Figma meets Mailchimp for Physical Mail" platform
 
-**Last Updated**: 2025-11-06 (Phase 5 75% Complete - Audience Targeting Purchase Flow Working)
+**Last Updated**: 2025-11-06 (Phase 5 80% Complete - Audience Targeting + View/Export Complete)
 
-**Version**: 2.5 (Phase 5 Audience Targeting - Backend Complete, UX Incomplete)
+**Version**: 2.6 (Phase 5 Audience Targeting - Backend + View/Export Complete, VDP Integration Pending)
 
 ---
 
@@ -1230,15 +1230,16 @@ CREATE POLICY "Users can view their organization's analytics"
 | Phase 2 | Weeks 3-4 | Design Engine | Fabric.js editor working | ✅ **100%** |
 | Phase 3 | Weeks 5-6 | VDP Engine | Batch personalization at scale | ✅ **100%** |
 | Phase 4 | Weeks 7-8 | AI Intelligence | Compliance + Predictions | ⏸️ **0%** |
-| Phase 5 | Weeks 9-10 | Campaign Management + Data Axle | Backend complete, missing view/export UI | 🟡 **75%** |
+| Phase 5 | Weeks 9-10 | Campaign Management + Data Axle | Backend + View/Export complete, VDP pending | 🟡 **80%** |
 | Phase 6 | Weeks 11-12 | Collaboration | Real-time multi-user editing | ⏸️ **0%** |
 | Phase 7 | Weeks 13-14 | Marketplace | Template sharing + revenue | ⏸️ **0%** |
 | Phase 8 | Weeks 15-16 | Developer API | Platform play | ⏸️ **0%** |
 | Phase 9 | Weeks 17-18 | External Integrations | PostGrid, Stripe (Data Axle: Phase 5) | ⏸️ **0%** |
 | Phase 10 | Weeks 19-20 | Polish & Launch | Beta with 50 users | ⏸️ **0%** |
 
-**Current Focus**: Phase 5 (Audience Targeting) - 75% Complete (Purchase works, missing View/Export/VDP integration)
-**Next Milestone**: Complete purchase flow (2-3 days) OR pivot to Phase 4 (AI Compliance)
+**Current Focus**: Phase 5 (Audience Targeting) - 80% Complete (Purchase/View/Export working, VDP integration pending)
+
+**Next Recommended Phase**: Phase 2 (Design Engine) - Fabric.js editor required for VDP integration and end-to-end workflow
 
 ---
 
@@ -2208,7 +2209,7 @@ Analyze design quality and suggest improvements.
 
 **Goal**: End-to-end campaign creation with integrated audience targeting (Data Axle API)
 
-**Status**: 🟡 **70% COMPLETE** (November 6, 2025) - Filter Builder + Saved Audiences + Dynamic Pricing
+**Status**: 🟡 **80% COMPLETE** (November 6, 2025) - Filter Builder + Purchase + View/Export Complete
 
 **Strategic Importance**: This phase creates the competitive moat by integrating audience targeting directly into the campaign workflow. No competitor offers this level of integration.
 
@@ -2566,10 +2567,12 @@ Step 4: Schedule & Send (existing)
 - [x] Purchase confirmation modal ✅ **COMPLETE** (Nov 6, 2025)
 - [x] Progress bar during purchase ✅ **COMPLETE** (4-stage flow)
 - [x] Success state with redirect ✅ **COMPLETE** (redirects to /templates)
-- [ ] View purchased recipient lists page ⏸️ **NEXT PRIORITY**
-- [ ] View contacts in list detail page ⏸️ **NEXT PRIORITY**
-- [ ] Export contacts to CSV ⏸️ **NEXT PRIORITY**
-- [ ] VDP integration (use purchased contacts in templates) ⏸️ **PHASE 3 INTEGRATION**
+- [x] View purchased recipient lists page ✅ **COMPLETE** (Nov 6, 2025 - `/audiences/lists`)
+- [x] View contacts in list detail page ✅ **COMPLETE** (Nov 6, 2025 - `/audiences/lists/[id]`)
+- [x] Export contacts to CSV ✅ **COMPLETE** (Nov 6, 2025 - Download button working)
+- [x] Library tab navigation to lists page ✅ **COMPLETE** (Nov 6, 2025 - "View All Lists" button)
+- [x] RLS issues resolved ✅ **COMPLETE** (Nov 6, 2025 - Service role pattern for Next.js 15)
+- [ ] VDP integration (use purchased contacts in templates) ⏸️ **PHASE 2 DEPENDENCY** (requires Fabric.js editor)
 
 ---
 
