@@ -8,7 +8,7 @@
  * Date: 2025-11-06
  */
 
-import { createServiceClient } from '@/lib/supabase/service-client';
+import { createServiceClient } from '@/lib/supabase/server';
 
 // ==================== TYPES ====================
 

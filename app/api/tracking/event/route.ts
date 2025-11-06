@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { trackEvent } from "@/lib/database/tracking-queries";
-import type { Event } from "@/lib/database/tracking-queries";
+import { trackEvent, getCampaignRecipientByTrackingCode } from "@/lib/database/campaign-supabase-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
@@ -27,22 +26,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate event type
-    const validEventTypes: Event["event_type"][] = [
-      "page_view",
+    // Validate event type against Supabase schema
+    const validEventTypes = [
       "qr_scan",
+      "page_view",
       "button_click",
       "form_view",
-      "external_link",
-    ];
+      "form_submit",
+      "email_open",
+      "email_click",
+    ] as const;
 
-    if (!validEventTypes.includes(eventType as Event["event_type"])) {
+    if (!validEventTypes.includes(eventType as typeof validEventTypes[number])) {
       return NextResponse.json(
         errorResponse(
           `Invalid event type. Must be one of: ${validEventTypes.join(", ")}`,
           "INVALID_EVENT_TYPE"
         ),
         { status: 400 }
+      );
+    }
+
+    // Get campaign recipient to extract campaign_id
+    const campaignRecipient = await getCampaignRecipientByTrackingCode(trackingId);
+
+    if (!campaignRecipient) {
+      return NextResponse.json(
+        errorResponse("Invalid tracking code", "INVALID_TRACKING_CODE"),
+        { status: 404 }
       );
     }
 
@@ -53,21 +64,24 @@ export async function POST(request: NextRequest) {
       undefined;
 
     const userAgent = request.headers.get("user-agent") || undefined;
+    const referrer = request.headers.get("referer") || request.headers.get("referrer") || undefined;
 
-    // Track the event
-    const event = trackEvent({
-      trackingId,
-      eventType: eventType as Event["event_type"],
-      eventData: eventData ? eventData : undefined,
+    // Track the event with Supabase
+    const event = await trackEvent({
+      campaignId: campaignRecipient.campaign_id,
+      trackingCode: trackingId,
+      eventType: eventType as typeof validEventTypes[number],
+      eventData: eventData || undefined,
       ipAddress,
       userAgent,
+      referrer,
     });
 
     return NextResponse.json(
       successResponse(
         {
           eventId: event.id,
-          trackingId: event.tracking_id,
+          trackingCode: event.tracking_code,
           eventType: event.event_type,
           timestamp: event.created_at,
         },

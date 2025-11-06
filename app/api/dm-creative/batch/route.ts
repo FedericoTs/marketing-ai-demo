@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQRCode } from "@/lib/qr-generator";
-import { createCampaign, createRecipient } from "@/lib/database/tracking-queries";
+import { createCampaign, createCampaignRecipient } from "@/lib/database/campaign-supabase-queries";
+import { createServerClient, createServiceClient } from "@/lib/supabase/server";
 import { RecipientData } from "@/types/dm-creative";
 import { analyzeStoreDistribution } from "@/lib/csv-processor";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
@@ -21,6 +22,31 @@ function getRetailQueries() {
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Authenticate user
+    const supabase = await createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        errorResponse("Authentication required", "UNAUTHORIZED"),
+        { status: 401 }
+      );
+    }
+
+    // 2. Get user's organization
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !userProfile?.organization_id) {
+      return NextResponse.json(
+        errorResponse("Organization not found", "NO_ORGANIZATION"),
+        { status: 404 }
+      );
+    }
+
     const body = await request.json();
     const { recipients, message, companyContext, campaignName } = body;
 
@@ -38,17 +64,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create campaign
+    // 3. Create campaign with organization context
     const companyName = companyContext?.companyName || "Unknown Company";
     const finalCampaignName = campaignName || `Batch DM Campaign - ${new Date().toLocaleDateString()}`;
 
-    const campaign = createCampaign({
+    const campaign = await createCampaign({
+      organizationId: userProfile.organization_id,
+      userId: user.id,
       name: finalCampaignName,
-      message: message,
-      companyName: companyName,
+      description: message,
+      designSnapshot: {}, // TODO: Add actual design snapshot when template editor is ready
+      variableMappingsSnapshot: {},
+      totalRecipients: recipients.length,
+      status: 'draft',
     });
 
     console.log(`Batch campaign created: ${campaign.id} - ${campaign.name}`);
+
+    // 4. Create a recipient list for this batch campaign
+    const serviceSupabase = createServiceClient();
+    const { data: recipientList, error: listError } = await serviceSupabase
+      .from('recipient_lists')
+      .insert({
+        organization_id: userProfile.organization_id,
+        created_by: user.id,
+        name: `${finalCampaignName} - Recipients`,
+        description: `Auto-generated recipient list for batch campaign`,
+        source: 'manual_upload',
+        total_recipients: recipients.length,
+      })
+      .select()
+      .single();
+
+    if (listError || !recipientList) {
+      console.error('Failed to create recipient list:', listError);
+      return NextResponse.json(
+        errorResponse("Failed to create recipient list", "LIST_CREATE_ERROR"),
+        { status: 500 }
+      );
+    }
+
+    console.log(`Recipient list created: ${recipientList.id}`);
 
     // PHASE 8C: Analyze for store deployment (optional feature)
     const storeDistribution = analyzeStoreDistribution(recipients);
@@ -99,25 +155,61 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create recipients and generate QR codes
+    // 5. Create recipients and campaign recipients with QR codes
     const dmDataList = [];
 
     for (const recipient of recipients) {
-      // Create recipient in database
-      const dbRecipient = createRecipient({
+      // 5a. First create recipient in recipients table
+      const { data: dbRecipient, error: recipientError } = await serviceSupabase
+        .from('recipients')
+        .insert({
+          recipient_list_id: recipientList.id,
+          organization_id: userProfile.organization_id,
+          created_by: user.id,
+          first_name: recipient.name || '',
+          last_name: recipient.lastname || '',
+          email: recipient.email || null,
+          phone: recipient.phone || null,
+          address_line1: recipient.address || '',
+          city: recipient.city || '',
+          state: '', // TODO: Add state to CSV if needed
+          zip_code: recipient.zip || '',
+          country: 'US',
+        })
+        .select()
+        .single();
+
+      if (recipientError || !dbRecipient) {
+        console.error('Failed to create recipient:', recipientError);
+        continue; // Skip this recipient but continue with others
+      }
+
+      // 5b. Generate unique tracking code
+      const trackingCode = `${campaign.id}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // 5c. Create campaign recipient (links recipient to campaign)
+      const finalMessage = (recipient as RecipientData & { customMessage?: string }).customMessage || message;
+      const campaignRecipient = await createCampaignRecipient({
         campaignId: campaign.id,
-        name: recipient.name,
-        lastname: recipient.lastname,
-        address: recipient.address || undefined,
-        city: recipient.city || undefined,
-        zip: recipient.zip || undefined,
-        email: recipient.email || undefined,
-        phone: recipient.phone || undefined,
+        recipientId: dbRecipient.id,
+        personalizedCanvasJson: {
+          recipient: {
+            name: recipient.name,
+            lastname: recipient.lastname,
+            address: recipient.address,
+            city: recipient.city,
+            zip: recipient.zip,
+            email: recipient.email,
+            phone: recipient.phone,
+          },
+          message: finalMessage,
+        },
+        trackingCode,
       });
 
-      const trackingId = dbRecipient.tracking_id;
+      const trackingId = trackingCode;
 
-      // PHASE 8C: Link recipient to store deployment if applicable
+      // 5d. PHASE 8C: Link recipient to store deployment if applicable
       if (hasStoreDeployment && recipient.storeNumber) {
         const deploymentId = storeDeploymentMap.get(recipient.storeNumber);
 
@@ -134,16 +226,12 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Generate landing page URL
+      // 5e. Generate landing page URL and QR code
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       const landingPageUrl = `${baseUrl}/lp/${trackingId}`;
-
-      // Generate QR code
       const qrCodeDataUrl = await generateQRCode(landingPageUrl);
 
-      // Use custom message if provided, otherwise use default
-      const finalMessage = (recipient as RecipientData & { customMessage?: string }).customMessage || message;
-
+      // 5f. Add to results list
       dmDataList.push({
         trackingId,
         recipient: {

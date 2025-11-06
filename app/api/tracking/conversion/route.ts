@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { trackConversion } from "@/lib/database/tracking-queries";
-import type { Conversion } from "@/lib/database/tracking-queries";
+import { trackConversion, getCampaignRecipientByTrackingCode } from "@/lib/database/campaign-supabase-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 /**
@@ -10,7 +9,7 @@ import { successResponse, errorResponse } from "@/lib/utils/api-response";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { trackingId, conversionType, conversionData } = body;
+    const { trackingId, conversionType, conversionData, conversionValue } = body;
 
     // Validation
     if (!trackingId || typeof trackingId !== "string") {
@@ -27,15 +26,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate conversion type
-    const validConversionTypes: Conversion["conversion_type"][] = [
-      "form_submission",
-      "appointment_booked",
-      "call_initiated",
-      "download",
-    ];
+    // Validate conversion type against Supabase schema
+    const validConversionTypes = [
+      "form_submit",
+      "appointment",
+      "purchase",
+      "call",
+      "custom",
+    ] as const;
 
-    if (!validConversionTypes.includes(conversionType as Conversion["conversion_type"])) {
+    if (!validConversionTypes.includes(conversionType as typeof validConversionTypes[number])) {
       return NextResponse.json(
         errorResponse(
           `Invalid conversion type. Must be one of: ${validConversionTypes.join(", ")}`,
@@ -45,19 +45,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Track the conversion
-    const conversion = trackConversion({
-      trackingId,
-      conversionType: conversionType as Conversion["conversion_type"],
-      conversionData: conversionData ? conversionData : undefined,
+    // Get campaign recipient to extract campaign_id
+    const campaignRecipient = await getCampaignRecipientByTrackingCode(trackingId);
+
+    if (!campaignRecipient) {
+      return NextResponse.json(
+        errorResponse("Invalid tracking code", "INVALID_TRACKING_CODE"),
+        { status: 404 }
+      );
+    }
+
+    // Track the conversion with Supabase
+    const conversion = await trackConversion({
+      campaignId: campaignRecipient.campaign_id,
+      trackingCode: trackingId,
+      conversionType: conversionType as typeof validConversionTypes[number],
+      conversionValue: conversionValue || undefined,
+      conversionData: conversionData || undefined,
     });
 
     return NextResponse.json(
       successResponse(
         {
           conversionId: conversion.id,
-          trackingId: conversion.tracking_id,
+          trackingCode: conversion.tracking_code,
           conversionType: conversion.conversion_type,
+          conversionValue: conversion.conversion_value,
           timestamp: conversion.created_at,
         },
         "Conversion tracked successfully"
