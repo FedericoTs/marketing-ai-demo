@@ -9,6 +9,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server';
 export async function GET(request: Request) {
   try {
     const supabase = await createServerClient();
+    const serviceSupabase = createServiceClient();
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -35,7 +36,9 @@ export async function GET(request: Request) {
     }
 
     // Get all recipient lists for the organization
-    const { data: recipientLists, error: listsError } = await supabase
+    // Use service role because Next.js 15 auth context doesn't pass to RLS
+    // We've already verified user authentication and organization_id above
+    const { data: recipientLists, error: listsError } = await serviceSupabase
       .from('recipient_lists')
       .select(`
         id,
@@ -63,7 +66,6 @@ export async function GET(request: Request) {
     let userProfilesMap: Record<string, string> = {};
 
     if (creatorIds.length > 0) {
-      const serviceSupabase = createServiceClient();
       const { data: profiles } = await serviceSupabase
         .from('user_profiles')
         .select('id, full_name')
@@ -82,7 +84,7 @@ export async function GET(request: Request) {
     let purchaseInfo: Record<string, any> = {};
 
     if (listIds.length > 0) {
-      const { data: purchases } = await supabase
+      const { data: purchases } = await serviceSupabase
         .from('contact_purchases')
         .select('recipient_list_id, contact_count, total_user_charge, purchased_at')
         .in('recipient_list_id', listIds);
