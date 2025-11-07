@@ -79,36 +79,85 @@ export function CampaignPreviewModal({
     try {
       setGeneratingPreview(true);
 
+      // 🔍 Check if we actually need to do variable replacement
+      const hasVariablesToReplace = variableMappings.length > 0;
+
+      if (!hasVariablesToReplace) {
+        // No variables to replace - just use the static thumbnail
+        console.log('✅ No variables to replace, using static thumbnail');
+        if (template.thumbnail_url) {
+          setPreviewImage(template.thumbnail_url);
+        } else {
+          setPreviewImage(null);
+        }
+        setGeneratingPreview(false);
+        return;
+      }
+
+      console.log('🎨 Starting personalized preview generation...');
+      console.log('📋 Template canvas_json type:', typeof template.canvas_json);
+      console.log('📋 Template canvas_json keys:', Object.keys(template.canvas_json || {}));
+      console.log('📋 Canvas JSON objects:', template.canvas_json?.objects?.length || 0);
+
+      // Check if canvas_json is valid
+      if (!template.canvas_json || !template.canvas_json.objects || template.canvas_json.objects.length === 0) {
+        console.warn('⚠️ Template has no canvas objects, using thumbnail');
+        if (template.thumbnail_url) {
+          setPreviewImage(template.thumbnail_url);
+        }
+        setGeneratingPreview(false);
+        return;
+      }
+
       // 🎯 PERSONALIZED PREVIEW: Render template with recipient data
       const { Canvas, Image, Textbox } = await import('fabric');
 
-      // Create hidden canvas at full template resolution - NO ZOOM!
-      const canvas = new Canvas(document.createElement('canvas'), {
+      // Create a hidden canvas element in the DOM (required for Fabric.js v6)
+      const canvasElement = document.createElement('canvas');
+      canvasElement.width = template.canvas_width;
+      canvasElement.height = template.canvas_height;
+      canvasElement.style.position = 'absolute';
+      canvasElement.style.left = '-9999px';
+      canvasElement.style.top = '-9999px';
+      document.body.appendChild(canvasElement);
+
+      // Create canvas instance
+      const canvas = new Canvas(canvasElement, {
         width: template.canvas_width,
         height: template.canvas_height,
         backgroundColor: '#FFFFFF'
       });
 
-      console.log('🎨 Loading template canvas:', {
+      console.log('🎨 Canvas created:', {
         width: template.canvas_width,
         height: template.canvas_height,
         zoom: canvas.getZoom(), // Should be 1.0
         viewport: canvas.viewportTransform // Should be [1,0,0,1,0,0]
       });
 
-      // Load template canvas JSON
-      await new Promise<void>((resolve, reject) => {
-        canvas.loadFromJSON(template.canvas_json, () => {
-          console.log('✅ Canvas loaded, objects:', canvas.getObjects().length);
-          resolve();
-        }, (error) => {
-          console.error('❌ Failed to load canvas:', error);
-          reject(error);
-        });
-      });
+      // Load template canvas JSON (Fabric.js v6 Promise-based API)
+      try {
+        await canvas.loadFromJSON(template.canvas_json);
+        console.log('✅ Canvas loaded successfully, objects:', canvas.getObjects().length);
+      } catch (loadError) {
+        console.error('❌ Failed to load canvas JSON:', loadError);
+        throw loadError;
+      }
 
       // Apply variable mappings from template to canvas objects
       const objects = canvas.getObjects();
+
+      // Safety check: If no objects loaded, fall back to thumbnail
+      if (objects.length === 0) {
+        console.warn('⚠️ Canvas loaded but has 0 objects, using thumbnail');
+        canvas.dispose();
+        document.body.removeChild(canvasElement);
+        if (template.thumbnail_url) {
+          setPreviewImage(template.thumbnail_url);
+        }
+        setGeneratingPreview(false);
+        return;
+      }
       if (template.variable_mappings) {
         Object.entries(template.variable_mappings).forEach(([idx, mapping]) => {
           const index = parseInt(idx);
@@ -239,10 +288,27 @@ export function CampaignPreviewModal({
       setPreviewImage(dataUrl);
 
       // Cleanup
-      canvas.dispose();
+      try {
+        canvas.dispose();
+        // Remove the hidden canvas element from DOM
+        const hiddenCanvases = document.querySelectorAll('canvas[style*="-9999px"]');
+        hiddenCanvases.forEach(el => el.remove());
+        console.log('🧹 Cleaned up canvas elements');
+      } catch (cleanupError) {
+        console.warn('Cleanup warning:', cleanupError);
+      }
 
     } catch (error) {
-      console.error('Error generating preview:', error);
+      console.error('❌ Error generating preview:', error);
+
+      // Cleanup on error
+      try {
+        const hiddenCanvases = document.querySelectorAll('canvas[style*="-9999px"]');
+        hiddenCanvases.forEach(el => el.remove());
+      } catch (cleanupError) {
+        console.warn('Cleanup error:', cleanupError);
+      }
+
       // Fallback to thumbnail if personalization fails
       if (template.thumbnail_url) {
         console.log('⚠️ Falling back to static thumbnail');
