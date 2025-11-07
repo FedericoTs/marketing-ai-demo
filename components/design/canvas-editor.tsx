@@ -420,12 +420,10 @@ export function CanvasEditor({
         const scaleY = containerHeight / currentFormat.heightPixels;
         const scale = Math.min(scaleX, scaleY); // Fit to screen, no arbitrary max limit
 
-        // Set zoom for internal rendering
-        fabricCanvas.setZoom(scale);
-
-        // CRITICAL: Set CSS dimensions to match zoomed size
-        // Internal canvas stays at 300 DPI dimensions (for print-ready export)
-        // CSS dimensions scale down for display
+        // 🚨 CRITICAL FIX: DO NOT call setZoom() - it corrupts object coordinates!
+        // Only use CSS-only scaling to preserve logical canvas dimensions
+        // Internal canvas stays at 1800x1200 (or whatever format) for correct object positioning
+        // CSS scaling handles visual zoom for display
         try {
           fabricCanvas.setDimensions({
             width: currentFormat.widthPixels * scale,
@@ -1090,7 +1088,28 @@ export function CanvasEditor({
     if (!canvas || !onSave) return;
 
     try {
-      // Get canvas JSON
+      // 🚨 Since we NEVER use setZoom(), canvas is always at zoom=1 and viewport=[1,0,0,1,0,0]
+      // We only need to save current CSS display dimensions, then reset for export
+      const currentWidth = canvas.getWidth();
+      const currentHeight = canvas.getHeight();
+
+      console.log('💾 [SAVE] Current state:', {
+        zoom: canvas.getZoom(), // Should always be 1
+        viewport: canvas.viewportTransform,
+        cssWidth: currentWidth,
+        cssHeight: currentHeight,
+        logicalWidth: currentFormat.widthPixels,
+        logicalHeight: currentFormat.heightPixels,
+      });
+
+      // Reset CSS dimensions to full resolution for clean export
+      canvas.setDimensions({
+        width: currentFormat.widthPixels,
+        height: currentFormat.heightPixels
+      }, { cssOnly: true });
+      canvas.renderAll();
+
+      // Get canvas JSON (should have correct coordinates since zoom is always 1)
       const canvasJSON = JSON.stringify(canvas.toJSON());
 
       // Extract variable mappings (separate from canvas JSON)
@@ -1106,36 +1125,28 @@ export function CanvasEditor({
         }
       });
 
-      // Generate preview image (scaled down)
-      // Save current viewport and display state
-      const currentZoom = canvas.getZoom();
-      const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
-      const currentWidth = canvas.getWidth();
-      const currentHeight = canvas.getHeight();
+      console.log('💾 [SAVE] Object positions:', objects.map((obj: any) => ({
+        type: obj.type,
+        left: obj.left,
+        top: obj.top,
+        text: obj.type === 'Textbox' ? obj.text : undefined,
+      })));
 
-      // Reset to full resolution for clean preview generation
-      canvas.setZoom(1);
-      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-      canvas.setDimensions({
-        width: currentFormat.widthPixels,
-        height: currentFormat.heightPixels
-      }, { cssOnly: true });
-      canvas.renderAll();
-
+      // Generate preview image
       const preview = canvas.toDataURL({
         format: 'png',
         quality: 0.8,
         multiplier: 0.2, // Small preview (20% of full size)
       });
 
-      // Restore original state
-      canvas.setViewportTransform(currentVpt);
-      canvas.setZoom(currentZoom);
+      // Restore CSS display dimensions (for user to continue editing)
       canvas.setDimensions({
         width: currentWidth,
         height: currentHeight
       }, { cssOnly: true });
       canvas.renderAll();
+
+      console.log('💾 [SAVE] Complete - restored display dimensions');
 
       onSave({
         canvasJSON,
@@ -1198,13 +1209,13 @@ export function CanvasEditor({
       console.log('   Data URL length:', dataURL.length, 'characters');
 
       // Restore original state
-      // 1. Restore viewport transform
-      canvas.setViewportTransform(currentVpt);
+      // 1. Restore viewport transform to identity (no pan/offset)
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
 
-      // 2. Restore zoom
-      canvas.setZoom(currentZoom);
+      // 2. Keep zoom at 1.0 (NEVER restore a potentially corrupted zoom)
+      canvas.setZoom(1);
 
-      // 3. Restore CSS dimensions
+      // 3. Restore CSS display dimensions
       canvas.setDimensions({
         width: currentWidth,
         height: currentHeight
@@ -1212,7 +1223,7 @@ export function CanvasEditor({
 
       // 4. Force re-render with restored state
       canvas.renderAll();
-      console.log('✅ Canvas state restored');
+      console.log('✅ Canvas state restored (zoom locked at 1.0)');
 
       // Download the image
       const link = document.createElement('a');

@@ -1384,6 +1384,20 @@ export default function CanvasEditorPage() {
     try {
       setIsSavingTemplate(true);
 
+      // CRITICAL FIX: Reset zoom to 100% before saving
+      // With CSS-only zoom, we just need to reset the CSS scaling
+      if (zoomLevel !== 100) {
+        console.log(`⚠️ Canvas is zoomed to ${zoomLevel}%, resetting to 100% for save`);
+        fabricCanvasRef.current.setDimensions({
+          width: editorData.canvasWidth,
+          height: editorData.canvasHeight,
+        }, { cssOnly: true });
+        setZoomLevel(100);
+      }
+
+      // Note: No need to reset viewport transform since we're using CSS-only zoom
+      console.log('🔧 Canvas at 100% before save (logical dimensions preserved)');
+
       // Deselect all objects
       fabricCanvasRef.current.discardActiveObject();
       fabricCanvasRef.current.renderAll();
@@ -1502,6 +1516,20 @@ export default function CanvasEditorPage() {
     try {
       toast.loading("Saving template...");
 
+      // CRITICAL FIX: Reset zoom to 100% before saving
+      // With CSS-only zoom, we just need to reset the CSS scaling
+      if (zoomLevel !== 100) {
+        console.log(`⚠️ Canvas is zoomed to ${zoomLevel}%, resetting to 100% for save`);
+        fabricCanvasRef.current.setDimensions({
+          width: editorData.canvasWidth,
+          height: editorData.canvasHeight,
+        }, { cssOnly: true });
+        setZoomLevel(100);
+      }
+
+      // Note: No need to reset viewport transform since we're using CSS-only zoom
+      console.log('🔧 Canvas at 100% before save (logical dimensions preserved)');
+
       // Deselect all objects
       fabricCanvasRef.current.discardActiveObject();
       fabricCanvasRef.current.renderAll();
@@ -1597,12 +1625,17 @@ export default function CanvasEditorPage() {
     const newZoom = Math.min(zoomLevel + 10, 200);
     setZoomLevel(newZoom);
     const factor = newZoom / 100;
-    fabricCanvasRef.current.setZoom(factor);
+
+    // CRITICAL FIX: Use CSS-only zoom to preserve object coordinates
+    // Previous bug: using setZoom() AND setDimensions() together created double-transform
+    // Objects were positioned based on enlarged canvas (e.g., 2160x1440) instead of logical 1800x1200
     fabricCanvasRef.current.setDimensions({
       width: editorData.canvasWidth * factor,
       height: editorData.canvasHeight * factor,
-    });
+    }, { cssOnly: true });
+
     fabricCanvasRef.current.renderAll();
+    console.log(`🔍 Zoom: ${newZoom}% (CSS-only, logical canvas: ${editorData.canvasWidth}x${editorData.canvasHeight})`);
   };
 
   const handleZoomOut = () => {
@@ -1610,23 +1643,29 @@ export default function CanvasEditorPage() {
     const newZoom = Math.max(zoomLevel - 10, 25);
     setZoomLevel(newZoom);
     const factor = newZoom / 100;
-    fabricCanvasRef.current.setZoom(factor);
+
+    // CRITICAL FIX: CSS-only zoom
     fabricCanvasRef.current.setDimensions({
       width: editorData.canvasWidth * factor,
       height: editorData.canvasHeight * factor,
-    });
+    }, { cssOnly: true });
+
     fabricCanvasRef.current.renderAll();
+    console.log(`🔍 Zoom: ${newZoom}% (CSS-only, logical canvas: ${editorData.canvasWidth}x${editorData.canvasHeight})`);
   };
 
   const handleZoomFit = () => {
     if (!fabricCanvasRef.current || !editorData) return;
     setZoomLevel(100);
-    fabricCanvasRef.current.setZoom(1);
+
+    // CRITICAL FIX: Reset to 100% with CSS-only
     fabricCanvasRef.current.setDimensions({
       width: editorData.canvasWidth,
       height: editorData.canvasHeight,
-    });
+    }, { cssOnly: true });
+
     fabricCanvasRef.current.renderAll();
+    console.log(`🔍 Zoom: 100% (logical canvas: ${editorData.canvasWidth}x${editorData.canvasHeight})`);
   };
 
   if (isLoading || !editorData) {

@@ -398,6 +398,229 @@ export type Database = {
   };
 };
 
+// ============================================================================
+// RECIPIENT_LISTS TABLE
+// ============================================================================
+
+export interface RecipientList {
+  id: string; // UUID
+  organization_id: string; // UUID
+  created_by: string; // UUID
+
+  // Metadata
+  name: string;
+  description: string | null;
+  source: 'manual' | 'csv' | 'data_axle' | 'api';
+
+  // Data Axle Integration
+  data_axle_filters: Record<string, any> | null; // JSONB
+
+  // Statistics
+  total_recipients: number;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecipientListInsert {
+  organization_id: string;
+  created_by: string;
+  name: string;
+  description?: string | null;
+  source?: 'manual' | 'csv' | 'data_axle' | 'api';
+  data_axle_filters?: Record<string, any> | null;
+  total_recipients?: number;
+}
+
+// ============================================================================
+// RECIPIENTS TABLE
+// ============================================================================
+
+export interface Recipient {
+  id: string; // UUID
+  recipient_list_id: string; // UUID
+  organization_id: string; // UUID
+  created_by: string; // UUID
+
+  // Contact Information
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+
+  // Mailing Address
+  address_line1: string;
+  address_line2: string | null;
+  city: string;
+  state: string;
+  zip_code: string;
+  country: string; // Default: 'US'
+
+  // Data Axle Integration
+  data_axle_id: string | null;
+
+  // Additional Data
+  metadata: Record<string, any>; // JSONB - flexible custom fields
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecipientInsert {
+  recipient_list_id: string;
+  organization_id: string;
+  created_by: string;
+  first_name: string;
+  last_name: string;
+  email?: string | null;
+  phone?: string | null;
+  address_line1: string;
+  address_line2?: string | null;
+  city: string;
+  state: string;
+  zip_code: string;
+  country?: string;
+  data_axle_id?: string | null;
+  metadata?: Record<string, any>;
+}
+
+// ============================================================================
+// CAMPAIGNS TABLE
+// ============================================================================
+
+export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'completed' | 'failed';
+
+export interface Campaign {
+  id: string; // UUID
+  organization_id: string; // UUID
+  created_by: string; // UUID
+
+  // Campaign Identity
+  name: string;
+  description: string | null;
+
+  // Template & Audience Links
+  template_id: string | null; // UUID
+  recipient_list_id: string | null; // UUID
+
+  // Design Snapshots (frozen at campaign creation)
+  design_snapshot: Record<string, any>; // JSONB - Frozen Fabric.js canvas state
+  variable_mappings_snapshot: Record<string, any>; // JSONB - Variable field mappings at send time
+
+  // Campaign Stats
+  total_recipients: number;
+  status: CampaignStatus;
+
+  // Schedule & Timing
+  scheduled_at: string | null; // TIMESTAMPTZ
+  sent_at: string | null; // TIMESTAMPTZ
+  completed_at: string | null; // TIMESTAMPTZ
+
+  // Timestamps
+  created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
+}
+
+export interface CampaignInsert {
+  organization_id: string;
+  created_by: string;
+  name: string;
+  description?: string | null;
+  template_id?: string | null;
+  recipient_list_id?: string | null;
+  design_snapshot: Record<string, any>;
+  variable_mappings_snapshot: Record<string, any>;
+  total_recipients?: number;
+  status?: CampaignStatus;
+  scheduled_at?: string | null;
+}
+
+export interface CampaignUpdate {
+  name?: string;
+  description?: string | null;
+  status?: CampaignStatus;
+  scheduled_at?: string | null;
+  sent_at?: string | null;
+  completed_at?: string | null;
+}
+
+// ============================================================================
+// CAMPAIGN_RECIPIENTS TABLE
+// ============================================================================
+
+export type CampaignRecipientStatus = 'pending' | 'generated' | 'sent' | 'delivered' | 'failed';
+
+export interface CampaignRecipient {
+  id: string; // UUID
+  campaign_id: string; // UUID
+  recipient_id: string; // UUID
+
+  // Personalized Content
+  personalized_canvas_json: Record<string, any>; // JSONB - Individual Fabric.js canvas with recipient data
+  tracking_code: string; // Unique tracking identifier for QR codes/URLs
+
+  // Generated Assets
+  qr_code_url: string | null;
+  personalized_pdf_url: string | null;
+  landing_page_url: string | null;
+
+  // Delivery Status
+  status: CampaignRecipientStatus;
+  sent_at: string | null; // TIMESTAMPTZ
+  delivered_at: string | null; // TIMESTAMPTZ
+
+  // Error Tracking
+  error_message: string | null;
+  retry_count: number;
+
+  // Timestamps
+  created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
+}
+
+export interface CampaignRecipientInsert {
+  campaign_id: string;
+  recipient_id: string;
+  personalized_canvas_json: Record<string, any>;
+  tracking_code: string;
+  qr_code_url?: string | null;
+  personalized_pdf_url?: string | null;
+  landing_page_url?: string | null;
+  status?: CampaignRecipientStatus;
+}
+
+// ============================================================================
+// CAMPAIGN WIZARD STATE (UI Types)
+// ============================================================================
+
+export interface VariableMapping {
+  templateVariable: string; // e.g., "recipientName", "qrCode"
+  recipientField: string; // e.g., "first_name", "tracking_code"
+  variableType: string; // e.g., "recipientName", "qrCode"
+  isReusable: boolean;
+}
+
+export interface CampaignWizardState {
+  // Step 1: Template Selection
+  selectedTemplate: DesignTemplate | null;
+
+  // Step 2: Audience Selection
+  selectedRecipientList: RecipientList | null;
+  audienceSource: 'data_axle' | 'csv' | null;
+
+  // Step 3: Variable Mapping
+  variableMappings: VariableMapping[];
+
+  // Step 4: Review & Launch
+  campaignName: string;
+  campaignDescription: string;
+
+  // Current step (1-4)
+  currentStep: number;
+}
+
 // Generic query result types
 export type QueryResult<T> = {
   data: T | null;
