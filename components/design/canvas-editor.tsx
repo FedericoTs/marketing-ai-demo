@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Canvas, IText, Textbox, Rect, Circle as FabricCircle, FabricImage, FabricObject } from 'fabric';
+import { Canvas, IText, Textbox, Rect, Circle as FabricCircle, FabricImage, FabricObject, Point } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -17,6 +17,7 @@ import {
   Square,
   Circle as CircleIcon,
   Image as ImageIcon,
+  QrCode,
   Save,
   Download,
   Trash2,
@@ -45,6 +46,7 @@ import { Sidebar } from '@/components/sidebar';
 import { DEFAULT_FORMAT, type PrintFormat } from '@/lib/design/print-formats';
 import { hasVariables, extractFieldNames, applyVariableChipStyling, removeVariableChipStyling } from '@/lib/design/variable-parser';
 import { VARIABLE_MARKER_STYLES } from '@/lib/design/variable-types';
+import { generatePlaceholderQRCode } from '@/lib/qr-generator';
 
 export interface CanvasEditorProps {
   format?: PrintFormat; // Print format (defaults to 4x6 postcard)
@@ -146,7 +148,10 @@ export function CanvasEditor({
                 (obj as any).isReusable = mapping.isReusable;
 
                 // Apply visual styling for variables
-                if (mapping.variableType && mapping.variableType !== 'none') {
+                // NOTE: Skip border styling for image objects (causes zoom drift bug in Fabric.js)
+                const isImageObject = obj.type === 'image';
+
+                if (mapping.variableType && mapping.variableType !== 'none' && !isImageObject) {
                   obj.set({
                     borderColor: '#9333ea',
                     borderScaleFactor: 3,
@@ -156,6 +161,7 @@ export function CanvasEditor({
                     transparentCorners: false,
                   } as any);
                 }
+                // For image objects, metadata is set but no visual border (prevents drift)
               }
             });
             fabricCanvas.renderAll();
@@ -879,7 +885,7 @@ export function CanvasEditor({
 
           img.set({
             left: currentFormat.widthPixels / 2,
-            top: currentFormat.heightPixels / 2,
+            top: currentFormat.widthPixels / 2,
             scaleX: scale,
             scaleY: scale,
             originX: 'center',
@@ -901,7 +907,54 @@ export function CanvasEditor({
     };
 
     input.click();
-  }, [canvas]);
+  }, [canvas, currentFormat]);
+
+  // Add QR code placeholder
+  const addQRCode = useCallback(async () => {
+    if (!canvas) return;
+
+    try {
+      // Show loading toast
+      const loadingToast = toast.loading('Generating QR code placeholder...');
+
+      // Generate placeholder QR code
+      const qrDataUrl = await generatePlaceholderQRCode();
+
+      // Create Fabric image from QR code
+      const qrImg = await FabricImage.fromURL(qrDataUrl);
+
+      // EXACT COPY of regular image scaling - DO NOT CHANGE ANYTHING!
+      const maxWidth = currentFormat.widthPixels * 0.5;
+      const scale = maxWidth / (qrImg.width || 1);
+
+      // EXACT COPY of regular image positioning - DO NOT CHANGE ANYTHING!
+      qrImg.set({
+        left: currentFormat.widthPixels / 2,
+        top: currentFormat.widthPixels / 2,
+        scaleX: scale,
+        scaleY: scale,
+        originX: 'center',
+        originY: 'center',
+        centeredRotation: true,
+      });
+
+      // CRITICAL: Mark as variable element for batch replacement
+      // Each recipient will get a unique QR code with tracking URL
+      (qrImg as any).variableType = 'qrCode';
+      (qrImg as any).isReusable = false; // Each contact gets unique QR code
+
+      canvas.add(qrImg);
+      canvas.setActiveObject(qrImg);
+      canvas.renderAll();
+
+      // Dismiss loading and show success
+      toast.dismiss(loadingToast);
+      toast.success('QR code placeholder added! Will be replaced with unique codes during generation.');
+    } catch (error) {
+      console.error('Failed to add QR code:', error);
+      toast.error('Failed to add QR code placeholder');
+    }
+  }, [canvas, currentFormat, saveToHistory]);
 
   // Add asset from library
   const addAssetToCanvas = useCallback(async (asset: any) => {
@@ -957,36 +1010,51 @@ export function CanvasEditor({
   // Zoom in
   const zoomIn = useCallback(() => {
     if (!canvas) return;
-    const currentZoom = canvas.getZoom();
-    const newZoom = Math.min(currentZoom * 1.2, 3); // Max 3x zoom
-    canvas.setZoom(newZoom);
 
-    // Update CSS dimensions to match zoom
+    // Get current CSS dimensions (BOTH width AND height!)
+    const currentWidth = parseInt(canvas.lowerCanvasEl.style.width) || currentFormat.widthPixels;
+    const currentHeight = parseInt(canvas.lowerCanvasEl.style.height) || currentFormat.heightPixels;
+
+    // Scale BOTH dimensions independently to maintain aspect ratio
+    const newWidth = Math.min(currentWidth * 1.2, currentFormat.widthPixels * 3);
+    const newHeight = Math.min(currentHeight * 1.2, currentFormat.heightPixels * 3);
+
+    // CORRECT FIX: Only use CSS scaling (cssOnly: true) WITHOUT setZoom()
+    // This prevents double-transform: CSS stretch alone scales both canvas AND content proportionally
     canvas.setDimensions({
-      width: currentFormat.widthPixels * newZoom,
-      height: currentFormat.heightPixels * newZoom
+      width: newWidth,
+      height: newHeight
     }, { cssOnly: true });
 
+    // DON'T call setZoom() - CSS scaling handles everything!
     canvas.renderAll();
-    setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
-  }, [canvas]);
+
+    setForceUpdate(prev => prev + 1);
+  }, [canvas, currentFormat]);
 
   // Zoom out
   const zoomOut = useCallback(() => {
     if (!canvas) return;
-    const currentZoom = canvas.getZoom();
-    const newZoom = Math.max(currentZoom / 1.2, 0.1); // Min 0.1x zoom
-    canvas.setZoom(newZoom);
 
-    // Update CSS dimensions to match zoom
+    // Get current CSS dimensions (BOTH width AND height!)
+    const currentWidth = parseInt(canvas.lowerCanvasEl.style.width) || currentFormat.widthPixels;
+    const currentHeight = parseInt(canvas.lowerCanvasEl.style.height) || currentFormat.heightPixels;
+
+    // Scale BOTH dimensions independently to maintain aspect ratio
+    const newWidth = Math.max(currentWidth / 1.2, currentFormat.widthPixels * 0.1);
+    const newHeight = Math.max(currentHeight / 1.2, currentFormat.heightPixels * 0.1);
+
+    // CORRECT FIX: Only use CSS scaling (cssOnly: true) WITHOUT setZoom()
     canvas.setDimensions({
-      width: currentFormat.widthPixels * newZoom,
-      height: currentFormat.heightPixels * newZoom
+      width: newWidth,
+      height: newHeight
     }, { cssOnly: true });
 
+    // DON'T call setZoom() - CSS scaling handles everything!
     canvas.renderAll();
-    setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
-  }, [canvas]);
+
+    setForceUpdate(prev => prev + 1);
+  }, [canvas, currentFormat]);
 
   // Fit to screen
   const fitToScreen = useCallback(() => {
@@ -1005,25 +1073,16 @@ export function CanvasEditor({
     const scaleY = containerHeight / currentFormat.heightPixels;
     const scale = Math.min(scaleX, scaleY); // Fit to available space
 
-    canvas.setZoom(scale);
-
-    // Update CSS dimensions to match zoom
+    // CORRECT FIX: Only use CSS scaling (cssOnly: true) WITHOUT setZoom()
     canvas.setDimensions({
       width: currentFormat.widthPixels * scale,
       height: currentFormat.heightPixels * scale
     }, { cssOnly: true });
 
+    // DON'T call setZoom() - CSS scaling handles everything!
     canvas.renderAll();
-    setForceUpdate(prev => prev + 1); // Trigger re-render for container resize
 
-    console.log('📐 Fit to screen:', {
-      containerWidth,
-      containerHeight,
-      format: currentFormat.name,
-      scale: `${Math.round(scale * 100)}%`,
-      displayWidth: Math.round(currentFormat.widthPixels * scale),
-      displayHeight: Math.round(currentFormat.heightPixels * scale)
-    });
+    setForceUpdate(prev => prev + 1);
   }, [canvas, currentFormat]);
 
   // Save template
@@ -1339,6 +1398,15 @@ export function CanvasEditor({
             title="Add Image"
           >
             <ImageIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-slate-100 hover:bg-purple-50 hover:text-purple-700"
+            onClick={() => { setSelectedTool('qrcode'); addQRCode(); }}
+            title="Add QR Code (for tracking)"
+          >
+            <QrCode className="h-4 w-4" />
           </Button>
 
           <div className="w-px h-5 bg-slate-200 mx-1" />

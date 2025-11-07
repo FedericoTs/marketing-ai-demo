@@ -113,3 +113,38 @@ export async function generateGenericCampaignQRCode(campaignId: string): Promise
     throw new Error("Failed to generate generic campaign QR code");
   }
 }
+
+/**
+ * Generate dummy/placeholder QR code for template editor
+ *
+ * Used in the canvas editor to show a placeholder QR code that will be
+ * replaced with unique tracking QR codes during campaign generation.
+ * The actual content doesn't matter - it's just a visual placeholder.
+ *
+ * @returns Base64 data URL of placeholder QR code image
+ *
+ * @example
+ * const placeholderQR = await generatePlaceholderQRCode();
+ * // Use in template editor as a visual guide for QR position/size
+ */
+export async function generatePlaceholderQRCode(): Promise<string> {
+  try {
+    // Generate placeholder with example URL
+    const placeholderText = 'https://example.com/scan-here';
+
+    const dataUrl = await QRCode.toDataURL(placeholderText, {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+      errorCorrectionLevel: "M",
+    });
+
+    return dataUrl;
+  } catch (error) {
+    console.error("Error generating placeholder QR code:", error);
+    throw new Error("Failed to generate placeholder QR code");
+  }
+}

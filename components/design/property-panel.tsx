@@ -112,27 +112,33 @@ export function PropertyPanel({ selectedObject, onUpdate, forceUpdate }: Propert
       (selectedObject as any).isReusable = variableConfig.isReusable;
 
       // Apply or remove visual styling
-      if (value !== 'none') {
-        // Apply purple border and styling for variables
-        selectedObject.set({
-          borderColor: '#9333ea',
-          borderScaleFactor: 3,
-          borderDashArray: [5, 5],
-          cornerColor: '#9333ea',
-          cornerSize: 8,
-          transparentCorners: false,
-        } as any);
-      } else {
-        // Remove variable styling
-        selectedObject.set({
-          borderColor: '#178cf9',
-          borderScaleFactor: 1,
-          borderDashArray: null,
-          cornerColor: '#178cf9',
-          cornerSize: 6,
-          transparentCorners: false,
-        } as any);
+      // NOTE: Skip border styling for image objects (causes zoom drift bug in Fabric.js)
+      const isImageObject = selectedObject.type === 'image';
+
+      if (!isImageObject) {
+        if (value !== 'none') {
+          // Apply purple border and styling for variables (text only)
+          selectedObject.set({
+            borderColor: '#9333ea',
+            borderScaleFactor: 3,
+            borderDashArray: [5, 5],
+            cornerColor: '#9333ea',
+            cornerSize: 8,
+            transparentCorners: false,
+          } as any);
+        } else {
+          // Remove variable styling (text only)
+          selectedObject.set({
+            borderColor: '#178cf9',
+            borderScaleFactor: 1,
+            borderDashArray: null,
+            cornerColor: '#178cf9',
+            cornerSize: 6,
+            transparentCorners: false,
+          } as any);
+        }
       }
+      // For image objects, metadata is set but no visual border (prevents drift)
 
       setProperties({ ...properties, variableType: value, isReusable: variableConfig.isReusable });
     } else {

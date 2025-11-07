@@ -1446,11 +1446,11 @@ export function CanvasEditor({ templateId, onSave }: CanvasEditorProps) {
 }
 ```
 
-**Completed Features** (November 3, 2025):
+**Completed Features** (November 3-7, 2025):
 - ✅ Fabric.js v6 canvas initialized at 300 DPI (multi-format support)
 - ✅ Full-screen editor layout with hamburger navigation
 - ✅ Three-panel layout: Layers (left) | Canvas (center) | Properties (right)
-- ✅ Toolbar with tools: Text, Rectangle, Circle, Image upload
+- ✅ Toolbar with tools: Text, Rectangle, Circle, Image upload, **QR Code placeholder**
 - ✅ Zoom controls (in/out/fit-to-screen) with proper CSS dimension sync
 - ✅ Object rotation with center pivot point
 - ✅ Property panel with Transform/Style/Text/Variable tabs
@@ -1466,11 +1466,12 @@ export function CanvasEditor({ templateId, onSave }: CanvasEditorProps) {
 - ✅ **Template Library modal** (replaces sidebar, responsive grid, hover effects)
 - ✅ **Template save/load to Supabase** (with format preservation)
 - ✅ **Variable Marker Tool** (8 variable types with visual indicators)
+- ✅ **QR Code Placeholder Tool** (auto-marked as `variableType: 'qrCode'` for VDP batch replacement)
 - ✅ **Canvas disposal race condition fixes** (50ms initialization delay)
 - ✅ **Scope management** (handleKeyDown cleanup properly scoped)
 
 **Files Created**:
-- `components/design/canvas-editor.tsx` (850+ lines) - Main editor with multi-format support
+- `components/design/canvas-editor.tsx` (1200+ lines) - Main editor with multi-format support + QR Code tool
 - `components/design/property-panel.tsx` (425+ lines) - Object properties with Variable tab
 - `components/design/layers-panel.tsx` (385+ lines) - Layer management with variable badges
 - `components/design/ai-design-assistant.tsx` (177 lines) - AI floating panel
@@ -1479,10 +1480,15 @@ export function CanvasEditor({ templateId, onSave }: CanvasEditorProps) {
 - `app/(main)/templates/page.tsx` (270+ lines) - Templates page with modal integration
 - `lib/design/print-formats.ts` (240+ lines) - Format definitions and helpers
 - `lib/design/variable-types.ts` (106 lines) - Variable type system
+- `lib/qr-generator.ts` (45 lines) - QR code placeholder generation for VDP
 - `app/api/design-templates/route.ts` - Template CRUD API
 
 **Technical Achievements**:
-- ✅ Fixed Fabric.js zoom + CSS dimensions synchronization (critical fix)
+- ✅ Fixed Fabric.js zoom + CSS dimensions synchronization (Nov 7, 2025 - critical fix)
+  - **Issue**: cssOnly + setZoom() created double-transform (1.2 × 1.2 = 1.44x on content, 1.2x on canvas)
+  - **Solution**: CSS-only scaling without setZoom() - synchronized canvas/content resize
+  - **Bug Fix**: Aspect ratio preservation (read currentHeight independently from currentWidth)
+- ✅ QR Code variable metadata auto-assignment (variableType + isReusable flags)
 - ✅ Separate variable mappings storage pattern (Fabric.js v6 serialization workaround)
 - ✅ Center-origin rotation for all objects
 - ✅ Responsive UI with panel toggle buttons

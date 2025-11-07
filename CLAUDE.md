@@ -78,9 +78,9 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
 **Current Status**: See `DROPLAB_TRANSFORMATION_PLAN.md` for real-time progress
 
 **Phases Overview**:
-- **Phase 1** (Weeks 1-2): Foundation - Auth + Database ✅ **PARTIALLY COMPLETE**
-- **Phase 2** (Weeks 3-4): Design Engine - Fabric.js editor ⏳ **NEXT**
-- **Phase 3** (Weeks 5-6): VDP Engine - Batch personalization
+- **Phase 1** (Weeks 1-2): Foundation - Auth + Database ✅ **COMPLETE**
+- **Phase 2** (Weeks 3-4): Design Engine - Fabric.js editor ✅ **COMPLETE** (Nov 7, 2025)
+- **Phase 3** (Weeks 5-6): VDP Engine - Batch personalization ⏳ **NEXT**
 - **Phase 4** (Weeks 7-8): AI Intelligence - Compliance + Predictions
 - **Phase 5** (Weeks 9-10): Campaign Management + Data Axle - Audience targeting
 - **Phase 6** (Weeks 11-12): Collaboration - Real-time editing
@@ -322,6 +322,52 @@ See `BUGFIX_SEPARATE_VARIABLE_MAPPINGS.md` for complete documentation of:
 - Separate variable mapping implementation
 - QR code size preservation fix
 - Canvas disposal/React StrictMode race condition fixes
+
+### QR Code Placeholder Tool (Phase 2 - November 7, 2025)
+
+**Purpose**: Allow designers to position QR code placeholders in templates that will be replaced with unique tracking QR codes during batch personalization.
+
+**Implementation**:
+- **File**: `lib/qr-generator.ts` - Generates placeholder QR codes (https://example.com/scan-here)
+- **Integration**: `components/design/canvas-editor.tsx` (lines 913-952) - QR Code button in toolbar
+- **Icon**: `QrCode` from lucide-react
+- **Auto-metadata Assignment**:
+  ```typescript
+  (qrImg as any).variableType = 'qrCode';
+  (qrImg as any).isReusable = false; // Each contact gets unique QR code
+  ```
+
+**Workflow**:
+1. Designer clicks QR Code button in canvas toolbar
+2. Placeholder QR code generated (300x300px base64 image)
+3. Image added to canvas at center, scaled to 50% canvas width
+4. Automatically marked with `variableType: 'qrCode'` and `isReusable: false`
+5. Variable metadata saved in `variableMappings` (separate from canvas JSON)
+6. During batch processing, each recipient gets unique QR code with tracking URL
+
+**Variable Type Configuration** (`lib/design/variable-types.ts`):
+```typescript
+{
+  value: 'qrCode',
+  label: 'QR Code',
+  description: 'Unique QR code for tracking',
+  isReusable: false,
+  icon: '◻️',
+}
+```
+
+**Critical Zoom Fix** (November 7, 2025):
+- **Issue**: Canvas zoom created double-transform (CSS stretch + setZoom = 1.2 × 1.2 = 1.44x)
+- **Symptoms**: Content shrank faster than canvas border, aspect ratio distorted to square
+- **Root Cause**:
+  1. `setDimensions({ cssOnly: true })` stretched canvas 1.2x via CSS
+  2. `setZoom(1.2)` applied another 1.2x viewport transform
+  3. `newHeight = currentWidth * 1.2` (instead of currentHeight) created square
+- **Solution**:
+  1. Use CSS-only scaling without `setZoom()`
+  2. Read `currentHeight` independently from `currentWidth`
+  3. Apply synchronized resize: `canvas.setDimensions({ width, height }, { cssOnly: true })`
+- **Result**: Canvas and content now resize at exactly the same speed with proper aspect ratio ✅
 
 ## Technology Stack
 
