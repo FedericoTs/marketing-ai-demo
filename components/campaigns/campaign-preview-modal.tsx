@@ -194,17 +194,16 @@ export function CampaignPreviewModal({
             text: textContent,
             extractedVariableName,
             variableType,
-          });
-
-          // Remove purple highlighting
-          textObj.set({
-            backgroundColor: 'transparent',
-            fill: '#000000' // Default to black text
+            currentFill: textObj.fill,
+            currentBg: textObj.backgroundColor,
+            hasStyles: !!textObj.styles
           });
 
           // Replace with actual data based on variable mappings
           // Match against the EXTRACTED variable name from {variableName}, not the variableType
+          let replacementText = textContent; // Default to original text
           let replaced = false;
+
           for (const mapping of variableMappings) {
             console.log(`  🔄 Checking mapping:`, {
               templateVariable: mapping.templateVariable,
@@ -220,8 +219,8 @@ export function CampaignPreviewModal({
               console.log(`  ✅ Match found! Recipient value:`, recipientValue);
 
               if (recipientValue) {
-                textObj.set({ text: String(recipientValue) });
-                console.log(`  🎯 Replaced "${variableType}" with "${recipientValue}"`);
+                replacementText = String(recipientValue);
+                console.log(`  🎯 Will replace "${variableType}" with "${recipientValue}"`);
                 replaced = true;
               } else {
                 console.warn(`  ⚠️ Recipient field "${mapping.recipientField}" is empty`);
@@ -229,6 +228,28 @@ export function CampaignPreviewModal({
               break;
             }
           }
+
+          // CRITICAL: Clear character-level styling AND set all properties at once
+          textObj.styles = {}; // Clear character-level styles (purple color)
+
+          // Set ALL properties together in one call to prevent overrides
+          textObj.set({
+            text: replacementText, // Set the replacement text
+            backgroundColor: '', // Empty string = transparent (no purple background)
+            fill: '#000000', // Black text (no purple text)
+            fontFamily: textObj.fontFamily || 'Arial',
+            fontSize: textObj.fontSize || 16,
+          });
+
+          // Force dirty flag to ensure re-render
+          textObj.dirty = true;
+
+          console.log(`  🎨 Applied all changes:`, {
+            text: replacementText,
+            fill: '#000000',
+            backgroundColor: '',
+            stylesCleared: Object.keys(textObj.styles).length === 0
+          });
 
           if (!replaced && variableType) {
             console.warn(`  ⚠️ No mapping found for variable "${variableType}"`);
