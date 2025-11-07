@@ -80,10 +80,10 @@ export function CampaignPreviewModal({
       setGeneratingPreview(true);
 
       // 🎯 PERSONALIZED PREVIEW: Render template with recipient data
-      const fabric = (await import('fabric')).fabric;
+      const { Canvas, Image, Textbox } = await import('fabric');
 
       // Create hidden canvas at full template resolution - NO ZOOM!
-      const canvas = new fabric.Canvas(document.createElement('canvas'), {
+      const canvas = new Canvas(document.createElement('canvas'), {
         width: template.canvas_width,
         height: template.canvas_height,
         backgroundColor: '#FFFFFF'
@@ -120,11 +120,32 @@ export function CampaignPreviewModal({
       }
 
       // Replace variable text with recipient data
-      for (const obj of objects) {
+      console.log('🔍 Variable Mappings:', variableMappings);
+      console.log('🔍 Sample Recipient:', recipient);
+
+      for (let i = 0; i < objects.length; i++) {
+        const obj = objects[i];
         const variableType = (obj as any).variableType;
 
+        console.log(`📝 Object ${i}:`, {
+          type: obj.type,
+          variableType: variableType,
+          text: obj.type === 'textbox' ? (obj as any).text : undefined
+        });
+
         if (variableType && obj.type === 'textbox') {
-          const textObj = obj as fabric.Textbox;
+          const textObj = obj as any;
+          const textContent = textObj.text || '';
+
+          // Extract variable name from {variableName} pattern in the text
+          const match = textContent.match(/\{([^}]+)\}/);
+          const extractedVariableName = match ? match[1] : null;
+
+          console.log(`  📝 Textbox analysis:`, {
+            text: textContent,
+            extractedVariableName,
+            variableType,
+          });
 
           // Remove purple highlighting
           textObj.set({
@@ -133,15 +154,35 @@ export function CampaignPreviewModal({
           });
 
           // Replace with actual data based on variable mappings
+          // Match against the EXTRACTED variable name from {variableName}, not the variableType
+          let replaced = false;
           for (const mapping of variableMappings) {
-            if (mapping.templateVariable === variableType) {
+            console.log(`  🔄 Checking mapping:`, {
+              templateVariable: mapping.templateVariable,
+              extractedVariableName,
+              recipientField: mapping.recipientField,
+              matches: mapping.templateVariable === extractedVariableName
+            });
+
+            // Match the extracted variable name (e.g., "firstName" from "{firstName}")
+            // with mapping.templateVariable (e.g., "firstName" that maps to "first_name" field)
+            if (extractedVariableName && mapping.templateVariable === extractedVariableName) {
               const recipientValue = recipient[mapping.recipientField as keyof SampleRecipient];
+              console.log(`  ✅ Match found! Recipient value:`, recipientValue);
+
               if (recipientValue) {
                 textObj.set({ text: String(recipientValue) });
-                console.log(`🔄 Replaced ${variableType} with ${recipientValue}`);
+                console.log(`  🎯 Replaced "${variableType}" with "${recipientValue}"`);
+                replaced = true;
+              } else {
+                console.warn(`  ⚠️ Recipient field "${mapping.recipientField}" is empty`);
               }
               break;
             }
+          }
+
+          if (!replaced && variableType) {
+            console.warn(`  ⚠️ No mapping found for variable "${variableType}"`);
           }
         }
 
@@ -152,11 +193,13 @@ export function CampaignPreviewModal({
             const qrUrl = `${window.location.origin}/lp/${trackingCode}`;
             const qrDataUrl = await generateQRCodeImage(qrUrl);
 
+            console.log(`  🔲 Generating QR code for tracking: ${trackingCode}`);
+
             await new Promise<void>((resolve) => {
-              fabric.Image.fromURL(qrDataUrl, (qrImg) => {
+              Image.fromURL(qrDataUrl, { crossOrigin: 'anonymous' }).then((qrImg) => {
                 if (qrImg && obj.width && obj.height) {
-                  qrImg.scaleToWidth(obj.width * (obj.scaleX || 1));
-                  qrImg.scaleToHeight(obj.height * (obj.scaleY || 1));
+                  qrImg.scaleToWidth(obj.width * ((obj as any).scaleX || 1));
+                  qrImg.scaleToHeight(obj.height * ((obj as any).scaleY || 1));
                   qrImg.set({
                     left: obj.left,
                     top: obj.top,
@@ -164,8 +207,11 @@ export function CampaignPreviewModal({
                   });
                   canvas.remove(obj);
                   canvas.add(qrImg);
-                  console.log('✅ QR code replaced');
+                  console.log('  ✅ QR code replaced');
                 }
+                resolve();
+              }).catch((error) => {
+                console.error('  ❌ QR code generation failed:', error);
                 resolve();
               });
             });
