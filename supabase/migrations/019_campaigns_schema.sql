@@ -453,12 +453,36 @@ $$;
 COMMENT ON FUNCTION get_campaign_analytics IS 'Returns analytics summary for a specific campaign';
 
 -- ============================================================================
--- 8. SAMPLE DATA (for testing)
+-- 8. TABLE PRIVILEGES (CRITICAL for service_role and authenticated access)
+-- ============================================================================
+
+-- Grant privileges to campaigns table
+GRANT SELECT, INSERT, UPDATE, DELETE ON campaigns TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON campaigns TO authenticated;
+
+-- Grant privileges to campaign_recipients table
+GRANT SELECT, INSERT, UPDATE, DELETE ON campaign_recipients TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON campaign_recipients TO authenticated;
+
+-- Grant privileges to events table
+GRANT SELECT, INSERT, UPDATE, DELETE ON events TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON events TO authenticated;
+
+-- Grant privileges to conversions table
+GRANT SELECT, INSERT, UPDATE, DELETE ON conversions TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON conversions TO authenticated;
+
+-- Grant privileges to landing_pages table
+GRANT SELECT, INSERT, UPDATE, DELETE ON landing_pages TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON landing_pages TO authenticated;
+
+-- ============================================================================
+-- 9. SAMPLE DATA (for testing)
 -- ============================================================================
 
 -- Note: Actual campaign data will be migrated from SQLite using migration script
 -- This section is reserved for future test data if needed
 
 -- ============================================================================
--- END OF MIGRATION 019
+-- END OF MIGRATION 019 (Updated 2025-11-08: Added table privileges)
 -- ============================================================================
