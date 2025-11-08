@@ -135,9 +135,32 @@ export function CampaignPreviewModal({
         viewport: canvas.viewportTransform // Should be [1,0,0,1,0,0]
       });
 
+      // CRITICAL FIX: Remove expired Supabase signed URLs from canvas_json
+      // Signed URLs expire and cause loadFromJSON to fail with 400 errors
+      const cleanCanvasJson = JSON.parse(JSON.stringify(template.canvas_json));
+
+      if (cleanCanvasJson.objects) {
+        cleanCanvasJson.objects = cleanCanvasJson.objects.map((obj: any) => {
+          // Remove src URLs from Image objects to prevent loading expired URLs
+          if (obj.type === 'Image' || obj.type === 'image') {
+            console.log('🖼️ Removing image src to prevent expired URL error:', obj.src?.substring(0, 100));
+            return { ...obj, src: '' }; // Keep object structure but remove src
+          }
+          return obj;
+        });
+      }
+
+      // Remove background image URL if present
+      if (cleanCanvasJson.backgroundImage?.src) {
+        console.log('🖼️ Removing background image src');
+        delete cleanCanvasJson.backgroundImage;
+      }
+
+      console.log('✅ Cleaned canvas JSON (removed expired image URLs)');
+
       // Load template canvas JSON (Fabric.js v6 Promise-based API)
       try {
-        await canvas.loadFromJSON(template.canvas_json);
+        await canvas.loadFromJSON(cleanCanvasJson);
         console.log('✅ Canvas loaded successfully, objects:', canvas.getObjects().length);
       } catch (loadError) {
         console.error('❌ Failed to load canvas JSON:', loadError);
