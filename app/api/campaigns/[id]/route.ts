@@ -6,6 +6,8 @@ import {
   duplicateCampaign,
 } from "@/lib/database/tracking-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
+import { createServiceClient } from '@/lib/supabase/service-client';
+import { createClient } from '@/lib/supabase/server';
 
 // GET: Get campaign details by ID
 export async function GET(
@@ -35,7 +37,7 @@ export async function GET(
 }
 
 // PATCH: Update campaign (name, message, status)
-// Part of Improvement #5: Contextual Quick Actions
+// Supports both SQLite (legacy) and Supabase (new) databases
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -45,11 +47,16 @@ export async function PATCH(
     const body = await request.json();
     const { name, message, status } = body;
 
-    // Validate status if provided
-    if (status && !["active", "paused", "completed"].includes(status)) {
+    // Validate status if provided (supports both old and new status values)
+    const validStatuses = [
+      'active', 'paused', 'completed', // Old SQLite statuses
+      'draft', 'scheduled', 'sending', 'sent', 'failed' // New Supabase statuses
+    ];
+
+    if (status && !validStatuses.includes(status)) {
       return NextResponse.json(
         errorResponse(
-          "Invalid status. Must be 'active', 'paused', or 'completed'",
+          `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
           "INVALID_STATUS"
         ),
         { status: 400 }
@@ -58,7 +65,42 @@ export async function PATCH(
 
     console.log('🔄 [Campaign PATCH] Updating campaign:', id, { name, message, status });
 
-    // Update campaign using flexible updateCampaign function
+    // Try Supabase first (new database)
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // Use Supabase
+        const serviceClient = createServiceClient();
+        const updateData: any = { updated_at: new Date().toISOString() };
+
+        if (name !== undefined) updateData.name = name;
+        if (message !== undefined) updateData.description = message; // Note: message → description
+        if (status !== undefined) updateData.status = status;
+
+        const { data: campaign, error: updateError } = await serviceClient
+          .from('campaigns')
+          .update(updateData)
+          .eq('id', id)
+          .select('*')
+          .single();
+
+        if (updateError) {
+          console.error('Supabase update error:', updateError);
+          throw updateError;
+        }
+
+        console.log('✅ [Campaign PATCH] Campaign updated successfully (Supabase):', id);
+        return NextResponse.json(
+          successResponse(campaign, "Campaign updated successfully")
+        );
+      }
+    } catch (supabaseError) {
+      console.log('Supabase update failed, falling back to SQLite:', supabaseError);
+    }
+
+    // Fallback to SQLite (legacy database)
     const updated = updateCampaign(id, { name, message, status });
 
     if (!updated) {
@@ -69,7 +111,7 @@ export async function PATCH(
       );
     }
 
-    console.log('✅ [Campaign PATCH] Campaign updated successfully:', id);
+    console.log('✅ [Campaign PATCH] Campaign updated successfully (SQLite):', id);
 
     return NextResponse.json(
       successResponse(updated, "Campaign updated successfully")

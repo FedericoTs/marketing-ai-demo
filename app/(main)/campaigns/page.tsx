@@ -22,6 +22,9 @@ import {
 import type { Campaign } from '@/lib/database/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { ViewToggle } from '@/components/campaigns/view-toggle';
+import { KanbanBoard } from '@/components/campaigns/kanban-board';
+import { toast } from 'sonner';
 
 const STATUS_CONFIG = {
   draft: {
@@ -66,10 +69,25 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [view, setView] = useState<'grid' | 'board'>(() => {
+    // Load view preference from localStorage
+    if (typeof window !== 'undefined') {
+      const savedView = localStorage.getItem('campaigns-view');
+      return (savedView as 'grid' | 'board') || 'grid';
+    }
+    return 'grid';
+  });
 
   useEffect(() => {
     loadCampaigns();
   }, []);
+
+  // Persist view preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('campaigns-view', view);
+    }
+  }, [view]);
 
   async function loadCampaigns() {
     try {
@@ -103,6 +121,31 @@ export default function CampaignsPage() {
     console.log('View campaign:', campaignId);
   };
 
+  const handleStatusChange = async (campaignId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update campaign status');
+      }
+
+      // Update local state optimistically
+      setCampaigns((prev) =>
+        prev.map((c) =>
+          c.id === campaignId ? { ...c, status: newStatus as Campaign['status'] } : c
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update campaign status:', error);
+      throw error; // Re-throw to let KanbanBoard handle the error
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -115,14 +158,17 @@ export default function CampaignsPage() {
                 Manage your direct mail campaigns
               </p>
             </div>
-            <Button
-              onClick={handleCreateCampaign}
-              size="lg"
-              className="gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              Create Campaign
-            </Button>
+            <div className="flex items-center gap-3">
+              <ViewToggle view={view} onViewChange={setView} />
+              <Button
+                onClick={handleCreateCampaign}
+                size="lg"
+                className="gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Create Campaign
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -166,7 +212,15 @@ export default function CampaignsPage() {
               )}
             </CardContent>
           </Card>
+        ) : view === 'board' ? (
+          /* Kanban Board View */
+          <KanbanBoard
+            campaigns={filteredCampaigns}
+            onCampaignClick={handleViewCampaign}
+            onStatusChange={handleStatusChange}
+          />
         ) : (
+          /* Grid View */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCampaigns.map((campaign) => {
               const status = campaign.status || 'draft';
