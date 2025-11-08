@@ -183,10 +183,10 @@ export default function CampaignsPage() {
                     <div className="flex items-start gap-4">
                       {/* Template Thumbnail */}
                       <div className="flex-shrink-0">
-                        {campaign.template?.preview_image_url ? (
+                        {campaign.template?.thumbnail_url ? (
                           <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
                             <Image
-                              src={campaign.template.preview_image_url}
+                              src={campaign.template.thumbnail_url}
                               alt={campaign.template.name || 'Template preview'}
                               fill
                               className="object-cover"

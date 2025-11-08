@@ -33,7 +33,7 @@ export interface Campaign {
   template?: {
     id: string;
     name: string;
-    preview_image_url: string | null;
+    thumbnail_url: string | null;
   } | null;
   recipient_list?: {
     id: string;
@@ -189,7 +189,7 @@ export async function getAllCampaigns(
     .from('campaigns')
     .select(`
       *,
-      template:design_templates(id, name, preview_image_url),
+      template:design_templates(id, name, thumbnail_url),
       recipient_list:recipient_lists(id, name, total_recipients)
     `, { count: 'exact' })
     .eq('organization_id', organizationId)
