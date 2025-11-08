@@ -17,9 +17,11 @@ import {
   Clock,
   Pause,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 import type { Campaign } from '@/lib/database/types';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 const STATUS_CONFIG = {
   draft: {
@@ -178,21 +180,44 @@ export default function CampaignsPage() {
                   onClick={() => handleViewCampaign(campaign.id)}
                 >
                   <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-xl mb-2">{campaign.name}</CardTitle>
-                        {campaign.description && (
-                          <p className="text-sm text-slate-600 line-clamp-2">
-                            {campaign.description}
-                          </p>
+                    <div className="flex items-start gap-4">
+                      {/* Template Thumbnail */}
+                      <div className="flex-shrink-0">
+                        {campaign.template?.preview_image_url ? (
+                          <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                            <Image
+                              src={campaign.template.preview_image_url}
+                              alt={campaign.template.name || 'Template preview'}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-24 h-24 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                            <FileText className="h-8 w-8 text-slate-400" />
+                          </div>
                         )}
                       </div>
-                      <div className={cn(
-                        'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium',
-                        statusConfig.color
-                      )}>
-                        <StatusIcon className="h-4 w-4" />
-                        {statusConfig.label}
+
+                      {/* Campaign Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-xl mb-2">{campaign.name}</CardTitle>
+                            {campaign.description && (
+                              <p className="text-sm text-slate-600 line-clamp-2">
+                                {campaign.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className={cn(
+                            'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium flex-shrink-0',
+                            statusConfig.color
+                          )}>
+                            <StatusIcon className="h-4 w-4" />
+                            {statusConfig.label}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </CardHeader>

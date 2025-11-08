@@ -29,6 +29,17 @@ export interface Campaign {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  // Nested relations (from JOIN queries)
+  template?: {
+    id: string;
+    name: string;
+    preview_image_url: string | null;
+  } | null;
+  recipient_list?: {
+    id: string;
+    name: string;
+    total_recipients: number;
+  } | null;
 }
 
 export interface CampaignRecipient {
@@ -176,7 +187,11 @@ export async function getAllCampaigns(
 
   let query = supabase
     .from('campaigns')
-    .select('*', { count: 'exact' })
+    .select(`
+      *,
+      template:design_templates(id, name, preview_image_url),
+      recipient_list:recipient_lists(id, name, total_recipients)
+    `, { count: 'exact' })
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false });
 
