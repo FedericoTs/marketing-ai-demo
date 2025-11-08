@@ -6,8 +6,7 @@ import {
   duplicateCampaign,
 } from "@/lib/database/tracking-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
-import { createServiceClient } from '@/lib/supabase/service-client';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient, createClient } from '@/lib/supabase/server';
 
 // GET: Get campaign details by ID
 export async function GET(

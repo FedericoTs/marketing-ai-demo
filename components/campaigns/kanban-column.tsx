@@ -29,7 +29,7 @@ export function KanbanColumn({
   });
 
   return (
-    <div className="flex flex-col min-w-[280px] max-w-[320px]">
+    <div className="flex flex-col flex-1 min-w-0">
       {/* Column Header */}
       <div className="mb-3 flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
@@ -48,7 +48,7 @@ export function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 min-h-[400px] bg-slate-50 rounded-lg p-3 transition-colors',
+          'flex-1 min-h-[300px] bg-slate-50 rounded-lg p-2 transition-colors',
           isOver && 'bg-blue-50 ring-2 ring-blue-300'
         )}
       >

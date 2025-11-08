@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { ViewToggle } from '@/components/campaigns/view-toggle';
 import { KanbanBoard } from '@/components/campaigns/kanban-board';
+import { CampaignStatusMenu } from '@/components/campaigns/campaign-status-menu';
 import { toast } from 'sonner';
 
 const STATUS_CONFIG = {
@@ -248,14 +249,15 @@ export default function CampaignsPage() {
                       </div>
                     )}
 
-                    {/* Status Badge Overlay */}
+                    {/* Status Menu Overlay */}
                     <div className="absolute top-3 right-3">
-                      <div className={cn(
-                        'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shadow-sm backdrop-blur-sm',
-                        statusConfig.color
-                      )}>
-                        <StatusIcon className="h-3.5 w-3.5" />
-                        {statusConfig.label}
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <CampaignStatusMenu
+                          currentStatus={status}
+                          onStatusChange={(newStatus) => {
+                            handleStatusChange(campaign.id, newStatus);
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
