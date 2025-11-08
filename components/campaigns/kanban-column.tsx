@@ -14,6 +14,7 @@ interface KanbanColumnProps {
   colorClass: string;
   campaigns: Campaign[];
   onCampaignClick: (campaignId: string) => void;
+  updatingCampaignId?: string | null;
 }
 
 export function KanbanColumn({
@@ -23,6 +24,7 @@ export function KanbanColumn({
   colorClass,
   campaigns,
   onCampaignClick,
+  updatingCampaignId,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -67,6 +69,7 @@ export function KanbanColumn({
                 key={campaign.id}
                 campaign={campaign}
                 onClick={() => onCampaignClick(campaign.id)}
+                isUpdating={updatingCampaignId === campaign.id}
               />
             ))
           )}

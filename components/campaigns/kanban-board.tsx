@@ -27,6 +27,7 @@ interface KanbanBoardProps {
   campaigns: Campaign[];
   onCampaignClick: (campaignId: string) => void;
   onStatusChange: (campaignId: string, newStatus: string) => Promise<void>;
+  updatingCampaignId?: string | null;
 }
 
 const STATUS_COLUMNS = [
@@ -77,6 +78,7 @@ export function KanbanBoard({
   campaigns,
   onCampaignClick,
   onStatusChange,
+  updatingCampaignId,
 }: KanbanBoardProps) {
   const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
 
@@ -155,6 +157,7 @@ export function KanbanBoard({
             colorClass={column.colorClass}
             campaigns={campaignsByStatus[column.status] || []}
             onCampaignClick={onCampaignClick}
+            updatingCampaignId={updatingCampaignId}
           />
         ))}
       </div>

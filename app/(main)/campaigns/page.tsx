@@ -70,6 +70,7 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [updatingCampaignId, setUpdatingCampaignId] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'board'>(() => {
     // Load view preference from localStorage
     if (typeof window !== 'undefined') {
@@ -123,7 +124,21 @@ export default function CampaignsPage() {
   };
 
   const handleStatusChange = async (campaignId: string, newStatus: string) => {
+    // Store original state for rollback
+    const originalCampaigns = campaigns;
+
+    // Set loading indicator
+    setUpdatingCampaignId(campaignId);
+
+    // OPTIMISTIC UPDATE: Update UI immediately
+    setCampaigns((prev) =>
+      prev.map((c) =>
+        c.id === campaignId ? { ...c, status: newStatus as Campaign['status'] } : c
+      )
+    );
+
     try {
+      // Then make API call in background
       const response = await fetch(`/api/campaigns/${campaignId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -135,15 +150,17 @@ export default function CampaignsPage() {
         throw new Error(errorData.error || 'Failed to update campaign status');
       }
 
-      // Update local state optimistically
-      setCampaigns((prev) =>
-        prev.map((c) =>
-          c.id === campaignId ? { ...c, status: newStatus as Campaign['status'] } : c
-        )
-      );
+      // Success - optimistic update was correct
     } catch (error) {
       console.error('Failed to update campaign status:', error);
-      throw error; // Re-throw to let KanbanBoard handle the error
+
+      // ROLLBACK: Restore original state on error
+      setCampaigns(originalCampaigns);
+
+      throw error; // Re-throw to let KanbanBoard/StatusMenu handle the error
+    } finally {
+      // Clear loading indicator
+      setUpdatingCampaignId(null);
     }
   };
 
@@ -219,6 +236,7 @@ export default function CampaignsPage() {
             campaigns={filteredCampaigns}
             onCampaignClick={handleViewCampaign}
             onStatusChange={handleStatusChange}
+            updatingCampaignId={updatingCampaignId}
           />
         ) : (
           /* Grid View */
@@ -257,6 +275,7 @@ export default function CampaignsPage() {
                           onStatusChange={(newStatus) => {
                             handleStatusChange(campaign.id, newStatus);
                           }}
+                          isUpdating={updatingCampaignId === campaign.id}
                         />
                       </div>
                     </div>

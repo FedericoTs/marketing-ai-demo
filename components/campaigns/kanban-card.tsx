@@ -3,7 +3,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Calendar, FileText } from 'lucide-react';
+import { Users, Calendar, FileText, Loader2 } from 'lucide-react';
 import type { Campaign } from '@/lib/database/types';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -11,9 +11,10 @@ import { cn } from '@/lib/utils';
 interface KanbanCardProps {
   campaign: Campaign;
   onClick: () => void;
+  isUpdating?: boolean;
 }
 
-export function KanbanCard({ campaign, onClick }: KanbanCardProps) {
+export function KanbanCard({ campaign, onClick, isUpdating }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -40,10 +41,20 @@ export function KanbanCard({ campaign, onClick }: KanbanCardProps) {
       )}
     >
       <Card
-        className="group cursor-pointer hover:shadow-md transition-all duration-200 border-slate-200 hover:border-slate-300 mb-2"
+        className={cn(
+          "group cursor-pointer hover:shadow-md transition-all duration-200 border-slate-200 hover:border-slate-300 mb-2",
+          isUpdating && "opacity-60"
+        )}
         onClick={onClick}
       >
-        <CardContent className="p-2">
+        <CardContent className="p-2 relative">
+          {/* Loading Indicator */}
+          {isUpdating && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px] z-10 rounded">
+              <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+            </div>
+          )}
+
           {/* Campaign Info */}
           <div className="space-y-2">
             {/* Thumbnail */}

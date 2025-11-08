@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Clock, Calendar, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ChevronDown, Clock, Calendar, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STATUS_OPTIONS = [
@@ -47,12 +47,14 @@ interface CampaignStatusMenuProps {
   currentStatus: string;
   onStatusChange: (newStatus: string) => void;
   disabled?: boolean;
+  isUpdating?: boolean;
 }
 
 export function CampaignStatusMenu({
   currentStatus,
   onStatusChange,
   disabled,
+  isUpdating,
 }: CampaignStatusMenuProps) {
   const current = STATUS_OPTIONS.find((s) => s.value === currentStatus) || STATUS_OPTIONS[0];
   const CurrentIcon = current.icon;
@@ -63,13 +65,17 @@ export function CampaignStatusMenu({
         <Button
           variant="outline"
           size="sm"
-          disabled={disabled}
+          disabled={disabled || isUpdating}
           className="h-7 gap-1.5 text-xs"
           onClick={(e) => e.stopPropagation()}
         >
-          <CurrentIcon className={cn('h-3 w-3', current.color)} />
+          {isUpdating ? (
+            <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+          ) : (
+            <CurrentIcon className={cn('h-3 w-3', current.color)} />
+          )}
           <span>{current.label}</span>
-          <ChevronDown className="h-3 w-3 text-slate-400" />
+          {!isUpdating && <ChevronDown className="h-3 w-3 text-slate-400" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
