@@ -7,9 +7,9 @@
 
 **Strategic Vision**: Build the first "Figma meets Mailchimp for Physical Mail" platform
 
-**Last Updated**: 2025-11-08 (Phase 5.5 Campaign Status Management - 100% COMPLETE)
+**Last Updated**: 2025-11-08 (Phase 5.6 & 5.7 Added - Landing Pages + Email Marketing)
 
-**Version**: 2.9 (Phase 5.5 Complete - Kanban Board + Optimistic Updates)
+**Version**: 3.0 (Phase 5.6 & 5.7 Planned - Multi-Channel Marketing Platform)
 
 ---
 
@@ -3005,6 +3005,1075 @@ Step 4: Schedule & Send (existing)
 - [ ] Verify demographics imported correctly
 - [ ] Check cost calculations accurate
 - [ ] Test edge cases (0 results, API errors)
+
+---
+
+### **Phase 5.6: Landing Pages & Tracking (Weeks 9.5-10)** ⏳ **PRIORITY**
+
+**Timeline**: November 9-10, 2025 (1.5 days)
+**Complexity**: High
+**Value**: Critical
+**Status**: Not Started
+
+**Goal**: Implement personalized landing page system with QR code tracking, dynamic content, and conversion optimization to complete the direct mail → digital bridge and enable end-to-end campaign attribution.
+
+**Strategic Importance**: Landing pages are the critical link between physical direct mail and digital conversions. This feature completes the tracking loop: Design → Print → Scan QR → Land on personalized page → Convert. Without this, we have no way to measure ROI or prove campaign effectiveness. This is the foundation for data-driven direct mail that separates DropLab from traditional print vendors.
+
+**Business Impact**:
+- **Revenue Stream**: Landing page personalization premium tier (+$50/month)
+- **Data Moat**: Conversion data feeds AI predictions (proprietary dataset)
+- **Customer Retention**: Proven ROI → customer stays longer (reduce churn 40%)
+- **Competitive Advantage**: No competitor offers QR → personalized landing page automation
+
+---
+
+#### **Core Features**
+
+**1. Landing Page Builder** (Primary Feature)
+
+**Professional Template Library**:
+- **Default Template**: Clean conversion-focused layout
+- **Appointment Template**: Calendar integration (Google Calendar, Calendly)
+- **Questionnaire Template**: Multi-step form with progress indicator
+- **Product Template**: Product showcase with pricing/CTA
+- **Contact Template**: Simple contact form
+- **Custom Template**: Blank canvas with drag-drop builder
+
+**Page Configuration (JSONB)**:
+```typescript
+{
+  // Branding
+  logo_url: string,
+  primary_color: string,
+  secondary_color: string,
+  background_color: string,
+
+  // Content
+  headline: string,
+  subheadline: string,
+  cta_text: string,
+  cta_url: string,
+  image_url: string,
+
+  // Form Fields (for templates with forms)
+  form_fields: Array<{
+    name: string,
+    type: 'text' | 'email' | 'phone' | 'select' | 'textarea',
+    label: string,
+    required: boolean,
+    options?: string[] // for select fields
+  }>,
+
+  // Tracking
+  google_analytics_id?: string,
+  facebook_pixel_id?: string,
+
+  // Advanced
+  custom_css?: string,
+  custom_js?: string,
+  redirect_after_submit?: string
+}
+```
+
+**2. Personalized URL (PURL) System**
+
+**Auto-generated Tracking Codes**:
+- Format: `/lp/[tracking_code]` (e.g., `/lp/ABC12XYZ`)
+- Unique per recipient (links to `campaign_recipients.tracking_code`)
+- Short, memorable codes (8 chars, alphanumeric)
+
+**Pre-filled Recipient Data**:
+```typescript
+recipient_data: {
+  firstName: "John",
+  lastName: "Smith",
+  address: "123 Main St",
+  city: "San Francisco",
+  state: "CA",
+  zip: "94102",
+  custom_field_1: "Homeowner",
+  custom_field_2: "Golden Ears Candidate"
+}
+```
+
+**Dynamic Content Display**:
+- Personalized headline: "Welcome back, {firstName}!"
+- Form pre-fill: Name, email, phone from recipient data
+- Conditional content: If homeowner, show mortgage offer
+- Location-specific: Show nearest store based on ZIP
+
+**3. Conversion Tracking & Analytics**
+
+**Event Tracking** (Uses existing `events` table):
+- Page view (when landing page loads)
+- QR scan (timestamp from first load)
+- Form view (user scrolls to form)
+- Form field interaction (user focuses on field)
+- Form submission (successful conversion)
+- Button click (CTA tracking)
+- Exit intent (user about to leave)
+
+**Real-time Notifications**:
+- Email alert when recipient scans QR (optional)
+- SMS notification on form submission
+- Slack webhook integration
+- Dashboard live updates
+
+**Conversion Attribution**:
+- Direct attribution: QR scan → landing page → conversion
+- Time-to-convert metric (scan to submit)
+- Drop-off analysis (where users leave)
+- A/B test variant tracking
+
+**4. A/B Testing System**
+
+**Variant Management**:
+- Create multiple landing page versions per campaign
+- Split traffic: 50/50, 70/30, custom percentages
+- Test elements:
+  - Headlines
+  - CTA text/color
+  - Images
+  - Form length
+  - Layout (1-column vs 2-column)
+
+**Performance Tracking**:
+- Conversion rate per variant
+- Statistical significance calculator
+- Auto-declare winner (95% confidence)
+- Roll all traffic to winner automatically
+
+**Smart Traffic Routing** (Premium Feature - Phase 2):
+- AI analyzes visitor characteristics (device, time, location)
+- Routes to variant most likely to convert
+- Learns from conversion patterns
+- Increases overall conversion rate 10-30%
+
+**5. Dynamic Content Personalization**
+
+**Show/Hide Rules**:
+```typescript
+content_rules: [
+  {
+    element_id: "homeowner_offer",
+    show_when: {
+      field: "custom_field_1",
+      operator: "equals",
+      value: "Homeowner"
+    }
+  },
+  {
+    element_id: "first_time_discount",
+    show_when: {
+      field: "is_new_customer",
+      operator: "equals",
+      value: true
+    }
+  }
+]
+```
+
+**Dynamic Text Replacement**:
+- `{firstName}` → John
+- `{city}` → San Francisco
+- `{custom_field_1}` → Homeowner
+- Fallback values for missing data
+
+**Image Personalization**:
+- Show location-specific images (store photo based on ZIP)
+- Product recommendations based on past purchases
+- Industry-specific imagery
+
+**6. Mobile-First Responsive Design**
+
+**Performance Requirements**:
+- Load time <2 seconds on 3G
+- Lighthouse score >90
+- Core Web Vitals: Green
+- Mobile usability score: 100/100
+
+**Responsive Features**:
+- Touch-optimized forms (large tap targets)
+- Mobile keyboard optimization (email/phone inputs)
+- Thumb-friendly CTA buttons (bottom of screen)
+- No horizontal scrolling
+- Readable without zoom (16px+ body text)
+
+---
+
+#### **Technical Implementation**
+
+**New Components**:
+```
+components/landing/
+├── landing-page-builder.tsx       # Main builder UI (400 lines)
+│   ├── Template selection
+│   ├── Visual editor (drag-drop)
+│   ├── Configuration panel
+│   ├── Preview modes (desktop/tablet/mobile)
+│   └── Save/publish buttons
+├── template-selector.tsx          # Template library grid (150 lines)
+│   ├── Template cards with previews
+│   ├── Category filters
+│   └── "Start from blank" option
+├── page-config-editor.tsx         # Configuration form (250 lines)
+│   ├── Branding inputs (logo, colors)
+│   ├── Content inputs (headline, CTA)
+│   ├── Form field builder
+│   └── Advanced settings (custom CSS/JS)
+├── landing-page-preview.tsx       # Live preview component (200 lines)
+│   ├── Iframe with live updates
+│   ├── Device size toggle
+│   └── Personalization data tester
+└── templates/
+    ├── default-template.tsx       # Clean conversion template
+    ├── appointment-template.tsx   # Calendar booking
+    ├── questionnaire-template.tsx # Multi-step form
+    ├── product-template.tsx       # Product showcase
+    └── contact-template.tsx       # Contact form
+
+app/lp/[trackingCode]/
+└── page.tsx                       # Public landing page route (300 lines)
+    ├── Fetch landing page config by tracking_code
+    ├── Load recipient data
+    ├── Render template with personalization
+    ├── Track page view event
+    └── Handle form submission → conversion
+
+lib/landing/
+├── template-renderer.tsx          # Render engine (200 lines)
+│   ├── Parse page_config JSONB
+│   ├── Apply recipient_data substitution
+│   ├── Inject branding (logo, colors)
+│   └── Return rendered HTML/React
+├── tracking.ts                    # Event tracking (150 lines)
+│   ├── trackPageView()
+│   ├── trackFormSubmit()
+│   ├── trackButtonClick()
+│   └── Send to events table
+└── ab-testing.ts                  # A/B test logic (100 lines)
+    ├── selectVariant() - Choose which version to show
+    ├── trackVariantView()
+    └── calculateWinner()
+```
+
+**API Routes**:
+```
+app/api/landing/
+├── [campaignId]/route.ts          # GET - Fetch landing page config
+│                                   # POST - Create landing page
+│                                   # PATCH - Update config
+├── track/route.ts                 # POST - Track events
+└── convert/route.ts               # POST - Submit form & create conversion
+```
+
+**Database Queries** (`lib/database/landing-queries.ts`):
+```typescript
+// Fetch landing page by tracking code (PUBLIC)
+async function getLandingPageByTrackingCode(trackingCode: string): Promise<LandingPage>
+
+// Create landing page for campaign
+async function createLandingPage(campaignId: string, config: PageConfig): Promise<LandingPage>
+
+// Update landing page configuration
+async function updateLandingPage(id: string, config: Partial<PageConfig>): Promise<LandingPage>
+
+// Track event
+async function trackEvent(trackingCode: string, eventType: string, metadata: object): Promise<Event>
+
+// Record conversion
+async function recordConversion(trackingCode: string, formData: object): Promise<Conversion>
+
+// Get landing page analytics
+async function getLandingPageAnalytics(campaignId: string): Promise<Analytics>
+```
+
+---
+
+#### **Implementation Tasks**
+
+**Task 5.6.1: Template System (4 hours)**
+- [ ] Design 5 template layouts (Figma/sketch)
+- [ ] Build template-selector component
+- [ ] Create default-template.tsx (conversion-focused)
+- [ ] Create appointment-template.tsx (calendar integration)
+- [ ] Create questionnaire-template.tsx (multi-step form)
+- [ ] Add template previews (screenshots)
+- [ ] Test responsive design on mobile
+
+**Task 5.6.2: Landing Page Builder UI (6 hours)**
+- [ ] Create landing-page-builder.tsx main component
+- [ ] Build page-config-editor form (branding, content, forms)
+- [ ] Implement live preview with iframe
+- [ ] Add device size toggle (desktop/tablet/mobile)
+- [ ] Build form field builder (add/remove/reorder)
+- [ ] Add color picker for branding
+- [ ] Implement logo upload
+- [ ] Add "Test with sample data" feature
+- [ ] Create save/publish flow
+
+**Task 5.6.3: Public Landing Page Route (4 hours)**
+- [ ] Create `app/lp/[trackingCode]/page.tsx` dynamic route
+- [ ] Fetch landing page config from database
+- [ ] Load recipient data for personalization
+- [ ] Render selected template with config
+- [ ] Apply recipient_data substitution (`{firstName}`, etc.)
+- [ ] Track page view event automatically
+- [ ] Handle 404 for invalid tracking codes
+- [ ] Add Open Graph tags for social sharing
+- [ ] Implement meta tags for SEO
+
+**Task 5.6.4: Event Tracking & Analytics (3 hours)**
+- [ ] Build tracking.ts library with trackEvent()
+- [ ] Implement trackPageView (fires on load)
+- [ ] Implement trackFormSubmit (fires on submit)
+- [ ] Implement trackButtonClick (fires on CTA click)
+- [ ] Add real-time notifications (email/SMS on scan)
+- [ ] Create analytics dashboard component
+- [ ] Display conversion funnel visualization
+- [ ] Add export analytics to CSV
+
+**Task 5.6.5: Form Handling & Conversions (3 hours)**
+- [ ] Build form submission handler
+- [ ] Validate form data server-side (Zod)
+- [ ] Record conversion in database
+- [ ] Send confirmation email to recipient
+- [ ] Trigger webhook (optional)
+- [ ] Update campaign analytics
+- [ ] Handle errors gracefully (show user-friendly message)
+- [ ] Add spam protection (rate limiting)
+
+**Task 5.6.6: A/B Testing System (4 hours)** (Optional - Phase 2)
+- [ ] Add variant support to landing_pages table
+- [ ] Build variant selector in builder UI
+- [ ] Implement traffic split logic
+- [ ] Track variant performance
+- [ ] Build statistical significance calculator
+- [ ] Auto-declare winner UI
+- [ ] Roll traffic to winner automatically
+
+**Task 5.6.7: Integration with Campaign Wizard (2 hours)**
+- [ ] Add "Landing Page" step to campaign wizard
+- [ ] Auto-create landing page when campaign created
+- [ ] Link QR code generation to landing page URL
+- [ ] Update campaign preview to show landing page
+- [ ] Test end-to-end flow: Template → Campaign → QR → Landing Page
+
+**Task 5.6.8: Testing & Polish (2 hours)**
+- [ ] Test all 5 templates on mobile/desktop
+- [ ] Verify QR codes link to correct landing pages
+- [ ] Test form submissions create conversions
+- [ ] Check event tracking accuracy
+- [ ] Verify recipient data pre-fills correctly
+- [ ] Test A/B variants route correctly
+- [ ] Performance audit (Lighthouse >90)
+- [ ] Fix any responsive design issues
+
+---
+
+#### **Success Criteria**
+
+- [ ] Users can select from 5 professional templates
+- [ ] Landing page builder UI is intuitive (no training needed)
+- [ ] QR codes link to personalized landing pages with recipient data
+- [ ] Forms pre-fill with recipient name/address/custom fields
+- [ ] All events tracked correctly (page view, form submit, etc.)
+- [ ] Conversions recorded in database with attribution
+- [ ] Landing pages load in <2 seconds on mobile
+- [ ] Responsive design works on all devices
+- [ ] A/B testing splits traffic correctly
+- [ ] Analytics dashboard shows real-time conversion data
+
+---
+
+#### **Premium Features (Future Enhancements)**
+
+**Tier 1 - Smart Personalization** (+$50/month):
+- AI-powered content recommendations
+- Smart traffic routing (Unbounce-style)
+- Dynamic product recommendations
+- Behavioral triggers (exit intent popups)
+
+**Tier 2 - Advanced Analytics** (+$30/month):
+- Heatmaps (Hotjar integration)
+- Session recordings
+- Conversion funnel analysis
+- Multi-touch attribution
+
+**Tier 3 - Enterprise Integration** (+$100/month):
+- Custom domain (lp.yourdomain.com)
+- White-label branding
+- CRM integration (Salesforce, HubSpot)
+- Webhook automation
+- API access
+
+**Tier 4 - AI Optimization** (+$150/month):
+- Auto-generated headlines (GPT-4)
+- Image optimization (AI cropping)
+- Conversion rate prediction
+- Automatic winner selection
+
+---
+
+#### **Database Schema** (Already Exists - No Migration Needed!)
+
+**Table**: `landing_pages` (from migration 019)
+```sql
+CREATE TABLE landing_pages (
+  id UUID PRIMARY KEY,
+  campaign_id UUID REFERENCES campaigns(id),
+  tracking_code TEXT UNIQUE NOT NULL,
+
+  -- Template
+  template_type TEXT CHECK (template_type IN
+    ('default', 'appointment', 'questionnaire', 'product', 'contact', 'custom')),
+
+  -- Configuration
+  page_config JSONB NOT NULL,      -- Template-specific config
+  recipient_data JSONB,             -- Pre-filled form data
+
+  -- Status
+  is_active BOOLEAN DEFAULT TRUE,
+
+  -- Metadata
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**RLS Policies**:
+- ✅ Public SELECT (is_active = true)
+- ✅ Authenticated INSERT/UPDATE/DELETE (via campaign organization)
+
+---
+
+#### **Dependencies**
+
+```bash
+# Form validation
+npm install zod react-hook-form @hookform/resolvers
+
+# Calendar integration (for appointment template)
+npm install react-day-picker date-fns
+
+# Analytics visualization
+npm install recharts
+
+# QR code generation (already installed)
+# npm install qrcode @types/qrcode
+```
+
+---
+
+#### **Design References**
+
+**Inspired by**:
+- **Unbounce**: Landing page builder UI, A/B testing
+- **Leadpages**: Template library, form builder
+- **Instapage**: Dynamic content personalization
+- **Typeform**: Multi-step questionnaire template
+- **Calendly**: Appointment booking template
+
+---
+
+### **Phase 5.7: Email Marketing & Multi-Channel Campaigns (Weeks 10.5-11)** ⏳ **HIGH PRIORITY**
+
+**Timeline**: November 11-12, 2025 (1.5 days)
+**Complexity**: High
+**Value**: Very High
+**Status**: Not Started
+
+**Goal**: Add email campaign capabilities with coordinated multi-channel sequences (Direct Mail + Email + SMS), automated follow-ups, and unified analytics to maximize campaign ROI and enable sophisticated customer journeys.
+
+**Strategic Importance**: Email is the critical second touchpoint in direct mail campaigns. Research shows multi-channel campaigns deliver 3x higher conversion rates than single-channel. This feature enables: DM arrives → Email reminder → SMS follow-up → Landing page conversion. Without this, we're leaving 70% of potential revenue on the table. Email also provides low-cost retargeting for non-converters (scanned QR but didn't buy).
+
+**Business Impact**:
+- **Revenue Increase**: Multi-channel campaigns → 3x higher conversion (industry data)
+- **Customer Retention**: Automated follow-ups reduce drop-off 40%
+- **LTV Growth**: Email nurture sequences increase customer lifetime value 2.5x
+- **Competitive Advantage**: No direct mail platform offers coordinated email automation
+- **Data Moat**: Multi-channel attribution data feeds AI predictions
+
+---
+
+#### **Core Features**
+
+**1. Email Campaign Builder** (Primary Feature)
+
+**Template System**:
+- **Follow-up Email**: "Did you receive our mail?" reminder
+- **QR Scan Triggered**: "Thanks for scanning! Here's your offer"
+- **Non-Converter Retargeting**: "Still interested? Here's 10% off"
+- **Appointment Reminder**: "Your consultation is tomorrow at 2pm"
+- **Thank You Email**: Post-conversion confirmation
+- **Survey Request**: "How did we do?" feedback
+- **Re-engagement**: "We haven't heard from you in 30 days"
+- **Custom Template**: Blank canvas with drag-drop builder
+
+**Drag-Drop Email Builder**:
+```
+components/email/
+├── email-builder.tsx              # Main builder UI (500 lines)
+│   ├── Visual drag-drop editor (Unlayer/GrapesJS)
+│   ├── Variable insertion ({firstName}, {offer}, etc.)
+│   ├── Image upload
+│   ├── Link tracking (UTM parameters auto-added)
+│   ├── Preview modes (desktop/mobile)
+│   └── Send test email
+└── email-templates/
+    ├── follow-up-template.tsx
+    ├── qr-scan-template.tsx
+    ├── retargeting-template.tsx
+    └── custom-template.tsx
+```
+
+**Variable Replacement** (Same as DM):
+- `{firstName}`, `{lastName}`, `{address}`, `{city}`, `{zip}`
+- Custom fields from recipient data
+- Campaign-specific variables (`{offer}`, `{deadline}`, `{discount_code}`)
+- Conditional content (if homeowner, show mortgage offer)
+
+**2. Multi-Channel Campaign Sequences**
+
+**Coordinated Workflows**:
+```typescript
+campaign_sequence: {
+  channels: [
+    {
+      type: 'direct_mail',
+      delay: 0, // Send immediately
+      template_id: 'dm_template_123'
+    },
+    {
+      type: 'email',
+      delay: 3, // 3 days after DM
+      trigger: 'dm_sent',
+      template_id: 'email_follow_up_456',
+      subject: 'Did you receive our letter, {firstName}?'
+    },
+    {
+      type: 'email',
+      delay: 0, // Immediately
+      trigger: 'qr_scanned',
+      template_id: 'email_thank_you_789',
+      subject: 'Thanks for your interest!'
+    },
+    {
+      type: 'sms',
+      delay: 7, // 7 days if no conversion
+      trigger: 'no_conversion',
+      message: 'Hi {firstName}, your 10% off expires tomorrow!'
+    }
+  ]
+}
+```
+
+**Behavioral Triggers**:
+- **DM Sent**: Email reminder 3 days after DM sent
+- **QR Scanned**: Immediate thank you email + offer
+- **No Conversion**: Retargeting email after 7 days
+- **Partial Form**: Abandoned form reminder (filled name but didn't submit)
+- **Conversion**: Thank you email + survey request
+- **Anniversary**: "It's been 1 year since..." re-engagement
+
+**3. Email Automation & Drip Campaigns**
+
+**Drip Sequences**:
+- **Welcome Series**: 5 emails over 2 weeks for new recipients
+- **Education Series**: Teach recipients about product/service
+- **Nurture Series**: Move cold leads to warm (3 months)
+- **Onboarding Series**: New customer setup (1 week)
+- **Re-engagement**: Win back inactive customers (30 days)
+
+**Automation Rules**:
+```typescript
+automation: {
+  trigger: 'qr_scanned',
+  condition: {
+    field: 'landing_page_conversion',
+    operator: 'equals',
+    value: false // Did NOT convert
+  },
+  actions: [
+    { type: 'wait', days: 1 },
+    { type: 'send_email', template: 'retargeting_1' },
+    { type: 'wait', days: 3 },
+    { type: 'send_email', template: 'retargeting_2' },
+    { type: 'wait', days: 7 },
+    { type: 'send_sms', message: 'Final chance for 10% off!' }
+  ]
+}
+```
+
+**4. Email Tracking & Analytics**
+
+**Engagement Metrics**:
+- **Delivery Rate**: % successfully delivered
+- **Open Rate**: % who opened email
+- **Click Rate**: % who clicked links
+- **Conversion Rate**: % who converted after email
+- **Bounce Rate**: Hard vs soft bounces
+- **Unsubscribe Rate**: % who opted out
+- **Spam Complaints**: Sender reputation tracking
+
+**Link Tracking**:
+- Auto-add UTM parameters to all links
+- Track individual link clicks
+- Heatmap showing which links clicked most
+- Attribution: Which email → landing page → conversion
+
+**A/B Testing**:
+- Test subject lines (which gets higher open rate?)
+- Test send times (morning vs evening)
+- Test email content (long vs short copy)
+- Test CTA buttons (color, text, placement)
+- Auto-declare winner based on conversion rate
+
+**5. Multi-Channel Attribution**
+
+**Unified Dashboard**:
+```
+Campaign: "Black Friday Promo"
+├── Direct Mail: 1,000 sent
+│   ├── Cost: $1,500
+│   ├── QR Scans: 120 (12%)
+│   └── Direct Conversions: 15 (1.5%)
+├── Email Follow-up: 1,000 sent
+│   ├── Opened: 450 (45%)
+│   ├── Clicked: 89 (8.9%)
+│   └── Email Conversions: 25 (2.5%)
+├── SMS Reminder: 50 sent (to non-converters)
+│   ├── Clicked: 12 (24%)
+│   └── SMS Conversions: 5 (10%)
+└── Total Campaign Results:
+    ├── Total Conversions: 45 (4.5% overall)
+    ├── Revenue: $9,000
+    ├── ROI: 500%
+    └── Best Channel: Email (highest conversion rate)
+```
+
+**Attribution Models**:
+- **Last Touch**: Credit to last channel before conversion
+- **First Touch**: Credit to DM (started the journey)
+- **Linear**: Equal credit to all touchpoints
+- **Time Decay**: More recent touchpoints get more credit
+- **Position-Based**: 40% to DM, 40% to conversion touchpoint, 20% to middle
+
+**6. Email Deliverability & Compliance**
+
+**Email Service Provider (ESP) Integration**:
+```
+Recommended: Resend (modern, developer-friendly)
+Alternatives: SendGrid, Postmark, AWS SES, Mailgun
+
+Features needed:
+- Transactional email API
+- Bulk email sending
+- Email templates
+- Link/open tracking
+- Bounce handling
+- Unsubscribe management
+- DKIM/SPF/DMARC setup
+```
+
+**Compliance Features**:
+- **CAN-SPAM Compliance**: Unsubscribe link in every email
+- **GDPR Compliance**: Consent tracking, data deletion
+- **CCPA Compliance**: "Do not sell" opt-out
+- **Unsubscribe Management**: One-click unsubscribe
+- **Suppression List**: Never email unsubscribed contacts
+- **Bounce Handling**: Remove invalid emails automatically
+
+**Sender Reputation**:
+- Domain authentication (SPF, DKIM, DMARC)
+- IP warming (gradual increase in send volume)
+- Engagement tracking (remove non-openers after 90 days)
+- Spam score checker (before sending)
+
+---
+
+#### **Technical Implementation**
+
+**New Components**:
+```
+components/email/
+├── email-campaign-builder.tsx     # Main builder UI (400 lines)
+│   ├── Drag-drop email editor
+│   ├── Subject line + preview text
+│   ├── Variable insertion
+│   ├── Image upload
+│   ├── Send test email
+│   └── Schedule send
+├── email-sequence-builder.tsx     # Multi-step sequence UI (300 lines)
+│   ├── Visual workflow builder
+│   ├── Trigger selection (DM sent, QR scanned, etc.)
+│   ├── Delay configuration
+│   ├── Condition rules (if/then)
+│   └── Preview sequence timeline
+├── email-template-selector.tsx    # Template library (150 lines)
+│   ├── Template cards with previews
+│   ├── Category filters (follow-up, retargeting, etc.)
+│   └── "Start from blank" option
+├── email-analytics.tsx            # Email performance dashboard (250 lines)
+│   ├── Open/click/conversion rates
+│   ├── Engagement over time chart
+│   ├── Link click heatmap
+│   └── A/B test results
+└── multi-channel-dashboard.tsx    # Unified campaign analytics (300 lines)
+    ├── All channels in one view
+    ├── Attribution breakdown
+    ├── ROI calculator
+    └── Export to CSV
+
+lib/email/
+├── email-sender.ts                # Send email via ESP (200 lines)
+│   ├── sendEmail()
+│   ├── sendBulkEmail()
+│   ├── trackOpen()
+│   ├── trackClick()
+│   └── handleBounce()
+├── email-templates.ts             # Template rendering (150 lines)
+│   ├── renderTemplate()
+│   ├── applyVariables()
+│   ├── injectTrackingPixel()
+│   └── addUTMParameters()
+└── sequence-engine.ts             # Automation logic (250 lines)
+    ├── processSequence()
+    ├── checkTriggerConditions()
+    ├── scheduleNextAction()
+    └── handleCompletion()
+```
+
+**API Routes**:
+```
+app/api/email/
+├── send/route.ts                  # POST - Send single email
+├── bulk/route.ts                  # POST - Send bulk emails
+├── sequence/route.ts              # POST - Create automation sequence
+├── track-open/route.ts            # GET - Track email open (1x1 pixel)
+├── track-click/[linkId]/route.ts  # GET - Track link click (redirect)
+└── unsubscribe/route.ts           # POST - Handle unsubscribe request
+```
+
+**Database Schema** (New Migration Required):
+
+```sql
+-- Email Campaigns Table
+CREATE TABLE email_campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+
+  -- Email Content
+  subject TEXT NOT NULL,
+  preview_text TEXT,
+  html_body TEXT NOT NULL,
+  plain_text_body TEXT,
+
+  -- Sender Info
+  from_name TEXT NOT NULL,
+  from_email TEXT NOT NULL,
+  reply_to EMAIL,
+
+  -- Configuration
+  template_type TEXT,
+
+  -- Scheduling
+  scheduled_at TIMESTAMPTZ,
+  sent_at TIMESTAMPTZ,
+
+  -- Status
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sending', 'sent', 'paused', 'failed')),
+
+  -- Stats (cached)
+  total_recipients INT DEFAULT 0,
+  delivered INT DEFAULT 0,
+  opened INT DEFAULT 0,
+  clicked INT DEFAULT 0,
+  bounced INT DEFAULT 0,
+  unsubscribed INT DEFAULT 0,
+
+  -- Metadata
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Email Recipients Table (links to campaign_recipients)
+CREATE TABLE email_recipients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email_campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
+  campaign_recipient_id UUID REFERENCES campaign_recipients(id) ON DELETE CASCADE,
+
+  email TEXT NOT NULL,
+
+  -- Personalization
+  variables JSONB, -- {firstName: "John", offer: "10% off"}
+
+  -- Tracking
+  delivered_at TIMESTAMPTZ,
+  opened_at TIMESTAMPTZ,
+  clicked_at TIMESTAMPTZ,
+  bounced_at TIMESTAMPTZ,
+  bounce_type TEXT, -- 'hard', 'soft', 'spam'
+  unsubscribed_at TIMESTAMPTZ,
+
+  -- Status
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'unsubscribed')),
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Email Sequences Table (Automation)
+CREATE TABLE email_sequences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+
+  name TEXT NOT NULL,
+  description TEXT,
+
+  -- Trigger
+  trigger_type TEXT NOT NULL CHECK (trigger_type IN
+    ('dm_sent', 'qr_scanned', 'no_conversion', 'conversion', 'custom')),
+  trigger_conditions JSONB, -- {field: 'landing_page_conversion', operator: 'equals', value: false}
+
+  -- Sequence Steps
+  steps JSONB NOT NULL, -- Array of {type, delay, template_id, conditions}
+
+  -- Status
+  is_active BOOLEAN DEFAULT TRUE,
+
+  -- Stats
+  total_triggered INT DEFAULT 0,
+  total_completed INT DEFAULT 0,
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Email Links Table (Click Tracking)
+CREATE TABLE email_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email_campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
+
+  original_url TEXT NOT NULL,
+  tracking_url TEXT UNIQUE NOT NULL, -- /api/email/track-click/[id]
+
+  -- Stats
+  total_clicks INT DEFAULT 0,
+  unique_clicks INT DEFAULT 0,
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Unsubscribes Table
+CREATE TABLE email_unsubscribes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+
+  email TEXT NOT NULL,
+  reason TEXT,
+
+  unsubscribed_at TIMESTAMPTZ DEFAULT NOW(),
+
+  UNIQUE(organization_id, email)
+);
+
+-- Indexes
+CREATE INDEX idx_email_campaigns_campaign ON email_campaigns(campaign_id);
+CREATE INDEX idx_email_campaigns_org ON email_campaigns(organization_id);
+CREATE INDEX idx_email_campaigns_status ON email_campaigns(status);
+
+CREATE INDEX idx_email_recipients_campaign ON email_recipients(email_campaign_id);
+CREATE INDEX idx_email_recipients_email ON email_recipients(email);
+CREATE INDEX idx_email_recipients_status ON email_recipients(status);
+
+CREATE INDEX idx_email_sequences_campaign ON email_sequences(campaign_id);
+CREATE INDEX idx_email_sequences_active ON email_sequences(is_active);
+
+CREATE INDEX idx_email_unsubscribes_email ON email_unsubscribes(email);
+```
+
+---
+
+#### **Implementation Tasks**
+
+**Task 5.7.1: Email Service Provider Setup (2 hours)**
+- [ ] Research ESP options (Resend, SendGrid, Postmark)
+- [ ] Create account with chosen ESP
+- [ ] Configure domain authentication (SPF, DKIM, DMARC)
+- [ ] Set up API keys
+- [ ] Test sending single email
+- [ ] Verify deliverability to Gmail/Outlook
+- [ ] Configure webhook endpoints (bounces, opens, clicks)
+
+**Task 5.7.2: Email Builder UI (6 hours)**
+- [ ] Install email builder library (Unlayer, GrapesJS, or custom)
+- [ ] Create email-campaign-builder component
+- [ ] Build subject line + preview text inputs
+- [ ] Implement variable insertion UI
+- [ ] Add image upload functionality
+- [ ] Build "Send test email" feature
+- [ ] Add schedule send date/time picker
+- [ ] Create mobile preview mode
+- [ ] Test with all email clients (Gmail, Outlook, Apple Mail)
+
+**Task 5.7.3: Database Schema (2 hours)**
+- [ ] Create migration 020_email_campaigns_schema.sql
+- [ ] Define email_campaigns table
+- [ ] Define email_recipients table
+- [ ] Define email_sequences table
+- [ ] Define email_links table
+- [ ] Define email_unsubscribes table
+- [ ] Add RLS policies (organization isolation)
+- [ ] Add GRANT statements
+- [ ] Run migration on Supabase
+
+**Task 5.7.4: Email Sending Logic (4 hours)**
+- [ ] Create lib/email/email-sender.ts
+- [ ] Implement sendEmail() function
+- [ ] Implement sendBulkEmail() function
+- [ ] Add variable replacement logic
+- [ ] Inject tracking pixel for opens
+- [ ] Replace links with tracking URLs
+- [ ] Add UTM parameters automatically
+- [ ] Handle ESP errors gracefully
+- [ ] Implement retry logic for failures
+
+**Task 5.7.5: Tracking & Analytics (4 hours)**
+- [ ] Create track-open API route (1x1 pixel)
+- [ ] Create track-click API route (redirect)
+- [ ] Build email-analytics component
+- [ ] Display open/click/conversion rates
+- [ ] Create engagement timeline chart
+- [ ] Build link click heatmap
+- [ ] Add export analytics to CSV
+- [ ] Test tracking accuracy
+
+**Task 5.7.6: Multi-Channel Sequences (6 hours)**
+- [ ] Create email-sequence-builder UI
+- [ ] Build visual workflow editor
+- [ ] Implement trigger selection
+- [ ] Add delay configuration
+- [ ] Build condition rules (if/then)
+- [ ] Create lib/email/sequence-engine.ts
+- [ ] Implement processSequence() logic
+- [ ] Add background job for sequence processing
+- [ ] Test complex sequences (DM → Email → SMS → Email)
+
+**Task 5.7.7: Unsubscribe & Compliance (3 hours)**
+- [ ] Build unsubscribe landing page
+- [ ] Create API endpoint for unsubscribe
+- [ ] Add unsubscribe link to all emails
+- [ ] Implement suppression list check
+- [ ] Add GDPR consent tracking
+- [ ] Build "manage preferences" page
+- [ ] Test one-click unsubscribe
+
+**Task 5.7.8: Multi-Channel Dashboard (4 hours)**
+- [ ] Create multi-channel-dashboard component
+- [ ] Display all channels (DM + Email + SMS)
+- [ ] Build attribution breakdown chart
+- [ ] Calculate ROI across channels
+- [ ] Add export to CSV/PDF
+- [ ] Test with sample multi-channel campaign
+
+**Task 5.7.9: Integration with Campaign Wizard (2 hours)**
+- [ ] Add "Email Sequence" step to campaign wizard (optional)
+- [ ] Auto-create default follow-up email
+- [ ] Link email triggers to campaign events
+- [ ] Update campaign preview to show email templates
+- [ ] Test end-to-end: Campaign → DM → Email → Conversion
+
+**Task 5.7.10: Testing & Polish (3 hours)**
+- [ ] Send test emails to 10+ email clients
+- [ ] Verify tracking (opens/clicks) works
+- [ ] Test unsubscribe flow
+- [ ] Check spam score (SpamAssassin)
+- [ ] Test multi-channel sequences
+- [ ] Verify analytics accuracy
+- [ ] Performance audit (send 1000 emails <5 min)
+- [ ] Fix any deliverability issues
+
+---
+
+#### **Success Criteria**
+
+- [ ] Users can create email campaigns with drag-drop builder
+- [ ] Emails send successfully via ESP (99%+ delivery rate)
+- [ ] Open/click tracking works accurately
+- [ ] Multi-channel sequences trigger correctly (DM → Email → SMS)
+- [ ] Unsubscribe flow compliant with CAN-SPAM/GDPR
+- [ ] Analytics dashboard shows unified multi-channel metrics
+- [ ] Attribution correctly tracks which channel drove conversion
+- [ ] Emails render correctly in Gmail, Outlook, Apple Mail
+- [ ] Spam score <5 (SpamAssassin)
+- [ ] Send 1000 emails in <5 minutes
+
+---
+
+#### **Premium Features (Future Enhancements)**
+
+**Tier 1 - Email Automation** (+$40/month):
+- Unlimited email sequences
+- Advanced triggers (behavioral, time-based)
+- A/B testing (subject lines, content)
+- Send time optimization (AI)
+
+**Tier 2 - Advanced Personalization** (+$60/month):
+- Dynamic content blocks (show/hide based on data)
+- Product recommendations (AI)
+- Countdown timers (urgency)
+- Personalized images
+
+**Tier 3 - Enterprise Email** (+$150/month):
+- Dedicated IP address (better deliverability)
+- Custom SMTP domain
+- White-label emails
+- Priority support
+- 99.9% SLA
+
+**Tier 4 - AI Optimization** (+$100/month):
+- AI-generated subject lines (GPT-4)
+- Auto-optimize send times (per recipient)
+- Predictive churn prevention
+- Smart segmentation
+
+---
+
+#### **Dependencies**
+
+```bash
+# Email service provider SDK
+npm install resend  # or @sendgrid/mail, postmark, etc.
+
+# Email builder (choose one)
+npm install react-email  # Vercel's email builder
+# OR npm install grapesjs grapesjs-preset-newsletter
+
+# Email validation
+npm install validator
+
+# HTML to plain text (for plain_text_body)
+npm install html-to-text
+
+# MJML (responsive email markup)
+npm install mjml mjml-react
+
+# Already installed:
+# npm install zod react-hook-form recharts
+```
+
+---
+
+#### **Design References**
+
+**Inspired by**:
+- **Klaviyo**: Multi-channel sequences, behavioral triggers
+- **Mailchimp**: Email builder UI, template library
+- **ActiveCampaign**: Automation workflows, visual builder
+- **Customer.io**: Event-based triggers, multi-channel attribution
+- **Sendgrid**: Email analytics, deliverability tools
 
 ---
 
