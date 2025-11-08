@@ -71,14 +71,15 @@ export default function CampaignsPage() {
 
   async function loadCampaigns() {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await fetch('/api/campaigns');
 
-      if (error) throw error;
-      setCampaigns((data as Campaign[]) || []);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load campaigns');
+      }
+
+      const { data } = await response.json();
+      setCampaigns(data?.campaigns || []);
     } catch (error) {
       console.error('Failed to load campaigns:', error);
     } finally {
