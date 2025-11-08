@@ -13,6 +13,88 @@
 
 ---
 
+## 🚀 CURRENT FOCUS: Complete Core Direct Mail Workflow
+
+### What is "DM Fully Built"?
+
+A complete direct mail platform requires these 4 core capabilities:
+
+1. **✅ Design** (Phase 2) - COMPLETE
+   - Fabric.js canvas editor (300 DPI)
+   - Template save/load
+   - Variable markers for personalization
+   - QR code placeholder tool
+
+2. **✅ Personalize** (Phase 3) - COMPLETE
+   - VDP batch engine (10-10,000 recipients)
+   - CSV upload & validation
+   - Variable replacement
+   - PDF export (300 DPI)
+   - ZIP bulk download
+
+3. **✅ Manage** (Phase 5 + 5.5) - COMPLETE
+   - Campaign creation wizard (4 steps)
+   - Audience selection (Data Axle + CSV)
+   - Campaign list with Kanban board
+   - Status management
+
+4. **⏳ Track** (Phase 5.6) - **NEXT PRIORITY**
+   - Landing pages for QR codes
+   - Conversion tracking
+   - Event analytics
+   - ROI measurement
+
+**Missing for "DM Fully Built"**:
+- ❌ **Landing Pages** (Phase 5.6) - QR codes currently link to nowhere
+- ❌ **Print Fulfillment** (Phase 9) - PostGrid integration deferred
+
+**Current Status**: **80% Complete** - Core workflow ready, tracking needed
+
+---
+
+### Updated Roadmap Priority
+
+**✅ COMPLETED PHASES**:
+- Phase 1: Foundation (Auth + Database) - COMPLETE
+- Phase 2: Design Engine (Fabric.js Editor) - COMPLETE
+- Phase 3: VDP Engine (Batch Personalization) - COMPLETE
+- Phase 5: Campaign Management (Wizard + Data Axle) - COMPLETE
+- Phase 5.5: Kanban Board (Status Management) - COMPLETE
+
+**⏳ IMMEDIATE NEXT (November 9-10, 2025)**:
+- **Phase 5.6: Landing Pages & Tracking** (1.5 days, 24 hours)
+  - 5 templates (default, appointment, questionnaire, product, contact)
+  - Personalized URLs (PURLs) with recipient data pre-fill
+  - Event tracking (page view, QR scan, form submit)
+  - Conversion analytics
+  - Database schema **already exists** (quick implementation!)
+  - **Blocks**: Nothing - ready to start
+  - **Enables**: Complete tracking loop (DM → QR → Landing → Conversion)
+
+**⏸️ DEFERRED (Post-Launch)**:
+- Phase 4: AI Intelligence (postal compliance, predictions) - DEFERRED
+- Phase 5.7: Email Marketing - **MOVED TO PHASE 9** (too complex now)
+- Phase 6: Collaboration (real-time multi-user) - DEFERRED
+- Phase 7: Marketplace (template sharing) - DEFERRED
+- Phase 8: Developer API - DEFERRED
+- Phase 9: PostGrid + Stripe + Email - DEFERRED
+- Phase 10: Beta Launch (50 users) - DEFERRED
+
+**Why Landing Pages Next?**:
+1. **QR codes already in campaigns** - need destinations for tracking
+2. **Database schema ready** - `landing_pages` table exists in migration 019
+3. **Quick win** - Can implement in 1.5 days
+4. **Critical for ROI** - Can't prove campaign value without conversion tracking
+5. **Unblocks testing** - Can test full flow: Design → Send → Scan → Convert
+
+**Why Email Deferred?**:
+1. **Too complex** - ESP integration, domain auth, deliverability, compliance
+2. **Better timing** - Implement after core DM proven
+3. **Dependencies** - Works better with established landing page data
+4. **Focus** - One thing at a time, ship DM first
+
+---
+
 ## 🎯 Mission Statement
 
 Transform DropLab into a **monopolistic direct mail design platform** that combines Fabric.js programmatic control with AI intelligence to create tools that Canva cannot replicate. This platform will build proprietary datasets, network effects through marketplace templates, and regulatory expertise that create an insurmountable competitive moat.
@@ -3476,12 +3558,12 @@ npm install recharts
 
 ---
 
-### **Phase 5.7: Email Marketing & Multi-Channel Campaigns (Weeks 10.5-11)** ⏳ **HIGH PRIORITY**
+### **Phase 5.7: Email Marketing & Multi-Channel Campaigns** ⏸️ **DEFERRED TO PHASE 9**
 
-**Timeline**: November 11-12, 2025 (1.5 days)
+**Timeline**: TBD (Post-Launch Enhancement)
 **Complexity**: High
 **Value**: Very High
-**Status**: Not Started
+**Status**: Deferred - Too complex for current stage, focus on core DM workflow first
 
 **Goal**: Add email campaign capabilities with coordinated multi-channel sequences (Direct Mail + Email + SMS), automated follow-ups, and unified analytics to maximize campaign ROI and enable sophisticated customer journeys.
 
@@ -4077,6 +4159,24 @@ npm install mjml mjml-react
 
 ---
 
+**⚠️ DEFERRAL RATIONALE**:
+
+After strategic review, email marketing has been **deferred to Phase 9** (post-launch) for the following reasons:
+
+1. **Complexity**: Requires ESP integration, domain authentication, deliverability tuning, compliance (CAN-SPAM, GDPR)
+2. **Dependencies**: Works best with established landing pages + campaign data
+3. **Priority**: Core DM workflow must be completed first (Design → Personalize → Print → Track)
+4. **Timing**: Better as post-launch enhancement after proving core value proposition
+
+**Recommended Implementation Sequence**:
+- ✅ **NOW**: Phase 5.6 (Landing Pages) - Completes tracking loop for DM campaigns
+- ⏸️ **NEXT**: Phase 9 (PostGrid Integration) - Actual printing and fulfillment
+- 🔜 **THEN**: Phase 9 (Email Marketing) - Multi-channel enhancement after core workflow proven
+
+This keeps development focused on shipping a complete, working direct mail platform before adding multi-channel complexity.
+
+---
+
 ### **Phase 6: Collaboration (Weeks 11-12)**
 
 **Goal**: Real-time multi-user editing (Google Docs style)
@@ -4181,14 +4281,78 @@ Use Supabase Realtime for canvas synchronization.
 
 ---
 
-### **Phase 8-10: API, Integrations, Launch (Weeks 15-20)**
+### **Phase 8: Developer API (Weeks 15-16)** ⏸️ **DEFERRED**
 
-(Abbreviated for space - full details in next planning iteration)
+**Goal**: Enable third-party integrations via RESTful API
 
-**Phase 8**: Developer API (RESTful endpoints, webhooks, rate limiting)
-**Phase 9**: External Integrations (PostGrid fulfillment, Stripe billing)
-  - Note: Data Axle integration completed in Phase 5
-**Phase 10**: Polish & Beta Launch (50 users, feedback iteration)
+**Features**:
+- RESTful API endpoints (templates, campaigns, recipients)
+- API key management
+- Webhook system (campaign.sent, qr.scanned, form.submitted)
+- Rate limiting (per organization)
+- API documentation (OpenAPI/Swagger)
+- SDK libraries (JavaScript, Python, PHP)
+
+**Status**: Deferred - Focus on core platform first
+
+---
+
+### **Phase 9: External Integrations & Multi-Channel (Weeks 17-18)** ⏸️ **DEFERRED**
+
+**Goal**: Complete end-to-end workflow with print fulfillment, billing, and multi-channel marketing
+
+**Features**:
+
+**9.1: PostGrid Integration (Print Fulfillment)**
+- API integration with PostGrid
+- Submit print jobs programmatically
+- Track delivery status
+- Pricing integration (pass-through + markup)
+- Address validation (USPS API)
+- Return address management
+
+**9.2: Stripe Billing Integration**
+- Subscription plans (Starter, Pro, Enterprise)
+- Usage-based metering (per DM sent, per contact purchased)
+- Payment method management
+- Invoice generation
+- Webhook handling (payment.succeeded, subscription.cancelled)
+
+**9.3: Email Marketing & Multi-Channel** (Moved from Phase 5.7)
+- Email campaign builder
+- Multi-channel sequences (DM → Email → SMS)
+- Behavioral triggers
+- Email tracking & analytics
+- ESP integration (Resend/SendGrid)
+- Unsubscribe management
+- Multi-channel attribution dashboard
+
+**Status**: Deferred - Core DM workflow must be complete first
+
+**Note**: Data Axle integration completed in Phase 5
+
+---
+
+### **Phase 10: Polish & Beta Launch (Weeks 19-20)** ⏸️ **DEFERRED**
+
+**Goal**: Launch beta with 50 users, collect feedback, iterate
+
+**Features**:
+- Onboarding flow optimization
+- Help documentation
+- Video tutorials
+- Customer support infrastructure
+- Analytics dashboard (admin view)
+- Bug fixes from beta feedback
+- Performance optimization
+- Security audit
+
+**Success Criteria**:
+- 50 beta users recruited
+- 100+ campaigns sent through platform
+- <10 critical bugs
+- >80% user satisfaction
+- Clear path to monetization
 
 ---
 
