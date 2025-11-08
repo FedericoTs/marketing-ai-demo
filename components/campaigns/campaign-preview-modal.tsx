@@ -135,28 +135,62 @@ export function CampaignPreviewModal({
         viewport: canvas.viewportTransform // Should be [1,0,0,1,0,0]
       });
 
-      // CRITICAL FIX: Remove expired Supabase signed URLs from canvas_json
-      // Signed URLs expire and cause loadFromJSON to fail with 400 errors
+      // CRITICAL FIX: Regenerate expired Supabase signed URLs
+      // Signed URLs expire after 1 hour - we need fresh ones
       const cleanCanvasJson = JSON.parse(JSON.stringify(template.canvas_json));
 
-      if (cleanCanvasJson.objects) {
-        cleanCanvasJson.objects = cleanCanvasJson.objects.map((obj: any) => {
-          // Remove src URLs from Image objects to prevent loading expired URLs
-          if (obj.type === 'Image' || obj.type === 'image') {
-            console.log('🖼️ Removing image src to prevent expired URL error:', obj.src?.substring(0, 100));
-            return { ...obj, src: '' }; // Keep object structure but remove src
+      // Helper to extract path from Supabase signed URL
+      const extractStoragePath = (url: string): { bucket: string; path: string } | null => {
+        try {
+          const match = url.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+?)\?token=/);
+          if (match) {
+            return { bucket: match[1], path: decodeURIComponent(match[2]) };
           }
-          return obj;
-        });
+        } catch (e) {
+          console.warn('Failed to parse storage URL:', e);
+        }
+        return null;
+      };
+
+      // Regenerate signed URLs for images
+      if (cleanCanvasJson.objects) {
+        for (let i = 0; i < cleanCanvasJson.objects.length; i++) {
+          const obj = cleanCanvasJson.objects[i];
+
+          if ((obj.type === 'Image' || obj.type === 'image') && obj.src && obj.src.includes('supabase.co/storage')) {
+            const pathInfo = extractStoragePath(obj.src);
+
+            if (pathInfo) {
+              try {
+                console.log(`🔄 Regenerating signed URL for image ${i}:`, pathInfo.path);
+
+                // Call API to get fresh signed URL
+                const response = await fetch('/api/storage/signed-url', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    bucket: pathInfo.bucket,
+                    path: pathInfo.path,
+                    expiresIn: 3600 // 1 hour
+                  })
+                });
+
+                if (response.ok) {
+                  const { signedUrl } = await response.json();
+                  cleanCanvasJson.objects[i].src = signedUrl;
+                  console.log(`✅ Regenerated signed URL for image ${i}`);
+                } else {
+                  console.warn(`⚠️ Failed to regenerate URL for image ${i}, keeping original`);
+                }
+              } catch (error) {
+                console.warn(`⚠️ Error regenerating URL for image ${i}:`, error);
+              }
+            }
+          }
+        }
       }
 
-      // Remove background image URL if present
-      if (cleanCanvasJson.backgroundImage?.src) {
-        console.log('🖼️ Removing background image src');
-        delete cleanCanvasJson.backgroundImage;
-      }
-
-      console.log('✅ Cleaned canvas JSON (removed expired image URLs)');
+      console.log('✅ Processed canvas JSON image URLs');
 
       // Load template canvas JSON (Fabric.js v6 Promise-based API)
       try {
