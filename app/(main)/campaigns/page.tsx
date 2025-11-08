@@ -167,7 +167,7 @@ export default function CampaignsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCampaigns.map((campaign) => {
               const status = campaign.status || 'draft';
               const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
@@ -176,87 +176,70 @@ export default function CampaignsPage() {
               return (
                 <Card
                   key={campaign.id}
-                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  className="group overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer border-slate-200 hover:border-slate-300"
                   onClick={() => handleViewCampaign(campaign.id)}
                 >
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      {/* Template Thumbnail */}
-                      <div className="flex-shrink-0">
-                        {campaign.template?.thumbnail_url ? (
-                          <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                            <Image
-                              src={campaign.template.thumbnail_url}
-                              alt={campaign.template.name || 'Template preview'}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-24 h-24 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
-                            <FileText className="h-8 w-8 text-slate-400" />
-                          </div>
-                        )}
+                  {/* Template Thumbnail - Full Width */}
+                  <div className="relative aspect-[4/3] bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
+                    {campaign.template?.thumbnail_url ? (
+                      <Image
+                        src={campaign.template.thumbnail_url}
+                        alt={campaign.template.name || 'Template preview'}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <FileText className="h-16 w-16 text-slate-300" />
                       </div>
+                    )}
 
-                      {/* Campaign Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-xl mb-2">{campaign.name}</CardTitle>
-                            {campaign.description && (
-                              <p className="text-sm text-slate-600 line-clamp-2">
-                                {campaign.description}
-                              </p>
-                            )}
-                          </div>
-                          <div className={cn(
-                            'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium flex-shrink-0',
-                            statusConfig.color
-                          )}>
-                            <StatusIcon className="h-4 w-4" />
-                            {statusConfig.label}
-                          </div>
-                        </div>
+                    {/* Status Badge Overlay */}
+                    <div className="absolute top-3 right-3">
+                      <div className={cn(
+                        'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shadow-sm backdrop-blur-sm',
+                        statusConfig.color
+                      )}>
+                        <StatusIcon className="h-3.5 w-3.5" />
+                        {statusConfig.label}
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-4">
+                  </div>
+
+                  {/* Campaign Info */}
+                  <CardContent className="p-5">
+                    {/* Campaign Name */}
+                    <h3 className="font-semibold text-lg text-slate-900 mb-1 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                      {campaign.name}
+                    </h3>
+
+                    {/* Description */}
+                    {campaign.description && (
+                      <p className="text-sm text-slate-600 line-clamp-2 mb-4">
+                        {campaign.description}
+                      </p>
+                    )}
+
+                    {/* Metadata */}
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                       {/* Recipients */}
                       <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-slate-400" />
-                        <div>
-                          <div className="text-sm font-medium text-slate-900">
-                            {campaign.total_recipients.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-slate-500">Recipients</div>
-                        </div>
+                        <Users className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm font-medium text-slate-700">
+                          {campaign.total_recipients.toLocaleString()}
+                        </span>
                       </div>
 
                       {/* Created Date */}
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5 text-slate-400" />
-                        <div>
-                          <div className="text-sm font-medium text-slate-900">
-                            {new Date(campaign.created_at).toLocaleDateString()}
-                          </div>
-                          <div className="text-xs text-slate-500">Created</div>
-                        </div>
+                        <Calendar className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm text-slate-600">
+                          {new Date(campaign.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </span>
                       </div>
-
-                      {/* Sent Date (if applicable) */}
-                      {campaign.sent_at && (
-                        <div className="flex items-center gap-2">
-                          <Send className="h-5 w-5 text-slate-400" />
-                          <div>
-                            <div className="text-sm font-medium text-slate-900">
-                              {new Date(campaign.sent_at).toLocaleDateString()}
-                            </div>
-                            <div className="text-xs text-slate-500">Sent</div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
