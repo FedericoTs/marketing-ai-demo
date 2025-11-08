@@ -272,8 +272,14 @@ export default function CampaignsPage() {
                       <div onClick={(e) => e.stopPropagation()}>
                         <CampaignStatusMenu
                           currentStatus={status}
-                          onStatusChange={(newStatus) => {
-                            handleStatusChange(campaign.id, newStatus);
+                          onStatusChange={async (newStatus) => {
+                            try {
+                              await handleStatusChange(campaign.id, newStatus);
+                              const statusLabel = STATUS_CONFIG[newStatus]?.label || newStatus;
+                              toast.success(`"${campaign.name}" moved to ${statusLabel}`);
+                            } catch (error) {
+                              toast.error(`Failed to update "${campaign.name}"`);
+                            }
                           }}
                           isUpdating={updatingCampaignId === campaign.id}
                         />

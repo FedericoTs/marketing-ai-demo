@@ -116,18 +116,21 @@ export function KanbanBoard({
     // Validate transition
     const validNextStates = VALID_TRANSITIONS[currentStatus] || [];
     if (!validNextStates.includes(newStatus)) {
+      const currentLabel = STATUS_COLUMNS.find((s) => s.status === currentStatus)?.label || currentStatus;
+      const newLabel = STATUS_COLUMNS.find((s) => s.status === newStatus)?.label || newStatus;
       toast.error(
-        `Cannot move campaign from ${currentStatus} to ${newStatus}. Invalid transition.`
+        `Cannot move "${campaign.name}" from ${currentLabel} to ${newLabel}`
       );
       return;
     }
 
     try {
       await onStatusChange(campaignId, newStatus);
-      toast.success(`Campaign moved to ${STATUS_COLUMNS.find((s) => s.status === newStatus)?.label}`);
+      const statusLabel = STATUS_COLUMNS.find((s) => s.status === newStatus)?.label;
+      toast.success(`"${campaign.name}" moved to ${statusLabel}`);
     } catch (error) {
       console.error('Failed to update campaign status:', error);
-      toast.error('Failed to update campaign status');
+      toast.error(`Failed to update "${campaign.name}"`);
     }
   }
 
