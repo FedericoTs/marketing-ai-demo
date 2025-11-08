@@ -7,9 +7,9 @@
 
 **Strategic Vision**: Build the first "Figma meets Mailchimp for Physical Mail" platform
 
-**Last Updated**: 2025-11-06 (Phase 5 80% Complete - Audience Targeting + View/Export Complete)
+**Last Updated**: 2025-11-07 (Phase 5 Campaign Preview Modal Complete)
 
-**Version**: 2.6 (Phase 5 Audience Targeting - Backend + View/Export Complete, VDP Integration Pending)
+**Version**: 2.7 (Phase 5 Campaign Creation Wizard - Preview Modal Complete with Variable Replacement)
 
 ---
 
@@ -1230,7 +1230,7 @@ CREATE POLICY "Users can view their organization's analytics"
 | Phase 2 | Weeks 3-4 | Design Engine | Fabric.js editor working | ✅ **100%** |
 | Phase 3 | Weeks 5-6 | VDP Engine | Batch personalization at scale | ✅ **100%** |
 | Phase 4 | Weeks 7-8 | AI Intelligence | Compliance + Predictions | ⏸️ **0%** |
-| Phase 5 | Weeks 9-10 | Campaign Management + Data Axle | Backend + View/Export complete, VDP pending | 🟡 **80%** |
+| Phase 5 | Weeks 9-10 | Campaign Management + Data Axle | Campaign Wizard + Preview Modal complete | 🟢 **95%** |
 | Phase 6 | Weeks 11-12 | Collaboration | Real-time multi-user editing | ⏸️ **0%** |
 | Phase 7 | Weeks 13-14 | Marketplace | Template sharing + revenue | ⏸️ **0%** |
 | Phase 8 | Weeks 15-16 | Developer API | Platform play | ⏸️ **0%** |
@@ -2215,12 +2215,21 @@ Analyze design quality and suggest improvements.
 
 **Goal**: End-to-end campaign creation with integrated audience targeting (Data Axle API)
 
-**Status**: 🟡 **80% COMPLETE** (November 6, 2025) - Filter Builder + Purchase + View/Export Complete
+**Status**: 🟢 **95% COMPLETE** (November 7, 2025) - Campaign Preview Modal + Variable Replacement Complete
 
 **Strategic Importance**: This phase creates the competitive moat by integrating audience targeting directly into the campaign workflow. No competitor offers this level of integration.
 
 **Features**:
-- Campaign creation wizard (4 steps) ⏸️ **DEFERRED**
+- **Campaign creation wizard (4 steps)** ✅ **COMPLETE** (Nov 7, 2025)
+  - Step 1: Template selection ✅
+  - Step 2: Audience selection (recipient lists) ✅
+  - Step 3: Variable mapping ✅
+  - Step 4: Review with personalized preview ✅
+- **Campaign Preview Modal** ✅ **COMPLETE** (Nov 7, 2025)
+  - Variable replacement (firstName, lastName, address) ✅
+  - Character-level style clearing (removes purple highlighting) ✅
+  - Supabase signed URL regeneration (image loading) ✅
+  - Navigate between sample recipients ✅
 - **Data Axle audience targeting** ✅ **COMPLETE** (250M+ contacts)
 - CSV upload (existing path) ✅ **COMPLETE**
 - AI-powered audience recommendations ⏸️ **DEFERRED TO PHASE 6**
@@ -2233,7 +2242,23 @@ Analyze design quality and suggest improvements.
 - ⏸️ **AI recommendations** (requires historical campaign data)
 - ✅ **End-to-end workflow** (Target → Design → Print → Track in ONE platform) **70% COMPLETE**
 
-**Completed This Session** (November 6, 2025):
+**Completed This Session** (November 7, 2025):
+- ✅ **Campaign Preview Modal** (`components/campaigns/campaign-preview-modal.tsx`) - 365 lines
+  - Variable extraction from `{variableName}` patterns
+  - Character-level style clearing (removes purple highlighting)
+  - Supabase signed URL regeneration (prevents 400 errors on expired URLs)
+  - Sample recipient navigation (< > buttons)
+  - Full template preview with personalized data
+- ✅ **Signed URL API** (`app/api/storage/signed-url/route.ts`) - Regenerates fresh URLs
+- ✅ **Canvas zoom fixes** (`components/design/canvas-editor.tsx`) - Locked zoom at 1.0
+- ✅ **4-step campaign wizard** complete:
+  - Step 1: Template selection (`wizard-steps/step1-template.tsx`)
+  - Step 2: Audience selection (`wizard-steps/step2-audience.tsx`)
+  - Step 3: Variable mapping (`wizard-steps/step3-mapping.tsx`)
+  - Step 4: Review & preview (`wizard-steps/step4-review.tsx`)
+- ✅ **5 critical bug fixes** committed (zoom corruption, variable replacement, expired URLs)
+
+**Completed Previous Session** (November 6, 2025):
 - ✅ Database schema (migration 008) - audience_filters, contact_purchases tables
 - ✅ API client (`lib/audience/index.ts`) - 580 lines with mock mode
 - ✅ Filter builder UI - Three-panel layout, real-time preview, debouncing
@@ -2242,7 +2267,6 @@ Analyze design quality and suggest improvements.
 - ✅ Count API - FREE preview with margin calculation
 - ✅ Admin infrastructure - User roles, pricing tiers, audit logging
 
-**See**: `SESSION_2025_11_06_PROGRESS.md` for detailed implementation report
 **See**: `DATA_AXLE_INTEGRATION_SPEC.md` for complete technical specification
 
 ---
@@ -2508,14 +2532,21 @@ Step 4: Schedule & Send (existing)
 ```
 
 **Checklist**:
-- [ ] Step 1: Template selector (existing)
-- [ ] **Step 2a: Audience source selector (NEW)** - Radio buttons for CSV vs Data Axle
-- [ ] **Step 2b: Data Axle audience builder (NEW)** - Filter UI with live count
-- [ ] Step 2c: CSV upload (existing)
-- [ ] Step 3: Personalization preview (existing)
-- [ ] **Step 4: Cost calculator (UPDATED)** - Include Data Axle costs
-- [ ] Progress indicator
-- [ ] Save draft functionality
+- [x] Step 1: Template selector ✅ **COMPLETE** (Nov 7, 2025)
+- [x] Step 2: Audience/recipient list selector ✅ **COMPLETE** (Nov 7, 2025)
+- [x] Step 3: Variable mapping (auto-suggest + manual override) ✅ **COMPLETE** (Nov 7, 2025)
+- [x] Step 4: Review with personalized preview modal ✅ **COMPLETE** (Nov 7, 2025)
+- [x] **Campaign Preview Modal** ✅ **COMPLETE** (Nov 7, 2025)
+  - [x] Variable replacement (extract from {variableName}) ✅
+  - [x] Character-level style clearing (remove purple) ✅
+  - [x] Signed URL regeneration (load images) ✅
+  - [x] Navigate between sample recipients ✅
+  - [x] Display personalized text + images ✅
+- [x] Progress indicator (wizard-progress.tsx) ✅ **COMPLETE**
+- [ ] Save draft functionality ⏸️ **DEFERRED TO PHASE 6**
+- [ ] **Step 2a: Audience source selector** - Radio buttons for CSV vs Data Axle ⏸️ **DEFERRED**
+- [ ] **Step 2b: Data Axle audience builder** - Filter UI with live count ⏸️ **DEFERRED**
+- [ ] **Step 4: Cost calculator** - Include Data Axle costs ⏸️ **DEFERRED**
 
 ---
 
