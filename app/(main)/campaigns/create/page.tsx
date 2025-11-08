@@ -8,6 +8,7 @@ import { Step1Template } from '@/components/campaigns/wizard-steps/step1-templat
 import { Step2Audience } from '@/components/campaigns/wizard-steps/step2-audience';
 import { Step3Mapping } from '@/components/campaigns/wizard-steps/step3-mapping';
 import { Step4Review } from '@/components/campaigns/wizard-steps/step4-review';
+import { toast } from 'sonner';
 import type { CampaignWizardState, DesignTemplate, RecipientList, VariableMapping } from '@/lib/database/types';
 
 export default function CampaignCreatePage() {
@@ -78,9 +79,45 @@ export default function CampaignCreatePage() {
   };
 
   const handleCampaignLaunch = async () => {
-    // TODO: Create campaign in database, trigger VDP generation
-    console.log('Launching campaign with state:', wizardState);
-    // Redirect to campaign dashboard after creation
+    if (!wizardState.selectedTemplate || !wizardState.selectedRecipientList) {
+      toast.error('Missing required data');
+      return;
+    }
+
+    if (!wizardState.campaignName.trim()) {
+      toast.error('Please enter a campaign name');
+      return;
+    }
+
+    console.log('🚀 Launching campaign with state:', wizardState);
+
+    // Create campaign in database
+    const response = await fetch('/api/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: wizardState.campaignName,
+        description: wizardState.campaignDescription,
+        templateId: wizardState.selectedTemplate.id,
+        recipientListId: wizardState.selectedRecipientList.id,
+        designSnapshot: wizardState.selectedTemplate.canvas_json,
+        variableMappingsSnapshot: wizardState.variableMappings,
+        totalRecipients: wizardState.selectedRecipientList.total_recipients,
+        status: 'draft',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create campaign');
+    }
+
+    const { data: campaign } = await response.json();
+    console.log('✅ Campaign created:', campaign);
+
+    toast.success('Campaign created successfully!');
+
+    // Redirect to campaign dashboard
     router.push('/campaigns');
   };
 
