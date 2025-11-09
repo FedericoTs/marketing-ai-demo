@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Default Landing Page Template
  * Simple, conversion-focused design for direct mail QR code destinations

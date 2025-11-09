@@ -1,104 +1,196 @@
-"use client";
+/**
+ * Public Landing Page Route
+ * Serves personalized landing pages for QR code scan tracking
+ *
+ * Route: /lp/[trackingId]
+ * Access: Public (no authentication required)
+ *
+ * Features:
+ * - Fetches landing page data by tracking code
+ * - Renders appropriate template
+ * - Automatically tracks page view
+ * - Shows 404 for invalid tracking codes
+ * - SEO optimized with metadata
+ * - Mobile-first responsive
+ */
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { getLandingPageByTrackingCode } from '@/lib/database/landing-queries';
+import { DefaultTemplate } from '@/components/landing/templates/default-template';
+
+// Dynamic route params type
+interface PageProps {
+  params: Promise<{
+    trackingId: string;
+  }>;
+}
+
+// ============================================================================
+// METADATA (SEO)
+// ============================================================================
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { trackingId } = await params;
+  const landingPage = await getLandingPageByTrackingCode(trackingId);
+
+  if (!landingPage) {
+    return {
+      title: 'Page Not Found',
+      description: 'The page you are looking for could not be found.',
+    };
+  }
+
+  const headline = landingPage.page_config.headline || 'Welcome';
+  const subheadline = landingPage.page_config.subheadline || 'Thanks for visiting';
+
+  return {
+    title: headline,
+    description: subheadline,
+    openGraph: {
+      title: headline,
+      description: subheadline,
+      images: landingPage.page_config.image_url
+        ? [landingPage.page_config.image_url]
+        : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: headline,
+      description: subheadline,
+      images: landingPage.page_config.image_url
+        ? [landingPage.page_config.image_url]
+        : [],
+    },
+    robots: {
+      index: false, // Don't index personalized landing pages
+      follow: false,
+    },
+  };
+}
+
+// ============================================================================
+// PAGE COMPONENT
+// ============================================================================
+
+export default async function LandingPage({ params }: PageProps) {
+  const { trackingId } = await params;
+
+  // Fetch landing page data (public access, no auth required)
+  const landingPage = await getLandingPageByTrackingCode(trackingId);
+
+  // Show 404 if landing page not found or inactive
+  if (!landingPage) {
+    notFound();
+  }
+
+  // Track page view (server-side)
+  // This will be logged to the events table
+  await trackPageView(trackingId);
+
+  // Render template based on template_type
+  const renderTemplate = () => {
+    switch (landingPage.template_type) {
+      case 'default':
+        return (
+          <DefaultTemplate
+            config={landingPage.page_config}
+            recipientData={landingPage.recipient_data}
+            trackingCode={trackingId}
+          />
+        );
+
+      // Future templates can be added here
+      // case 'appointment':
+      //   return <AppointmentTemplate ... />;
+      // case 'questionnaire':
+      //   return <QuestionnaireTemplate ... />;
+      // case 'product':
+      //   return <ProductTemplate ... />;
+      // case 'contact':
+      //   return <ContactTemplate ... />;
+
+      default:
+        // Fallback to default template
+        return (
+          <DefaultTemplate
+            config={landingPage.page_config}
+            recipientData={landingPage.recipient_data}
+            trackingCode={trackingId}
+          />
+        );
+    }
+  };
+
+  return (
+    <>
+      {/* Render selected template */}
+      {renderTemplate()}
+
+      {/* Client-side analytics tracking (if configured) */}
+      {landingPage.page_config.google_analytics_id && (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${landingPage.page_config.google_analytics_id}');
+            `,
+          }}
+        />
+      )}
+
+      {/* Facebook Pixel (if configured) */}
+      {landingPage.page_config.facebook_pixel_id && (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('init', '${landingPage.page_config.facebook_pixel_id}');
+              fbq('track', 'PageView');
+            `,
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
 /**
- * Legacy Landing Page Route - Redirects to Campaign Landing Page
- *
- * This route is kept for backwards compatibility with existing QR codes and links.
- * It redirects tracking IDs to the new campaign-based landing page system which
- * supports custom templates created in the DM creative flow.
- *
- * Flow:
- * 1. Receive tracking ID from URL
- * 2. Look up recipient and campaign from database
- * 3. Redirect to /lp/campaign/{campaignId} with encrypted recipient ID
- * 4. New system loads custom template and tracks conversion properly
+ * Track page view event
+ * Logs to events table for analytics
  */
-export default function LegacyLandingPageRedirect() {
-  const params = useParams();
-  const router = useRouter();
-  const trackingId = params.trackingId as string;
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const redirectToNewSystemPage = async () => {
-      if (!trackingId) {
-        setError("No tracking ID provided");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Fetch recipient data including campaign_id
-        const response = await fetch(`/api/landing-pages/${trackingId}`);
-        const result = await response.json();
-
-        if (!result.success || !result.data) {
-          setError("Landing page not found");
-          setLoading(false);
-          return;
-        }
-
-        const pageData = result.data;
-
-        // Check if we have a campaign_id
-        if (!pageData.campaignId) {
-          console.warn("No campaign ID found for tracking ID:", trackingId);
-          // Fall back to showing a message - the old hardcoded template will be shown as fallback
-          setError("This landing page is not associated with a campaign. Please contact support.");
-          setLoading(false);
-          return;
-        }
-
-        // Encrypt the recipient ID for the URL (for privacy)
-        // For now, we'll use the tracking_id which is already encrypted
-        const encryptedRecipientId = trackingId;
-
-        // Redirect to new campaign landing page system
-        const newUrl = `/lp/campaign/${pageData.campaignId}?r=${encryptedRecipientId}`;
-        console.log(`Redirecting ${trackingId} to campaign landing page: ${newUrl}`);
-
-        router.replace(newUrl);
-      } catch (error) {
-        console.error("Error loading landing page:", error);
-        setError("Failed to load landing page");
-        setLoading(false);
-      }
-    };
-
-    redirectToNewSystemPage();
-  }, [trackingId, router]);
-
-  // Show loading state while redirecting
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading your personalized page...</p>
-        </div>
-      </div>
-    );
+async function trackPageView(trackingId: string): Promise<void> {
+  try {
+    // Call tracking API (server-side)
+    // Use absolute URL for server-side fetch
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    await fetch(`${baseUrl}/api/tracking/event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trackingId: trackingId, // API expects trackingId
+        eventType: 'page_view', // API expects eventType
+        eventData: {
+          timestamp: new Date().toISOString(),
+          source: 'landing_page',
+        },
+      }),
+    });
+  } catch (error) {
+    // Silent fail - don't break page load if tracking fails
+    console.error('Error tracking page view:', error);
   }
-
-  // Show error if redirect failed
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center max-w-md px-4">
-          <h1 className="text-2xl font-bold text-slate-900 mb-4">Unable to Load Page</h1>
-          <p className="text-slate-600 mb-4">{error}</p>
-          <p className="text-sm text-slate-500">
-            If you continue to see this message, please contact support.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Should never reach here as we redirect, but just in case
-  return null;
 }
