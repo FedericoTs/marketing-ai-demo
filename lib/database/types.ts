@@ -621,6 +621,99 @@ export interface CampaignWizardState {
   currentStep: number;
 }
 
+// ============================================================================
+// LANDING_PAGES TABLE
+// ============================================================================
+
+export type LandingPageTemplateType =
+  | 'default'
+  | 'appointment'
+  | 'questionnaire'
+  | 'product'
+  | 'contact'
+  | 'custom';
+
+export interface LandingPageConfig {
+  // Branding
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  background_color?: string;
+
+  // Content
+  headline?: string;
+  subheadline?: string;
+  cta_text?: string;
+  cta_url?: string;
+  image_url?: string;
+
+  // Form Fields (for templates with forms)
+  form_fields?: Array<{
+    name: string;
+    type: 'text' | 'email' | 'phone' | 'select' | 'textarea';
+    label: string;
+    required: boolean;
+    options?: string[]; // for select fields
+  }>;
+
+  // Tracking
+  google_analytics_id?: string;
+  facebook_pixel_id?: string;
+
+  // Advanced
+  custom_css?: string;
+  custom_js?: string;
+  redirect_after_submit?: string;
+}
+
+export interface LandingPageRecipientData {
+  firstName?: string;
+  lastName?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  email?: string;
+  phone?: string;
+  [key: string]: any; // Custom fields
+}
+
+export interface LandingPage {
+  id: string; // UUID
+  campaign_id: string; // UUID
+  tracking_code: string; // Unique tracking identifier
+
+  // Template & Configuration
+  template_type: LandingPageTemplateType;
+  page_config: LandingPageConfig; // JSONB
+
+  // Personalization
+  recipient_data: LandingPageRecipientData | null; // JSONB
+
+  // Status
+  is_active: boolean;
+
+  // Timestamps
+  created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
+}
+
+export interface LandingPageInsert {
+  campaign_id: string;
+  tracking_code: string;
+  template_type?: LandingPageTemplateType;
+  page_config: LandingPageConfig;
+  recipient_data?: LandingPageRecipientData | null;
+  is_active?: boolean;
+}
+
+export interface LandingPageUpdate {
+  template_type?: LandingPageTemplateType;
+  page_config?: LandingPageConfig;
+  recipient_data?: LandingPageRecipientData | null;
+  is_active?: boolean;
+}
+
 // Generic query result types
 export type QueryResult<T> = {
   data: T | null;
