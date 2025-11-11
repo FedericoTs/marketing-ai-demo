@@ -37,7 +37,8 @@ import {
   Eye,
   Pencil,
   FileText,
-  FileCheck
+  FileCheck,
+  Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
@@ -50,6 +51,7 @@ import { DEFAULT_FORMAT, type PrintFormat } from '@/lib/design/print-formats';
 import { hasVariables, extractFieldNames, applyVariableChipStyling, removeVariableChipStyling } from '@/lib/design/variable-parser';
 import { VARIABLE_MARKER_STYLES } from '@/lib/design/variable-types';
 import { generatePlaceholderQRCode } from '@/lib/qr-generator';
+import { getAddressBlockZone, type AddressBlockZone } from '@/lib/database/types';
 
 export interface CanvasEditorProps {
   format?: PrintFormat; // Print format (defaults to 4x6 postcard)
@@ -1735,6 +1737,60 @@ export function CanvasEditor({
                 ref={backCanvasRef}
                 style={{ display: activeSide === 'back' ? 'block' : 'none' }}
               />
+
+              {/* PostGrid Address Block Overlay - only visible on back tab */}
+              {activeSide === 'back' && (() => {
+                // Get PostGrid address block zone for current format
+                const zone = getAddressBlockZone(currentFormat.id, 'US');
+
+                // Calculate percentage positioning relative to canvas dimensions
+                const leftPercent = (zone.x / currentFormat.widthPixels) * 100;
+                const topPercent = (zone.y / currentFormat.heightPixels) * 100;
+                const widthPercent = (zone.width / currentFormat.widthPixels) * 100;
+                const heightPercent = (zone.height / currentFormat.heightPixels) * 100;
+
+                return (
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: `${leftPercent}%`,
+                      top: `${topPercent}%`,
+                      width: `${widthPercent}%`,
+                      height: `${heightPercent}%`,
+                      border: '2px dashed #FF6B35',
+                      backgroundColor: 'rgba(255, 107, 53, 0.05)',
+                      borderRadius: '4px',
+                      zIndex: 1000,
+                    }}
+                  >
+                    {/* Label */}
+                    <div
+                      className="absolute -top-8 left-0 flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-md shadow-sm"
+                      style={{ pointerEvents: 'auto' }} // Allow interaction with label
+                    >
+                      <Mail className="w-3.5 h-3.5 text-orange-600" />
+                      <span className="text-xs font-semibold text-orange-700">
+                        Reserved for Address (PostGrid)
+                      </span>
+                    </div>
+
+                    {/* Subtle grid pattern to show it's reserved */}
+                    <div
+                      className="absolute inset-0 opacity-10"
+                      style={{
+                        backgroundImage: `repeating-linear-gradient(
+                          45deg,
+                          transparent,
+                          transparent 10px,
+                          #FF6B35 10px,
+                          #FF6B35 11px
+                        )`,
+                        borderRadius: '4px',
+                      }}
+                    />
+                  </div>
+                );
+              })()}
 
               {/* Corner markers for visibility */}
               <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
