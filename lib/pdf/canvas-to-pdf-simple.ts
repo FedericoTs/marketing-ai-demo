@@ -191,40 +191,38 @@ export interface PDFResult {
 }
 
 /**
- * Convert canvas to PDF
+ * Render a canvas to PNG image using Puppeteer + Fabric.js
+ * Extracted helper for reusability (front/back pages)
  *
- * @param templateCanvasJSON - ORIGINAL template JSON (not personalized)
- * @param recipientData - Data for personalization { name, lastname, address, city, zip }
- * @param formatType - Print format
- * @param fileName - Output filename
+ * @param canvasJSON - Fabric.js canvas JSON (template, not personalized)
+ * @param recipientData - Data for variable replacement
+ * @param width - Canvas width in pixels
+ * @param height - Canvas height in pixels
+ * @param browser - Puppeteer browser instance
+ * @returns Base64 PNG image data
  */
-export async function convertCanvasToPDF(
-  templateCanvasJSON: any,
+async function renderCanvasToImage(
+  canvasJSON: any,
   recipientData: { name?: string; lastname?: string; address?: string; city?: string; zip?: string },
-  formatType: string,
-  fileName: string = 'design'
-): Promise<PDFResult> {
-  console.log(`🖼️ [PDF] Converting canvas for ${recipientData.name || 'recipient'}...`)
-
-  const browser = await getBrowserInstance()
+  width: number,
+  height: number,
+  browser: Browser
+): Promise<string> {
   const page = await browser.newPage()
 
   try {
-    const format = getFormat(formatType)
-    console.log(`📐 [PDF] Format: ${format.widthPixels}×${format.heightPixels}px`)
-
-    // Download images in template (replaces signed URLs with data URLs)
-    const processedTemplate = await downloadCanvasImages(templateCanvasJSON)
+    // Download images (replace Supabase signed URLs with data URLs)
+    const processedTemplate = await downloadCanvasImages(canvasJSON)
 
     await page.setViewport({
-      width: format.widthPixels,
-      height: format.heightPixels,
+      width,
+      height,
       deviceScaleFactor: 2,
     })
 
-    // Create HTML with original template + recipient data
+    // Create HTML with Fabric.js canvas
     const templateString = JSON.stringify(processedTemplate)
-    const html = createHTML(templateString, recipientData, format.widthPixels, format.heightPixels)
+    const html = createHTML(templateString, recipientData, width, height)
 
     // Forward browser console
     page.on('console', msg => {
@@ -233,13 +231,10 @@ export async function convertCanvasToPDF(
       else console.log(`  [Browser] ${text}`)
     })
 
-    console.log('🎨 [PDF] Loading page...')
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 })
-
-    console.log('⏳ [PDF] Waiting for render...')
     await page.waitForFunction(() => window.renderComplete || window.renderError, { timeout: 60000 })
 
-    // Check if render succeeded (prioritize success over error)
+    // Check render status
     const renderComplete = await page.evaluate(() => (window as any).renderComplete)
     const error = await page.evaluate(() => (window as any).renderError)
 
@@ -247,21 +242,133 @@ export async function convertCanvasToPDF(
       throw new Error(`Render failed: ${error}`)
     }
 
-    console.log('✅ [PDF] Rendered')
-
-    // Screenshot
+    // Screenshot canvas element
     const canvasEl = await page.$('#canvas')
-    if (!canvasEl) throw new Error('Canvas not found')
+    if (!canvasEl) throw new Error('Canvas element not found')
 
-    console.log('📸 [PDF] Capturing...')
     const imgBuffer = await canvasEl.screenshot({ type: 'png', omitBackground: false })
-    const base64 = (imgBuffer as Buffer).toString('base64')
+    return (imgBuffer as Buffer).toString('base64')
+  } finally {
+    await page.close()
+  }
+}
 
-    // Create PDF with bleed dimensions
-    console.log('📄 [PDF] Creating PDF...')
+/**
+ * Create a blank white page image as base64 PNG
+ * Used when no custom back page is provided (backwards compatibility)
+ *
+ * @param width - Image width in pixels
+ * @param height - Image height in pixels
+ * @returns Base64 PNG image data
+ */
+function createBlankPageImage(width: number, height: number): string {
+  // Create minimal SVG for blank white page
+  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="${width}" height="${height}" fill="#ffffff"/>
+  </svg>`
+
+  // Convert to base64 (SVG as data URL works in jsPDF)
+  const base64 = Buffer.from(svg).toString('base64')
+  return base64
+}
+
+/**
+ * Convert canvas to PDF with optional front and back pages
+ *
+ * @param frontCanvasJSON - Front page canvas JSON (REQUIRED)
+ * @param backCanvasJSON - Back page canvas JSON (OPTIONAL - null = blank white page)
+ * @param recipientData - Data for personalization { name, lastname, address, city, zip }
+ * @param formatType - Print format (e.g., 'postcard_4x6')
+ * @param fileName - Output filename
+ *
+ * BACKWARDS COMPATIBLE:
+ * - Old signature: convertCanvasToPDF(canvasJSON, recipientData, formatType, fileName)
+ *   → Treats first arg as frontCanvasJSON, second arg type-checks to recipientData
+ * - New signature: convertCanvasToPDF(frontJSON, backJSON, recipientData, formatType, fileName)
+ *   → Both front and back canvases rendered separately
+ */
+export async function convertCanvasToPDF(
+  frontCanvasJSON: any,
+  backCanvasJSON: any | null | { name?: string; lastname?: string },  // null OR recipientData (for backwards compat)
+  recipientData: { name?: string; lastname?: string; address?: string; city?: string; zip?: string } | string,  // recipientData OR formatType
+  formatType?: string,
+  fileName: string = 'design'
+): Promise<PDFResult> {
+  // BACKWARDS COMPATIBILITY DETECTION
+  // Old signature: (canvasJSON, recipientData, formatType, fileName)
+  // New signature: (frontJSON, backJSON, recipientData, formatType, fileName)
+  //
+  // Detection: If 2nd arg has recipient properties (name/lastname/address),
+  // it's old signature → shift arguments
+  let actualFrontCanvas: any
+  let actualBackCanvas: any | null
+  let actualRecipientData: any
+  let actualFormatType: string
+  let actualFileName: string
+
+  if (
+    backCanvasJSON &&
+    typeof backCanvasJSON === 'object' &&
+    ('name' in backCanvasJSON || 'lastname' in backCanvasJSON || 'address' in backCanvasJSON) &&
+    typeof recipientData === 'string'
+  ) {
+    // OLD SIGNATURE DETECTED: (frontCanvas, recipientData, formatType, fileName)
+    console.log('📌 [PDF] Old signature detected (backwards compatibility mode)')
+    actualFrontCanvas = frontCanvasJSON
+    actualBackCanvas = null  // No back page in old signature
+    actualRecipientData = backCanvasJSON  // 2nd arg is recipientData
+    actualFormatType = recipientData as string  // 3rd arg is formatType
+    actualFileName = formatType || fileName
+  } else {
+    // NEW SIGNATURE: (frontCanvas, backCanvas, recipientData, formatType, fileName)
+    actualFrontCanvas = frontCanvasJSON
+    actualBackCanvas = backCanvasJSON
+    actualRecipientData = recipientData
+    actualFormatType = formatType as string
+    actualFileName = fileName
+  }
+  console.log(`🖼️ [PDF] Converting ${actualBackCanvas ? 'front + custom back' : 'front + blank back'} for ${actualRecipientData.name || 'recipient'}...`)
+
+  const browser = await getBrowserInstance()
+
+  try {
+    const format = getFormat(actualFormatType)
+    console.log(`📐 [PDF] Format: ${format.widthPixels}×${format.heightPixels}px`)
+
+    // RENDER FRONT PAGE (required)
+    console.log('🎨 [PDF] Rendering front page...')
+    const frontImageBase64 = await renderCanvasToImage(
+      actualFrontCanvas,
+      actualRecipientData,
+      format.widthPixels,
+      format.heightPixels,
+      browser
+    )
+    console.log('✅ [PDF] Front page rendered')
+
+    // RENDER BACK PAGE (custom or blank)
+    let backImageBase64: string
+    if (actualBackCanvas) {
+      console.log('🎨 [PDF] Rendering custom back page...')
+      backImageBase64 = await renderCanvasToImage(
+        actualBackCanvas,
+        actualRecipientData,
+        format.widthPixels,
+        format.heightPixels,
+        browser
+      )
+      console.log('✅ [PDF] Custom back page rendered')
+    } else {
+      console.log('📄 [PDF] Creating blank back page (PostGrid address block)...')
+      backImageBase64 = createBlankPageImage(format.widthPixels, format.heightPixels)
+      console.log('✅ [PDF] Blank back page created')
+    }
+
+    // CREATE PDF WITH BOTH PAGES
+    console.log('📄 [PDF] Assembling 2-page PDF...')
     const orientation = format.widthInches > format.heightInches ? 'landscape' : 'portrait'
 
-    // Canvas already includes bleed (e.g., 1875×1275px = 6.25"×4.25" at 300 DPI)
+    // Canvas pixels already include bleed (e.g., 1875×1275px = 6.25"×4.25" at 300 DPI)
     const pdfWidth = format.widthPixels / format.dpi      // 1875/300 = 6.25"
     const pdfHeight = format.heightPixels / format.dpi    // 1275/300 = 4.25"
 
@@ -274,28 +381,31 @@ export async function convertCanvasToPDF(
 
     console.log(`📏 [PDF] Dimensions: ${pdfWidth}" × ${pdfHeight}" (trim: ${format.widthInches}" × ${format.heightInches}", bleed: ${format.bleedInches}")`)
 
-    // Page 1: Front design (personalized template)
-    pdf.addImage(`data:image/png;base64,${base64}`, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST')
+    // PAGE 1: Front design (personalized)
+    pdf.addImage(`data:image/png;base64,${frontImageBase64}`, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST')
 
-    // Page 2: Back page (blank - PostGrid will overlay address automatically)
-    console.log('📄 [PDF] Adding back page for PostGrid address block...')
+    // PAGE 2: Back design (custom or blank)
     pdf.addPage([pdfWidth, pdfHeight], orientation)
+    if (actualBackCanvas) {
+      // Custom back page with design
+      pdf.addImage(`data:image/png;base64,${backImageBase64}`, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST')
+    } else {
+      // Blank white back page (for PostGrid address overlay)
+      pdf.setFillColor(255, 255, 255)
+      pdf.rect(0, 0, pdfWidth, pdfHeight, 'F')
+    }
 
-    // Optional: Add a simple white background to back page
-    pdf.setFillColor(255, 255, 255)
-    pdf.rect(0, 0, pdfWidth, pdfHeight, 'F')
-
-    console.log('✅ [PDF] 2-page PDF created (front + back)')
+    console.log(`✅ [PDF] 2-page PDF created (front + ${actualBackCanvas ? 'custom back' : 'blank back'})`)
 
     const pdfBuffer = Buffer.from(pdf.output('arraybuffer'))
     console.log(`✅ [PDF] Complete: ${(pdfBuffer.length / 1024).toFixed(2)} KB (2 pages)`)
 
     return {
       buffer: pdfBuffer,
-      fileName: `${fileName}.pdf`,
+      fileName: `${actualFileName}.pdf`,
       fileSizeBytes: pdfBuffer.length,
       metadata: {
-        format: formatType,
+        format: actualFormatType,
         widthInches: pdfWidth,   // PDF dimensions include bleed
         heightInches: pdfHeight,
         widthPixels: format.widthPixels,
@@ -308,7 +418,6 @@ export async function convertCanvasToPDF(
     console.error('❌ [PDF] Failed:', error)
     throw error
   } finally {
-    await page.close()
     await releaseBrowserInstance()
   }
 }
