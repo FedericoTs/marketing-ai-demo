@@ -5,6 +5,7 @@ import { Canvas, IText, Textbox, Rect, Circle as FabricCircle, FabricImage, Fabr
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +35,9 @@ import {
   Menu,
   FolderOpen,
   Eye,
-  Pencil
+  Pencil,
+  FileText,
+  FileCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PropertyPanel } from './property-panel';
@@ -84,8 +87,21 @@ export function CanvasEditor({
   onOpenTemplateLibrary,
   organizationId = '00000000-0000-0000-0000-000000000000' // Default for testing
 }: CanvasEditorProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [canvas, setCanvas] = useState<Canvas | null>(null);
+  // Dual canvas refs for front and back pages
+  const frontCanvasRef = useRef<HTMLCanvasElement>(null);
+  const backCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Dual canvas state
+  const [activeSide, setActiveSide] = useState<'front' | 'back'>('front');
+  const [frontCanvas, setFrontCanvas] = useState<Canvas | null>(null);
+  const [backCanvas, setBackCanvas] = useState<Canvas | null>(null);
+
+  // ✨ COMPUTED CANVAS: This makes ALL existing code work with zero changes!
+  // All 85+ references to `canvas.something()` will automatically use the active canvas
+  const canvas = activeSide === 'front' ? frontCanvas : backCanvas;
+
+  // Keep canvasRef for backwards compatibility with existing code that uses it
+  const canvasRef = activeSide === 'front' ? frontCanvasRef : backCanvasRef;
   const [currentFormat, setCurrentFormat] = useState<PrintFormat>(
     initialData?.format || format
   );
@@ -107,9 +123,11 @@ export function CanvasEditor({
     historyStepRef.current = historyStep;
   }, [historyStep]);
 
-  // Initialize Fabric.js canvas
+  // Initialize Fabric.js canvas (temporarily keeping single canvas while testing infrastructure)
+  // TODO: Will update to dual canvas in next step after testing current changes
   useEffect(() => {
-    if (!canvasRef.current) return;
+    // Use frontCanvasRef as primary for now (backwards compatible)
+    if (!frontCanvasRef.current) return;
 
     console.log(`🎨 Initializing canvas with format: ${currentFormat.name}`);
     console.log(`   Dimensions: ${currentFormat.widthPixels}px × ${currentFormat.heightPixels}px (${currentFormat.widthInches}" × ${currentFormat.heightInches}" at ${currentFormat.dpi} DPI)`);
@@ -120,10 +138,10 @@ export function CanvasEditor({
 
     // Small delay to ensure DOM is ready and previous canvas is disposed
     const initTimeout = setTimeout(() => {
-      if (!canvasRef.current) return;
+      if (!frontCanvasRef.current) return;
 
-      // Create canvas with format dimensions
-      fabricCanvas = new Canvas(canvasRef.current, {
+      // Create canvas with format dimensions (using frontCanvas for now)
+      fabricCanvas = new Canvas(frontCanvasRef.current, {
         width: currentFormat.widthPixels,
         height: currentFormat.heightPixels,
         backgroundColor: '#ffffff',
@@ -273,7 +291,11 @@ export function CanvasEditor({
       }
     });
 
-    setCanvas(fabricCanvas);
+    // Set as front canvas (activeSide starts as 'front', so computed canvas will reference this)
+    setFrontCanvas(fabricCanvas);
+
+    // Initialize back canvas as null for now (will create in next step)
+    setBackCanvas(null);
 
     // Keyboard event handler for delete functionality
     handleKeyDown = (e: KeyboardEvent) => {
@@ -1605,7 +1627,10 @@ export function CanvasEditor({
           {/* Canvas wrapper with proper spacing */}
           <div className="flex items-center justify-center w-full h-full">
             <div className="border-2 border-slate-300 shadow-2xl bg-white rounded-sm relative inline-block">
-              <canvas ref={canvasRef} />
+              {/* Front canvas (visible for now - will add tabs in next step) */}
+              <canvas ref={frontCanvasRef} />
+              {/* Back canvas (hidden for now - will add tabs + visibility toggle in next step) */}
+              <canvas ref={backCanvasRef} style={{ display: 'none' }} />
 
               {/* Corner markers for visibility */}
               <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
