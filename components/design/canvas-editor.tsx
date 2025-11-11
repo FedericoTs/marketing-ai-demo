@@ -123,42 +123,150 @@ export function CanvasEditor({
     historyStepRef.current = historyStep;
   }, [historyStep]);
 
-  // Initialize Fabric.js canvas (temporarily keeping single canvas while testing infrastructure)
-  // TODO: Will update to dual canvas in next step after testing current changes
+  // Initialize Fabric.js canvas with DUAL canvas support (front + back)
   useEffect(() => {
-    // Use frontCanvasRef as primary for now (backwards compatible)
-    if (!frontCanvasRef.current) return;
+    if (!frontCanvasRef.current || !backCanvasRef.current) return;
 
-    console.log(`🎨 Initializing canvas with format: ${currentFormat.name}`);
+    console.log(`🎨 Initializing DUAL canvas with format: ${currentFormat.name}`);
     console.log(`   Dimensions: ${currentFormat.widthPixels}px × ${currentFormat.heightPixels}px (${currentFormat.widthInches}" × ${currentFormat.heightInches}" at ${currentFormat.dpi} DPI)`);
 
     // Declare variables in useEffect scope so cleanup can access them
     let handleKeyDown: ((e: KeyboardEvent) => void) | null = null;
-    let fabricCanvas: Canvas | null = null;
+    let fabricFrontCanvas: Canvas | null = null;
+    let fabricBackCanvas: Canvas | null = null;
+
+    // Helper function to attach all event listeners to a canvas (avoid code duplication)
+    const attachCanvasEventListeners = (canvas: Canvas) => {
+      // Listen for object modifications
+      canvas.on('object:modified', () => saveToHistory(canvas));
+      canvas.on('object:added', () => saveToHistory(canvas));
+      canvas.on('object:removed', () => saveToHistory(canvas));
+
+      // Handle textbox scaling: convert scaleY to height to prevent text distortion
+      canvas.on('object:scaling', (e: any) => {
+        const obj = e.target;
+        if (obj && (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text')) {
+          // For horizontal scaling (width change)
+          if (obj.scaleX && obj.scaleX !== 1) {
+            const newWidth = (obj.width || 100) * obj.scaleX;
+            obj.set({
+              width: newWidth,
+              scaleX: 1,
+            });
+          }
+
+          // For vertical scaling (height change) - convert to height property
+          if (obj.scaleY && obj.scaleY !== 1) {
+            const newHeight = (obj.height || 100) * obj.scaleY;
+            obj.set({
+              height: newHeight,
+              scaleY: 1,
+            });
+          }
+
+          obj.setCoords();
+          canvas.renderAll();
+        }
+      });
+
+      // Listen for selection changes
+      canvas.on('selection:created', (e: any) => setSelectedObject(e.selected?.[0] || null));
+      canvas.on('selection:updated', (e: any) => setSelectedObject(e.selected?.[0] || null));
+      canvas.on('selection:cleared', () => setSelectedObject(null));
+
+      // Auto-detect variables in text using {variableName} syntax
+      canvas.on('text:changed', (e: any) => {
+        const textObj = e.target;
+        if (textObj && (textObj.type === 'textbox' || textObj.type === 'i-text' || textObj.type === 'text')) {
+          const textContent = textObj.text || '';
+          const previousFieldNames = textObj.variableFieldNames || [];
+
+          // Check if text contains variables like {firstName}, {lastName}, etc.
+          if (hasVariables(textContent)) {
+            const fieldNames = extractFieldNames(textContent);
+
+            // Check if variable list changed (only show toast when variables actually change)
+            const fieldNamesChanged =
+              previousFieldNames.length !== fieldNames.length ||
+              !previousFieldNames.every((name: string) => fieldNames.includes(name)) ||
+              !fieldNames.every((name: string) => previousFieldNames.includes(name));
+
+            // Mark as variable type 'custom'
+            textObj.set({
+              variableType: 'custom',
+              variableFieldNames: fieldNames, // Store detected field names
+              isReusable: false,
+              // Apply visual styling (purple border)
+              borderColor: VARIABLE_MARKER_STYLES.borderColor,
+              borderScaleFactor: VARIABLE_MARKER_STYLES.borderWidth,
+              borderDashArray: VARIABLE_MARKER_STYLES.borderDashArray,
+              cornerColor: VARIABLE_MARKER_STYLES.cornerColor,
+              cornerSize: VARIABLE_MARKER_STYLES.cornerSize,
+              transparentCorners: VARIABLE_MARKER_STYLES.transparentCorners,
+            });
+
+            // Apply chip-style highlighting (purple text + background) to {variable} text
+            // Only apply if NOT in Preview Mode
+            if (!isPreviewMode) {
+              applyVariableChipStyling(textObj);
+            }
+
+            // Only show toast if variables changed
+            if (fieldNamesChanged) {
+              console.log(`🔮 Auto-detected ${fieldNames.length} variable(s):`, fieldNames.join(', '));
+              toast.success(`Detected ${fieldNames.length} variable${fieldNames.length > 1 ? 's' : ''}: ${fieldNames.join(', ')}`);
+            }
+          } else {
+            // Remove variable styling if no variables detected
+            if (textObj.variableType === 'custom') {
+              textObj.set({
+                variableType: 'none',
+                variableFieldNames: undefined,
+                borderColor: '#000000',
+                borderScaleFactor: 1,
+                borderDashArray: null,
+                cornerColor: '#000000',
+                cornerSize: 7,
+                transparentCorners: false,
+              });
+            }
+          }
+
+          textObj.setCoords();
+          canvas.renderAll();
+        }
+      });
+    };
 
     // Small delay to ensure DOM is ready and previous canvas is disposed
     const initTimeout = setTimeout(() => {
-      if (!frontCanvasRef.current) return;
+      if (!frontCanvasRef.current || !backCanvasRef.current) return;
 
-      // Create canvas with format dimensions (using frontCanvas for now)
-      fabricCanvas = new Canvas(frontCanvasRef.current, {
+      // ========================================
+      // CREATE FRONT CANVAS
+      // ========================================
+      console.log('📄 Creating FRONT canvas...');
+      fabricFrontCanvas = new Canvas(frontCanvasRef.current, {
         width: currentFormat.widthPixels,
         height: currentFormat.heightPixels,
         backgroundColor: '#ffffff',
       });
 
-      // Load initial data if provided
-      if (initialData?.canvasJSON) {
-        console.log('📂 Loading canvas from JSON data...');
-        fabricCanvas.loadFromJSON(initialData.canvasJSON, () => {
-          console.log('✅ Canvas JSON loaded, rendering...');
-          fabricCanvas.renderAll();
+      // Load FRONT surface data (backwards compatible with old canvasJSON field)
+      const frontData = initialData?.surfaces?.[0]?.canvas_json || initialData?.canvasJSON;
+      if (frontData) {
+        console.log('📂 Loading FRONT canvas from JSON data...');
+        const frontJSON = typeof frontData === 'string' ? frontData : JSON.stringify(frontData);
+        fabricFrontCanvas.loadFromJSON(frontJSON, () => {
+          console.log('✅ Front canvas JSON loaded, rendering...');
+          fabricFrontCanvas.renderAll();
 
-          // Apply variable mappings
-          if (initialData.variableMappings) {
-            console.log('🏷️ Applying variable mappings...');
-            const objects = fabricCanvas.getObjects();
-            Object.entries(initialData.variableMappings).forEach(([idx, mapping]) => {
+          // Apply variable mappings (try surfaces[0] first, fallback to old variableMappings)
+          const frontMappings = initialData?.surfaces?.[0]?.variable_mappings || initialData?.variableMappings;
+          if (frontMappings) {
+            console.log('🏷️ Applying variable mappings to FRONT canvas...');
+            const objects = fabricFrontCanvas.getObjects();
+            Object.entries(frontMappings).forEach(([idx, mapping]: [string, any]) => {
               const index = parseInt(idx);
               if (objects[index]) {
                 const obj = objects[index];
@@ -179,127 +287,91 @@ export function CanvasEditor({
                     transparentCorners: false,
                   } as any);
                 }
-                // For image objects, metadata is set but no visual border (prevents drift)
               }
             });
-            fabricCanvas.renderAll();
-            console.log('✅ Variable mappings applied');
+            fabricFrontCanvas.renderAll();
+            console.log('✅ Variable mappings applied to FRONT canvas');
           }
         });
       }
 
       // Save initial state to history
-      saveToHistory(fabricCanvas);
+      saveToHistory(fabricFrontCanvas);
 
-      // Listen for object modifications
-      fabricCanvas.on('object:modified', () => saveToHistory(fabricCanvas));
-      fabricCanvas.on('object:added', () => saveToHistory(fabricCanvas));
-    fabricCanvas.on('object:removed', () => saveToHistory(fabricCanvas));
+      // Attach event listeners to FRONT canvas
+      attachCanvasEventListeners(fabricFrontCanvas);
 
-    // Handle textbox scaling: convert scaleY to height to prevent text distortion
-    fabricCanvas.on('object:scaling', (e: any) => {
-      const obj = e.target;
-      if (obj && (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text')) {
-        // For horizontal scaling (width change)
-        if (obj.scaleX && obj.scaleX !== 1) {
-          const newWidth = (obj.width || 100) * obj.scaleX;
-          obj.set({
-            width: newWidth,
-            scaleX: 1,
-          });
-        }
+      // ========================================
+      // CREATE BACK CANVAS
+      // ========================================
+      console.log('📄 Creating BACK canvas...');
+      fabricBackCanvas = new Canvas(backCanvasRef.current, {
+        width: currentFormat.widthPixels,
+        height: currentFormat.heightPixels,
+        backgroundColor: '#ffffff',
+      });
 
-        // For vertical scaling (height change) - convert to height property
-        if (obj.scaleY && obj.scaleY !== 1) {
-          const newHeight = (obj.height || 100) * obj.scaleY;
-          obj.set({
-            height: newHeight,
-            scaleY: 1,
-          });
-        }
+      // Load BACK surface data (if exists - new templates only)
+      const backData = initialData?.surfaces?.[1]?.canvas_json;
+      if (backData) {
+        console.log('📂 Loading BACK canvas from JSON data...');
+        const backJSON = typeof backData === 'string' ? backData : JSON.stringify(backData);
+        fabricBackCanvas.loadFromJSON(backJSON, () => {
+          console.log('✅ Back canvas JSON loaded, rendering...');
+          fabricBackCanvas.renderAll();
 
-        obj.setCoords();
-        fabricCanvas.renderAll();
-      }
-    });
+          // Apply variable mappings to back canvas
+          const backMappings = initialData?.surfaces?.[1]?.variable_mappings;
+          if (backMappings) {
+            console.log('🏷️ Applying variable mappings to BACK canvas...');
+            const objects = fabricBackCanvas.getObjects();
+            Object.entries(backMappings).forEach(([idx, mapping]: [string, any]) => {
+              const index = parseInt(idx);
+              if (objects[index]) {
+                const obj = objects[index];
+                (obj as any).variableType = mapping.variableType;
+                (obj as any).isReusable = mapping.isReusable;
 
-    // Listen for selection changes
-    fabricCanvas.on('selection:created', (e: any) => setSelectedObject(e.selected?.[0] || null));
-    fabricCanvas.on('selection:updated', (e: any) => setSelectedObject(e.selected?.[0] || null));
-    fabricCanvas.on('selection:cleared', () => setSelectedObject(null));
+                // Apply visual styling for variables
+                const isImageObject = obj.type === 'image';
 
-    // Auto-detect variables in text using {variableName} syntax
-    fabricCanvas.on('text:changed', (e: any) => {
-      const textObj = e.target;
-      if (textObj && (textObj.type === 'textbox' || textObj.type === 'i-text' || textObj.type === 'text')) {
-        const textContent = textObj.text || '';
-        const previousFieldNames = textObj.variableFieldNames || [];
-
-        // Check if text contains variables like {firstName}, {lastName}, etc.
-        if (hasVariables(textContent)) {
-          const fieldNames = extractFieldNames(textContent);
-
-          // Check if variable list changed (only show toast when variables actually change)
-          const fieldNamesChanged =
-            previousFieldNames.length !== fieldNames.length ||
-            !previousFieldNames.every((name: string) => fieldNames.includes(name)) ||
-            !fieldNames.every((name: string) => previousFieldNames.includes(name));
-
-          // Mark as variable type 'custom'
-          textObj.set({
-            variableType: 'custom',
-            variableFieldNames: fieldNames, // Store detected field names
-            isReusable: false,
-            // Apply visual styling (purple border)
-            borderColor: VARIABLE_MARKER_STYLES.borderColor,
-            borderScaleFactor: VARIABLE_MARKER_STYLES.borderWidth,
-            borderDashArray: VARIABLE_MARKER_STYLES.borderDashArray,
-            cornerColor: VARIABLE_MARKER_STYLES.cornerColor,
-            cornerSize: VARIABLE_MARKER_STYLES.cornerSize,
-            transparentCorners: VARIABLE_MARKER_STYLES.transparentCorners,
-          });
-
-          // Apply chip-style highlighting (purple text + background) to {variable} text
-          // Only apply if NOT in Preview Mode
-          if (!isPreviewMode) {
-            applyVariableChipStyling(textObj);
-          }
-
-          // Only show toast if variables changed
-          if (fieldNamesChanged) {
-            console.log(`🔮 Auto-detected ${fieldNames.length} variable(s):`, fieldNames.join(', '));
-            toast.success(`Detected ${fieldNames.length} variable${fieldNames.length > 1 ? 's' : ''}: ${fieldNames.join(', ')}`);
-          }
-        } else {
-          // Remove variable styling if no variables detected
-          if (textObj.variableType === 'custom') {
-            textObj.set({
-              variableType: 'none',
-              variableFieldNames: undefined,
-              borderColor: '#000000',
-              borderScaleFactor: 1,
-              borderDashArray: null,
-              cornerColor: '#000000',
-              cornerSize: 7,
-              transparentCorners: false,
+                if (mapping.variableType && mapping.variableType !== 'none' && !isImageObject) {
+                  obj.set({
+                    borderColor: '#9333ea',
+                    borderScaleFactor: 3,
+                    borderDashArray: [5, 5],
+                    cornerColor: '#9333ea',
+                    cornerSize: 8,
+                    transparentCorners: false,
+                  } as any);
+                }
+              }
             });
+            fabricBackCanvas.renderAll();
+            console.log('✅ Variable mappings applied to BACK canvas');
           }
-        }
-
-        textObj.setCoords();
-        fabricCanvas.renderAll();
+        });
+      } else {
+        console.log('ℹ️ No back surface data found - blank back canvas ready for design');
       }
-    });
 
-    // Set as front canvas (activeSide starts as 'front', so computed canvas will reference this)
-    setFrontCanvas(fabricCanvas);
+      // Save initial state to history for back canvas
+      saveToHistory(fabricBackCanvas);
 
-    // Initialize back canvas as null for now (will create in next step)
-    setBackCanvas(null);
+      // Attach event listeners to BACK canvas
+      attachCanvasEventListeners(fabricBackCanvas);
+
+      // Set both canvases in state
+      setFrontCanvas(fabricFrontCanvas);
+      setBackCanvas(fabricBackCanvas);
 
     // Keyboard event handler for delete functionality
     handleKeyDown = (e: KeyboardEvent) => {
-      const activeObject = fabricCanvas.getActiveObject();
+      // Use the ACTIVE canvas based on current activeSide state
+      const activeCanvas = activeSide === 'front' ? fabricFrontCanvas : fabricBackCanvas;
+      if (!activeCanvas) return;
+
+      const activeObject = activeCanvas.getActiveObject();
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const cmdKey = isMac ? e.metaKey : e.ctrlKey;
 
@@ -330,8 +402,8 @@ export function CanvasEditor({
             const newWeight = textObj.fontWeight === 700 ? 400 : 700;
             textObj.set('fontWeight', newWeight);
             textObj.setCoords();
-            fabricCanvas.renderAll();
-            saveToHistory(fabricCanvas);
+            activeCanvas.renderAll();
+            saveToHistory(activeCanvas);
             toast.success(newWeight === 700 ? 'Bold applied' : 'Bold removed');
             return;
           }
@@ -342,8 +414,8 @@ export function CanvasEditor({
             const newStyle = textObj.fontStyle === 'italic' ? 'normal' : 'italic';
             textObj.set('fontStyle', newStyle);
             textObj.setCoords();
-            fabricCanvas.renderAll();
-            saveToHistory(fabricCanvas);
+            activeCanvas.renderAll();
+            saveToHistory(activeCanvas);
             toast.success(newStyle === 'italic' ? 'Italic applied' : 'Italic removed');
             return;
           }
@@ -354,8 +426,8 @@ export function CanvasEditor({
             const newUnderline = !textObj.underline;
             textObj.set('underline', newUnderline);
             textObj.setCoords();
-            fabricCanvas.renderAll();
-            saveToHistory(fabricCanvas);
+            activeCanvas.renderAll();
+            saveToHistory(activeCanvas);
             toast.success(newUnderline ? 'Underline applied' : 'Underline removed');
             return;
           }
@@ -365,8 +437,8 @@ export function CanvasEditor({
             e.preventDefault();
             textObj.set('textAlign', 'left');
             textObj.setCoords();
-            fabricCanvas.renderAll();
-            saveToHistory(fabricCanvas);
+            activeCanvas.renderAll();
+            saveToHistory(activeCanvas);
             toast.success('Aligned left');
             return;
           }
@@ -376,8 +448,8 @@ export function CanvasEditor({
             e.preventDefault();
             textObj.set('textAlign', 'center');
             textObj.setCoords();
-            fabricCanvas.renderAll();
-            saveToHistory(fabricCanvas);
+            activeCanvas.renderAll();
+            saveToHistory(activeCanvas);
             toast.success('Aligned center');
             return;
           }
@@ -387,8 +459,8 @@ export function CanvasEditor({
             e.preventDefault();
             textObj.set('textAlign', 'right');
             textObj.setCoords();
-            fabricCanvas.renderAll();
-            saveToHistory(fabricCanvas);
+            activeCanvas.renderAll();
+            saveToHistory(activeCanvas);
             toast.success('Aligned right');
             return;
           }
@@ -409,10 +481,10 @@ export function CanvasEditor({
           // Prevent default behavior (e.g., browser back navigation for Backspace)
           e.preventDefault();
 
-          // Remove the object from canvas
-          fabricCanvas.remove(activeObject);
-          fabricCanvas.discardActiveObject(); // Clear selection
-          fabricCanvas.renderAll();
+          // Remove the object from active canvas
+          activeCanvas.remove(activeObject);
+          activeCanvas.discardActiveObject(); // Clear selection
+          activeCanvas.renderAll();
 
           // History will be automatically saved by object:removed event listener
           console.log('🗑️ Deleted object:', activeObject.type);
@@ -425,14 +497,14 @@ export function CanvasEditor({
       window.addEventListener('keydown', handleKeyDown);
     }
 
-    // Auto-fit canvas to screen after initialization
+    // Auto-fit BOTH canvases to screen after initialization
     // Delay to ensure Fabric.js DOM managers are fully initialized
     setTimeout(() => {
       // Get the actual flex container (the one with "flex-1 flex items-center justify-center")
-      const canvasWrapper = canvasRef.current?.parentElement?.parentElement;
-      const container = canvasWrapper?.parentElement;
+      const frontWrapper = frontCanvasRef.current?.parentElement?.parentElement;
+      const container = frontWrapper?.parentElement;
 
-      if (container && fabricCanvas.lowerCanvasEl) { // Check that canvas DOM is ready
+      if (container && fabricFrontCanvas?.lowerCanvasEl && fabricBackCanvas?.lowerCanvasEl) {
         // Get the actual available space (generous padding for UI elements)
         const containerWidth = container.clientWidth - 100; // Account for padding, borders, and spacing
         const containerHeight = container.clientHeight - 100;
@@ -447,7 +519,13 @@ export function CanvasEditor({
         // Internal canvas stays at 1800x1200 (or whatever format) for correct object positioning
         // CSS scaling handles visual zoom for display
         try {
-          fabricCanvas.setDimensions({
+          // Apply to BOTH canvases
+          fabricFrontCanvas.setDimensions({
+            width: currentFormat.widthPixels * scale,
+            height: currentFormat.heightPixels * scale
+          }, { cssOnly: true });
+
+          fabricBackCanvas.setDimensions({
             width: currentFormat.widthPixels * scale,
             height: currentFormat.heightPixels * scale
           }, { cssOnly: true });
@@ -455,9 +533,10 @@ export function CanvasEditor({
           console.error('Failed to set canvas dimensions:', err);
         }
 
-        fabricCanvas.renderAll();
+        fabricFrontCanvas.renderAll();
+        fabricBackCanvas.renderAll();
 
-        console.log('📐 Canvas auto-fit:', {
+        console.log('📐 DUAL Canvas auto-fit:', {
           containerWidth,
           containerHeight,
           canvasWidth: currentFormat.widthPixels,
@@ -479,10 +558,13 @@ export function CanvasEditor({
       if (handleKeyDown) {
         window.removeEventListener('keydown', handleKeyDown);
       }
-      // Dispose canvas safely
+      // Dispose BOTH canvases safely
       try {
-        if (fabricCanvas && fabricCanvas.dispose) {
-          fabricCanvas.dispose();
+        if (fabricFrontCanvas && fabricFrontCanvas.dispose) {
+          fabricFrontCanvas.dispose();
+        }
+        if (fabricBackCanvas && fabricBackCanvas.dispose) {
+          fabricBackCanvas.dispose();
         }
       } catch (err) {
         console.warn('Canvas disposal warning:', err);
@@ -1624,13 +1706,35 @@ export function CanvasEditor({
             </button>
           )}
 
+          {/* Front/Back Tabs */}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
+            <Tabs value={activeSide} onValueChange={(value) => setActiveSide(value as 'front' | 'back')}>
+              <TabsList className="bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200">
+                <TabsTrigger value="front" className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  Front
+                </TabsTrigger>
+                <TabsTrigger value="back" className="gap-2">
+                  <FileCheck className="w-4 h-4" />
+                  Back
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
           {/* Canvas wrapper with proper spacing */}
           <div className="flex items-center justify-center w-full h-full">
             <div className="border-2 border-slate-300 shadow-2xl bg-white rounded-sm relative inline-block">
-              {/* Front canvas (visible for now - will add tabs in next step) */}
-              <canvas ref={frontCanvasRef} />
-              {/* Back canvas (hidden for now - will add tabs + visibility toggle in next step) */}
-              <canvas ref={backCanvasRef} style={{ display: 'none' }} />
+              {/* Front canvas - visible when activeSide === 'front' */}
+              <canvas
+                ref={frontCanvasRef}
+                style={{ display: activeSide === 'front' ? 'block' : 'none' }}
+              />
+              {/* Back canvas - visible when activeSide === 'back' */}
+              <canvas
+                ref={backCanvasRef}
+                style={{ display: activeSide === 'back' ? 'block' : 'none' }}
+              />
 
               {/* Corner markers for visibility */}
               <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
