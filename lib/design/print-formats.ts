@@ -39,10 +39,10 @@ export const PRINT_FORMATS: Record<string, PrintFormat> = {
     id: 'postcard_4x6',
     name: 'Postcard (4" × 6")',
     category: 'postcard',
-    widthInches: 6,
-    heightInches: 4,
-    widthPixels: 1800, // 6" * 300 DPI
-    heightPixels: 1200, // 4" * 300 DPI
+    widthInches: 6,      // Trim size
+    heightInches: 4,     // Trim size
+    widthPixels: 1875,   // 6.25" * 300 DPI (includes 0.125" bleed on each side)
+    heightPixels: 1275,  // 4.25" * 300 DPI (includes 0.125" bleed on each side)
     dpi: 300,
     bleedInches: 0.125,
     uspsCompliant: true,
@@ -55,10 +55,10 @@ export const PRINT_FORMATS: Record<string, PrintFormat> = {
     id: 'postcard_5x7',
     name: 'Postcard (5" × 7")',
     category: 'postcard',
-    widthInches: 7,
-    heightInches: 5,
-    widthPixels: 2100, // 7" * 300 DPI
-    heightPixels: 1500, // 5" * 300 DPI
+    widthInches: 7,      // Trim size
+    heightInches: 5,     // Trim size
+    widthPixels: 2175,   // 7.25" * 300 DPI (includes 0.125" bleed on each side)
+    heightPixels: 1575,  // 5.25" * 300 DPI (includes 0.125" bleed on each side)
     dpi: 300,
     bleedInches: 0.125,
     uspsCompliant: true,
@@ -71,10 +71,10 @@ export const PRINT_FORMATS: Record<string, PrintFormat> = {
     id: 'postcard_6x9',
     name: 'Postcard (6" × 9")',
     category: 'postcard',
-    widthInches: 9,
-    heightInches: 6,
-    widthPixels: 2700, // 9" * 300 DPI
-    heightPixels: 1800, // 6" * 300 DPI
+    widthInches: 9,      // Trim size
+    heightInches: 6,     // Trim size
+    widthPixels: 2775,   // 9.25" * 300 DPI (includes 0.125" bleed on each side)
+    heightPixels: 1875,  // 6.25" * 300 DPI (includes 0.125" bleed on each side)
     dpi: 300,
     bleedInches: 0.125,
     uspsCompliant: true,
@@ -87,10 +87,10 @@ export const PRINT_FORMATS: Record<string, PrintFormat> = {
     id: 'postcard_6x11',
     name: 'Postcard (6" × 11")',
     category: 'postcard',
-    widthInches: 11,
-    heightInches: 6,
-    widthPixels: 3300, // 11" * 300 DPI
-    heightPixels: 1800, // 6" * 300 DPI
+    widthInches: 11,     // Trim size
+    heightInches: 6,     // Trim size
+    widthPixels: 3375,   // 11.25" * 300 DPI (includes 0.125" bleed on each side)
+    heightPixels: 1875,  // 6.25" * 300 DPI (includes 0.125" bleed on each side)
     dpi: 300,
     bleedInches: 0.125,
     uspsCompliant: true,
