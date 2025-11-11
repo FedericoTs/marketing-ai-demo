@@ -1189,84 +1189,116 @@ export function CanvasEditor({
     setForceUpdate(prev => prev + 1);
   }, [canvas, currentFormat]);
 
-  // Save template
+  // Helper function to extract surface data from a canvas
+  const extractSurfaceData = useCallback((
+    canvasInstance: Canvas,
+    side: 'front' | 'back'
+  ) => {
+    // Save current CSS dimensions
+    const currentWidth = canvasInstance.getWidth();
+    const currentHeight = canvasInstance.getHeight();
+
+    // Reset CSS dimensions to full resolution for clean export
+    canvasInstance.setDimensions({
+      width: currentFormat.widthPixels,
+      height: currentFormat.heightPixels
+    }, { cssOnly: true });
+    canvasInstance.renderAll();
+
+    // Get canvas JSON (should have correct coordinates since zoom is always 1)
+    const canvas_json = JSON.parse(JSON.stringify(canvasInstance.toJSON()));
+
+    // Extract variable mappings (separate from canvas JSON)
+    const objects = canvasInstance.getObjects();
+    const variable_mappings: Record<string, any> = {};
+
+    objects.forEach((obj: any, idx: number) => {
+      if (obj.variableType) {
+        variable_mappings[idx.toString()] = {
+          variableType: obj.variableType,
+          isReusable: obj.isReusable || false,
+        };
+      }
+    });
+
+    // Generate thumbnail
+    const thumbnail_url = canvasInstance.toDataURL({
+      format: 'png',
+      quality: 0.8,
+      multiplier: 0.2, // Small preview (20% of full size)
+    });
+
+    // Restore CSS display dimensions
+    canvasInstance.setDimensions({
+      width: currentWidth,
+      height: currentHeight
+    }, { cssOnly: true });
+    canvasInstance.renderAll();
+
+    // Create surface object
+    const surface: any = {
+      side,
+      canvas_json,
+      variable_mappings,
+      thumbnail_url,
+    };
+
+    // Add address block zone for back page
+    if (side === 'back') {
+      surface.address_block_zone = getAddressBlockZone(currentFormat.id, 'US');
+    }
+
+    return surface;
+  }, [currentFormat]);
+
+  // Save template with DUAL SURFACE support
   const handleSave = useCallback(() => {
-    if (!canvas || !onSave) return;
+    if (!frontCanvas || !backCanvas || !onSave) return;
 
     try {
-      // 🚨 Since we NEVER use setZoom(), canvas is always at zoom=1 and viewport=[1,0,0,1,0,0]
-      // We only need to save current CSS display dimensions, then reset for export
-      const currentWidth = canvas.getWidth();
-      const currentHeight = canvas.getHeight();
+      console.log('💾 [SAVE] Saving DUAL SURFACE template...');
+      console.log('   Format:', currentFormat.name, `(${currentFormat.widthPixels}×${currentFormat.heightPixels})`);
 
-      console.log('💾 [SAVE] Current state:', {
-        zoom: canvas.getZoom(), // Should always be 1
-        viewport: canvas.viewportTransform,
-        cssWidth: currentWidth,
-        cssHeight: currentHeight,
-        logicalWidth: currentFormat.widthPixels,
-        logicalHeight: currentFormat.heightPixels,
+      // Extract FRONT surface
+      console.log('📄 Extracting FRONT surface...');
+      const frontSurface = extractSurfaceData(frontCanvas, 'front');
+      console.log('✅ Front surface extracted:', Object.keys(frontSurface.canvas_json || {}).length, 'objects');
+
+      // Extract BACK surface
+      console.log('📄 Extracting BACK surface...');
+      const backSurface = extractSurfaceData(backCanvas, 'back');
+      console.log('✅ Back surface extracted:', Object.keys(backSurface.canvas_json || {}).length, 'objects');
+
+      // Create surfaces array
+      const surfaces = [frontSurface, backSurface];
+
+      console.log('💾 [SAVE] Surfaces ready:', {
+        frontObjects: frontCanvas.getObjects().length,
+        backObjects: backCanvas.getObjects().length,
+        frontMappings: Object.keys(frontSurface.variable_mappings || {}).length,
+        backMappings: Object.keys(backSurface.variable_mappings || {}).length,
+        hasAddressBlockZone: !!backSurface.address_block_zone,
       });
 
-      // Reset CSS dimensions to full resolution for clean export
-      canvas.setDimensions({
-        width: currentFormat.widthPixels,
-        height: currentFormat.heightPixels
-      }, { cssOnly: true });
-      canvas.renderAll();
-
-      // Get canvas JSON (should have correct coordinates since zoom is always 1)
-      const canvasJSON = JSON.stringify(canvas.toJSON());
-
-      // Extract variable mappings (separate from canvas JSON)
-      const objects = canvas.getObjects();
-      const variableMappings: Record<string, any> = {};
-
-      objects.forEach((obj: any, idx: number) => {
-        if (obj.variableType) {
-          variableMappings[idx.toString()] = {
-            variableType: obj.variableType,
-            isReusable: obj.isReusable || false,
-          };
-        }
-      });
-
-      console.log('💾 [SAVE] Object positions:', objects.map((obj: any) => ({
-        type: obj.type,
-        left: obj.left,
-        top: obj.top,
-        text: obj.type === 'Textbox' ? obj.text : undefined,
-      })));
-
-      // Generate preview image
-      const preview = canvas.toDataURL({
-        format: 'png',
-        quality: 0.8,
-        multiplier: 0.2, // Small preview (20% of full size)
-      });
-
-      // Restore CSS display dimensions (for user to continue editing)
-      canvas.setDimensions({
-        width: currentWidth,
-        height: currentHeight
-      }, { cssOnly: true });
-      canvas.renderAll();
-
-      console.log('💾 [SAVE] Complete - restored display dimensions');
-
+      // Call onSave with BOTH new surfaces array AND backwards-compatible fields
       onSave({
-        canvasJSON,
-        variableMappings,
-        preview,
+        // NEW: Multi-surface architecture
+        surfaces,
+
+        // BACKWARDS COMPATIBLE: Old single-canvas fields (use front surface)
+        canvasJSON: JSON.stringify(frontSurface.canvas_json),
+        variableMappings: frontSurface.variable_mappings,
+        preview: frontSurface.thumbnail_url,
         format: currentFormat,
       });
 
-      toast.success(`Template saved successfully! (${currentFormat.name})`);
+      toast.success(`Template saved with front & back pages! (${currentFormat.name})`);
+      console.log('✅ [SAVE] Complete - dual surface template saved');
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Failed to save template');
     }
-  }, [canvas, onSave, currentFormat]);
+  }, [frontCanvas, backCanvas, onSave, currentFormat, extractSurfaceData]);
 
   // Download as PNG (full 300 DPI)
   const downloadPNG = useCallback(() => {
