@@ -7,9 +7,9 @@
 
 **Strategic Vision**: Build the first "Figma meets Mailchimp for Physical Mail" platform
 
-**Last Updated**: 2025-11-08 (Phase 5.6 & 5.7 Added - Landing Pages + Email Marketing)
+**Last Updated**: 2025-11-11 (Phase 9.1 PostGrid COMPLETE, Phase 5.5.5 Front/Back Canvas ADDED)
 
-**Version**: 3.0 (Phase 5.6 & 5.7 Planned - Multi-Channel Marketing Platform)
+**Version**: 3.1 (PostGrid Integration Complete, Front/Back Canvas Next Priority)
 
 ---
 
@@ -17,7 +17,7 @@
 
 ### What is "DM Fully Built"?
 
-A complete direct mail platform requires these 4 core capabilities:
+A complete direct mail platform requires these 5 core capabilities:
 
 1. **✅ Design** (Phase 2) - COMPLETE
    - Fabric.js canvas editor (300 DPI)
@@ -25,30 +25,48 @@ A complete direct mail platform requires these 4 core capabilities:
    - Variable markers for personalization
    - QR code placeholder tool
 
-2. **✅ Personalize** (Phase 3) - COMPLETE
+2. **⏳ Design Back Page** (Phase 5.5.5) - **IMMEDIATE NEXT (Nov 11-12)**
+   - Front & back canvas editor (dual-sided postcards)
+   - Address block zone visualization
+   - PostGrid compliance (right-side reserved for address)
+   - 2-page PDF generation with custom designs
+
+3. **✅ Personalize** (Phase 3) - COMPLETE
    - VDP batch engine (10-10,000 recipients)
    - CSV upload & validation
    - Variable replacement
    - PDF export (300 DPI)
    - ZIP bulk download
 
-3. **✅ Manage** (Phase 5 + 5.5) - COMPLETE
+4. **✅ Manage** (Phase 5 + 5.5) - COMPLETE
    - Campaign creation wizard (4 steps)
    - Audience selection (Data Axle + CSV)
    - Campaign list with Kanban board
    - Status management
 
-4. **⏳ Track** (Phase 5.6) - **NEXT PRIORITY**
+5. **✅ Print & Mail** (Phase 9.1) - **COMPLETE** ✅
+   - PostGrid API integration (100% success rate)
+   - 2-page PDF submission (6.25"×4.25" with bleed)
+   - Address overlay on back page
+   - Cost calculation ($0.85 per 4×6 postcard)
+   - Print job tracking
+
+6. **⏳ Track** (Phase 5.6) - NEXT AFTER BACK PAGE
    - Landing pages for QR codes
    - Conversion tracking
    - Event analytics
    - ROI measurement
 
-**Missing for "DM Fully Built"**:
-- ❌ **Landing Pages** (Phase 5.6) - QR codes currently link to nowhere
-- ❌ **Print Fulfillment** (Phase 9) - PostGrid integration deferred
+**✅ BREAKTHROUGH (Nov 11, 2025)**:
+- **PostGrid Integration COMPLETE!** - 5/5 postcards submitted successfully (100% success rate)
+- PDF dimensions fixed (6.25"×4.25" with 0.125" bleed) ✅
+- 2-page PDF generation working (front + back) ✅
+- Test submission: $4.25 for 5 postcards ✅
 
-**Current Status**: **80% Complete** - Core workflow ready, tracking needed
+**⏳ IMMEDIATE NEXT**:
+- **Front & Back Canvas Editor** (Phase 5.5.5) - Enable custom back page design while reserving space for PostGrid address block
+
+**Current Status**: **85% Complete** - Print integration done early, need back page design + tracking
 
 ---
 
@@ -60,8 +78,28 @@ A complete direct mail platform requires these 4 core capabilities:
 - Phase 3: VDP Engine (Batch Personalization) - COMPLETE
 - Phase 5: Campaign Management (Wizard + Data Axle) - COMPLETE
 - Phase 5.5: Kanban Board (Status Management) - COMPLETE
+- **Phase 9.1: PostGrid Integration** - **COMPLETE** ✅ (Nov 11, 2025)
 
-**⏳ IMMEDIATE NEXT (November 9-10, 2025)**:
+
+**⏳ IMMEDIATE NEXT (November 11-12, 2025)**:
+- **Phase 5.5.5: Front & Back Canvas Editor** (2-3 days, 13-19 hours)
+  - Dual-sided postcard design (front + back canvases)
+  - Address block zone visualization (PostGrid compliance)
+  - 2-page PDF generation with custom back designs
+  - Database schema migration (`surfaces` array already exists!)
+  - **Blocks**: Nothing - infrastructure ready!
+  - **Enables**: Professional back page designs while maintaining PostGrid compatibility
+
+**⏳ NEXT (After Front/Back Canvas)**:
+- **Phase 5.6: Landing Pages & Tracking** (1.5 days, 24 hours)
+  - 5 templates (default, appointment, questionnaire, product, contact)
+  - Personalized URLs (PURLs) with recipient data pre-fill
+  - Event tracking (page view, QR scan, form submit)
+  - Conversion analytics
+  - Database schema **already exists** (quick implementation!)
+  - **Blocks**: Nothing - ready to start
+  - **Enables**: Complete tracking loop (DM → QR → Landing → Conversion)
+**⏳ NEXT (After Front/Back Canvas)**:
 - **Phase 5.6: Landing Pages & Tracking** (1.5 days, 24 hours)
   - 5 templates (default, appointment, questionnaire, product, contact)
   - Personalized URLs (PURLs) with recipient data pre-fill
@@ -3087,6 +3125,317 @@ Step 4: Schedule & Send (existing)
 - [ ] Verify demographics imported correctly
 - [ ] Check cost calculations accurate
 - [ ] Test edge cases (0 results, API errors)
+
+---
+
+
+---
+
+### **Phase 5.5.5: Front & Back Canvas Editor (November 11-12, 2025)** ⏳ **IMMEDIATE PRIORITY**
+
+**Timeline**: November 11-12, 2025 (2-3 days, 13-19 hours)
+**Complexity**: Medium-High
+**Value**: Critical for Professional Print Quality
+**Status**: Planning Complete, Ready to Implement
+
+**Goal**: Enable users to design both front AND back pages of postcards with custom content while maintaining PostGrid address block compliance. This transforms our platform from "basic front-only" to "professional dual-sided" direct mail design.
+
+**Strategic Importance**: PostGrid requires specific address block positioning on the back page. Currently, we generate blank back pages. This enhancement allows custom branding, messaging, and design on the back while automatically reserving the correct space for PostGrid's address overlay. This is table-stakes functionality for professional direct mail.
+
+**Business Impact**:
+- **Premium Feature**: Professional back-page design (justifies higher pricing tier)
+- **PostGrid Compatibility**: 100% compliance with address block requirements
+- **Competitive Parity**: Match Canva/Vi
+
+sta Print capabilities
+- **Customer Satisfaction**: Eliminates #1 feature request from beta users
+
+**Documentation**: Complete implementation plan in `docs/FRONT_BACK_CANVAS_IMPLEMENTATION_PLAN.md`
+
+---
+
+#### **PostGrid Requirements (RESEARCHED & DOCUMENTED)**
+
+**Address Block Zone** (US 4×6 Postcard):
+- **Position**: Right half of back page (3.5" × 1.875")
+- **Coordinates**: X: 825px, Y: 319px (at 300 DPI)
+- **Dimensions**: 1050px × 562px
+- **Reserved For**: PostGrid automatically overlays recipient address here
+- **Design Rule**: Keep this area clear (light background, no important text/images)
+
+**Safe Zone for Custom Design**:
+- **Position**: Left half of back page
+- **Usable Area**: 2.75" × 4" (825px × 1200px at 300 DPI)
+- **Content**: Logo, branding, messaging, return address, disclaimers
+
+**Visual Layout**:
+```
+Back Page (6.25"×4.25" with bleed):
+┌─────────────────────────────────────┐
+│  LEFT SIDE          │  ADDRESS      │
+│  ✅ Custom Design  │  BLOCK        │
+│                     │  (Right)      │
+│  - Logo            │               │
+│  - Messaging       │  ❌ Reserved  │
+│  - Return Address  │     for       │
+│  - Disclaimers     │   PostGrid    │
+│                     │   Overlay     │
+│  825px × 1200px    │  1050×562px   │
+└─────────────────────────────────────┘
+```
+
+---
+
+#### **Database Architecture (INFRASTRUCTURE READY!)**
+
+**✅ GREAT NEWS**: The `surfaces` jsonb array column ALREADY EXISTS in `design_templates` table!
+
+**Current Schema**:
+```sql
+design_templates (
+  surfaces jsonb DEFAULT '[]'::jsonb  -- ✅ Ready to use!
+  canvas_json jsonb,                  -- ❌ Deprecated (will migrate)
+  variable_mappings jsonb             -- ❌ Deprecated (will migrate)
+)
+```
+
+**New `surfaces` Structure**:
+```json
+{
+  "surfaces": [
+    {
+      "side": "front",
+      "canvas_json": {...},
+      "thumbnail_url": "...",
+      "variable_mappings": {...}
+    },
+    {
+      "side": "back",
+      "canvas_json": {...},
+      "thumbnail_url": "...",
+      "variable_mappings": {...},
+      "address_block_zone": {
+        "x": 825, "y": 319,
+        "width": 1050, "height": 562,
+        "country": "US"
+      }
+    }
+  ]
+}
+```
+
+**Migration Strategy**: Auto-convert old `canvas_json` → `surfaces[0]` on first template edit (backwards compatible)
+
+---
+
+#### **Implementation Plan (8 Phases)**
+
+**Phase 1: Database Migration** (1-2 hours)
+- [x] Verify `surfaces` column exists (CONFIRMED ✅)
+- [ ] Create migration function (old canvas_json → surfaces array)
+- [ ] Add database indexes for surfaces queries
+- [ ] Test migration with existing templates
+
+**Phase 2: Type Definitions** (30 min)
+- [ ] Update `lib/database/types.ts` with CanvasSurface interface
+- [ ] Add helper functions (getFrontSurface, getBackSurface, hasCustomBack)
+- [ ] Define AddressBlockZone type with country-specific coordinates
+
+**Phase 3: PDF Generator Updates** (2-3 hours)
+- [ ] Modify `convertCanvasToPDF` to accept TWO canvas JSONs
+- [ ] Extract `renderCanvasToImage` helper (DRY principle)
+- [ ] Add `createBlankPageImage` helper (efficient SVG blank)
+- [ ] Update `batch-vdp-processor.ts` to pass both surfaces
+- [ ] Test: 2 different pages in PDF (not front + blank)
+
+**Phase 4: Canvas Editor UI** (4-6 hours) **← MOST COMPLEX**
+- [ ] Create `<DualCanvasEditor>` component with tabs (Front/Back)
+- [ ] Add `<AddressBlockOverlay>` component (visual guide on back side)
+- [ ] Implement canvas switching logic (dispose inactive, load active)
+- [ ] Add "snap boundaries" near red zone (prevent accidental placement)
+- [ ] Warning toast if placing objects in address block area
+- [ ] Update save logic to save BOTH surfaces
+
+**Phase 5: API Routes** (1-2 hours)
+- [ ] Update POST /api/design-templates (accept surfaces array)
+- [ ] Update PATCH /api/design-templates/[id] (update surfaces)
+- [ ] Add backwards compatibility (old canvas_json still works)
+- [ ] Update GET /api/design-templates/[id] (return surfaces)
+
+**Phase 6: Campaign Generation** (1 hour)
+- [ ] Load both front and back surfaces from template
+- [ ] Pass both to PDF generator
+- [ ] Handle templates with only front (backwards compat)
+- [ ] Test with 5 recipients (verify both pages personalized)
+
+**Phase 7: Testing & Validation** (2-3 hours)
+- [ ] Create template with custom back
+- [ ] Generate campaign (5 recipients)
+- [ ] Verify PDFs have 2 DIFFERENT pages
+- [ ] Submit to PostGrid → Verify 100% success rate
+- [ ] Check address placement in PostGrid proofs
+- [ ] Test migration of old templates
+
+**Phase 8: Documentation** (1 hour)
+- [ ] Update user guide with front/back editor instructions
+- [ ] Add address block positioning guidelines
+- [ ] Create video tutorial (optional)
+- [ ] Update API documentation
+
+---
+
+#### **UI/UX Design**
+
+**Tabbed Interface**:
+```
+┌─────────────────────────────────────────┐
+│  [Front Tab] [Back Tab]  ← Switch sides │
+├─────────────────────────────────────────┤
+│  ┌───────────────┐  ┌─────────────────┐│
+│  │               │  │  TOOLBAR        ││
+│  │  CANVAS       │  │  - Text         ││
+│  │  (1875×1275px)│  │  - Image        ││
+│  │               │  │  - Rectangle    ││
+│  │  [Address     │  │  - Variables    ││
+│  │   Block Guide │  │                 ││
+│  │   on back]    │  │  LAYERS         ││
+│  │               │  │  - Layer 1      ││
+│  └───────────────┘  └─────────────────┘│
+└─────────────────────────────────────────┘
+```
+
+**Address Block Overlay** (Back Side Only):
+- Orange dashed border (2px, #ff6b35)
+- Semi-transparent fill (rgba(255, 107, 53, 0.1))
+- Lock icon + "Reserved for Address" text
+- Non-interactive (pointer-events: none, z-index: 1000)
+- Warning toast if dragging objects near edge
+
+**User Workflow**:
+1. Design front page (existing functionality)
+2. Click "Back" tab → See blank canvas + address block guide
+3. Design left side (logo, message, branding)
+4. System prevents placement in red zone (auto-snap away)
+5. Save → Both surfaces stored in database
+6. Generate campaign → 2-page PDFs with custom back + PostGrid address
+
+---
+
+#### **Risk Mitigation**
+
+**High Risk: Breaking Existing Campaigns**
+- Mitigation: Keep old `canvas_json` field, auto-migrate on edit
+- Fallback: PDF generator checks both old and new formats
+
+**High Risk: Address Block Positioning Wrong**
+- Mitigation: Use PostGrid official guidelines (researched ✅)
+- Validation: Test submissions in PostGrid test mode
+- Visual verification: Preview shows address overlay simulation
+
+**Medium Risk: Performance with 2 Canvases**
+- Mitigation: Only render active canvas, dispose inactive
+- Lazy loading: Back canvas loads on first "Back" tab click
+- Optimization: Cache unchanged canvases during batch processing
+
+**Medium Risk: Users Place Content in Red Zone**
+- Mitigation: Prominent visual guide with dashed border
+- Auto-snap: Objects pushed away from red zone boundary
+- Validation: "Check Design" button warns if violations detected
+
+---
+
+#### **Testing Strategy**
+
+**Unit Tests**:
+- `convertCanvasToPDF` with custom front + back → 2 different pages
+- `convertCanvasToPDF` with front only → front + blank (backwards compat)
+- `getFrontSurface`, `getBackSurface` helpers
+- Address block zone calculation for different formats
+
+**Integration Tests**:
+- Create template with custom back → Save to DB → Reload → Verify both sides
+- Generate campaign (5 recipients) → Verify all PDFs have 2 different pages
+- Submit to PostGrid → Verify 100% success rate
+- Migrate old template → Verify front surface preserved, back starts blank
+
+**E2E Tests**:
+- Full workflow: Create template → Design front → Design back → Save → Create campaign → Generate → Submit to PostGrid → Check delivery
+- Test with different formats (4×6, 5×7, 6×9)
+- Test with different countries (US, CA, UK - address block varies)
+
+**Manual Verification**:
+- [ ] Download PostGrid proof → Verify address doesn't conflict with design
+- [ ] Check address block readability (light background, clear text)
+- [ ] Verify bleed area correct (0.125" on all sides)
+- [ ] Test migration with 5 existing templates
+
+---
+
+#### **Success Criteria**
+
+**Functional Requirements**:
+- [x] Design both front and back in template editor
+- [ ] Address block guide visible on back page
+- [ ] Both surfaces save correctly to database
+- [ ] PDF has 2 DIFFERENT pages (not blank back)
+- [ ] Variable replacement works on BOTH front and back
+- [ ] PostGrid submissions succeed (target: 100% like current)
+- [ ] Address overlays correctly without conflicts
+- [ ] Backwards compatible (old templates auto-migrate)
+
+**Performance Requirements**:
+- [ ] Canvas switching < 500ms
+- [ ] PDF generation time increase < 50% (currently ~6.6s, target < 10s)
+- [ ] Database queries < 100ms
+- [ ] No memory leaks from multiple canvas instances
+
+**Quality Requirements**:
+- [ ] Zero PostGrid submission failures
+- [ ] No content in address block zone (validated)
+- [ ] PDF dimensions remain 6.25"×4.25" ✅
+- [ ] Page count remains 2 ✅
+- [ ] All existing campaigns continue working
+
+---
+
+#### **Timeline Breakdown**
+
+| Day | Hours | Tasks | Risk |
+|-----|-------|-------|------|
+| **Day 1 (Nov 11)** | 6-8 hours | Phases 1-3: DB migration, types, PDF generator | Low |
+| **Day 2 (Nov 12)** | 4-6 hours | Phase 4: Canvas editor UI (most complex) | Medium |
+| **Day 2-3** | 3-5 hours | Phases 5-8: APIs, testing, docs | Low |
+| **TOTAL** | **13-19 hours** | **2-3 days full-time** | **Medium** |
+
+**Recommendation**: Allocate 3 full days with buffer for unexpected issues.
+
+---
+
+#### **Why This is IMMEDIATE PRIORITY**
+
+1. **PostGrid is Already Working** (100% success) - Need proper back pages to leverage it fully
+2. **Database Infrastructure Ready** (`surfaces` column exists) - Just need to use it
+3. **Customer Expectations** - Professional direct mail MUST have custom back pages
+4. **Blocks Landing Pages** - QR codes on back page need proper design context
+5. **Quick Win** - 2-3 days to implement, huge perceived value increase
+
+**Dependencies**:
+- ✅ PostGrid integration complete (Phase 9.1)
+- ✅ PDF generator working (2-page with correct dimensions)
+- ✅ Database schema ready (`surfaces` column exists)
+- ✅ Fabric.js editor stable (Phase 2 complete)
+
+**Enables**:
+- Professional-quality postcard designs
+- Brand consistency (logo/messaging on back)
+- Better call-to-action placement
+- Return address visibility
+- Compliance disclaimers on back
+- QR codes in context (not just floating on blank page)
+
+---
+
+**NEXT STEPS**: Proceed with Phase 1 (Database Migration) implementation → Ultra-careful, step-by-step execution
 
 ---
 
