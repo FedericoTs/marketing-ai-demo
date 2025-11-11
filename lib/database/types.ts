@@ -179,6 +179,19 @@ export type SurfaceType =
   | 'panel-5'
   | 'panel-6';
 
+/**
+ * PostGrid Address Block Zone
+ * Defines the reserved area on back page where PostGrid overlays recipient address
+ * Position varies by country and format
+ */
+export interface AddressBlockZone {
+  x: number; // Left coordinate in pixels (at 300 DPI)
+  y: number; // Top coordinate in pixels (at 300 DPI)
+  width: number; // Width in pixels (at 300 DPI)
+  height: number; // Height in pixels (at 300 DPI)
+  country: 'US' | 'CA' | 'UK' | 'EU'; // Postal country (affects position)
+}
+
 export interface DesignSurface {
   side: SurfaceType;
   canvas_json: Record<string, any>; // Fabric.js toJSON() output for this surface
@@ -187,6 +200,9 @@ export interface DesignSurface {
     isReusable: boolean;
   }>;
   thumbnail_url?: string | null;
+
+  // PostGrid Address Block (back page only)
+  address_block_zone?: AddressBlockZone;
 }
 
 export interface DesignTemplate {
@@ -617,6 +633,10 @@ export interface CampaignWizardState {
   campaignName: string;
   campaignDescription: string;
 
+  // Landing Page Configuration (Optional)
+  includeLandingPage: boolean;
+  landingPageConfig: LandingPageConfig;
+
   // Current step (1-4)
   currentStep: number;
 }
@@ -725,3 +745,73 @@ export type QueryArrayResult<T> = {
   error: Error | null;
   count?: number | null;
 };
+
+// ============================================================================
+// HELPER FUNCTIONS - Multi-Surface Templates
+// ============================================================================
+
+/**
+ * Get the front surface from a template
+ * Returns undefined if template has no front surface
+ */
+export function getFrontSurface(template: DesignTemplate): DesignSurface | undefined {
+  return template.surfaces?.find(s => s.side === 'front');
+}
+
+/**
+ * Get the back surface from a template
+ * Returns undefined if template has no back surface
+ */
+export function getBackSurface(template: DesignTemplate): DesignSurface | undefined {
+  return template.surfaces?.find(s => s.side === 'back');
+}
+
+/**
+ * Check if template has a custom back page design
+ * Returns true if template has a back surface with custom canvas
+ */
+export function hasCustomBack(template: DesignTemplate): boolean {
+  const backSurface = getBackSurface(template);
+  return backSurface !== undefined && Object.keys(backSurface.canvas_json || {}).length > 0;
+}
+
+/**
+ * Get address block zone for a specific format and country
+ * Used for PostGrid postcard back page compliance
+ */
+export function getAddressBlockZone(
+  formatType: string,
+  country: 'US' | 'CA' | 'UK' | 'EU' = 'US'
+): AddressBlockZone {
+  // US 4×6 Postcard (most common)
+  if (formatType === 'postcard_4x6') {
+    return {
+      x: 825,     // 2.75" at 300 DPI (right half starts)
+      y: 319,     // 1.0625" at 300 DPI (vertical center)
+      width: 1050, // 3.5" at 300 DPI (right half width)
+      height: 562, // 1.875" at 300 DPI (address block height)
+      country
+    };
+  }
+
+  // US 6×9 Postcard
+  if (formatType === 'postcard_6x9') {
+    return {
+      x: 1350,    // 4.5" at 300 DPI
+      y: 525,     // 1.75" at 300 DPI
+      width: 1275, // 4.25" at 300 DPI
+      height: 750, // 2.5" at 300 DPI
+      country
+    };
+  }
+
+  // Default: assume right half for unknown formats
+  console.warn(`Address block zone not defined for format: ${formatType}, using default`);
+  return {
+    x: 825,
+    y: 319,
+    width: 1050,
+    height: 562,
+    country
+  };
+}
