@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -78,30 +78,75 @@ export function Step3Mapping({
   const [localMappings, setLocalMappings] = useState<VariableMapping[]>(variableMappings);
   const [hasAutoSuggested, setHasAutoSuggested] = useState(false);
 
-  // Extract template variables from template.variable_mappings + canvas_json
-  const templateVariables = selectedTemplate?.variable_mappings
-    ? Object.entries(selectedTemplate.variable_mappings).map(([idx, mapping]: [string, any]) => {
-        // Get the actual text content from canvas_json for this index
+  // Extract template variables from ALL surfaces (front + back)
+  const templateVariables = useMemo(() => {
+    if (!selectedTemplate) return [];
+
+    const allVariables: Array<{
+      id: string;
+      templateVariable: string;
+      variableType: string;
+      isReusable: boolean;
+      surface: string; // 'front' or 'back'
+    }> = [];
+
+    // DUAL SURFACE MODE: Extract from template.surfaces[]
+    if (selectedTemplate.surfaces && selectedTemplate.surfaces.length > 0) {
+      selectedTemplate.surfaces.forEach((surface: any) => {
+        const surfaceSide = surface.side || 'unknown';
+        const surfaceMappings = surface.variable_mappings || {};
+        const surfaceCanvas = surface.canvas_json;
+
+        Object.entries(surfaceMappings).forEach(([idx, mapping]: [string, any]) => {
+          // Get the actual text content from canvas_json for this index
+          const canvasObject = surfaceCanvas?.objects?.[parseInt(idx)];
+          let displayName = mapping.variableType || `variable_${idx}`;
+
+          // If this is a text object, extract the variable name from {variableName}
+          if (canvasObject?.type === 'Textbox' && canvasObject?.text) {
+            const textContent = canvasObject.text;
+            const match = textContent.match(/\{([^}]+)\}/);
+            if (match) {
+              displayName = match[1]; // Extract "firstname" from "{firstname}"
+            }
+          }
+
+          allVariables.push({
+            id: `${surfaceSide}_${idx}`, // Unique ID per surface
+            templateVariable: displayName,
+            variableType: mapping.variableType || 'text',
+            isReusable: mapping.isReusable || false,
+            surface: surfaceSide,
+          });
+        });
+      });
+    }
+    // LEGACY SINGLE SURFACE MODE: Extract from template.variable_mappings
+    else if (selectedTemplate.variable_mappings) {
+      Object.entries(selectedTemplate.variable_mappings).forEach(([idx, mapping]: [string, any]) => {
         const canvasObject = selectedTemplate.canvas_json?.objects?.[parseInt(idx)];
         let displayName = mapping.variableType || `variable_${idx}`;
 
-        // If this is a text object, extract the variable name from {variableName}
         if (canvasObject?.type === 'Textbox' && canvasObject?.text) {
           const textContent = canvasObject.text;
           const match = textContent.match(/\{([^}]+)\}/);
           if (match) {
-            displayName = match[1]; // Extract "firstname" from "{firstname}"
+            displayName = match[1];
           }
         }
 
-        return {
+        allVariables.push({
           id: idx,
           templateVariable: displayName,
           variableType: mapping.variableType || 'text',
           isReusable: mapping.isReusable || false,
-        };
-      })
-    : [];
+          surface: 'front', // Legacy templates are single-sided
+        });
+      });
+    }
+
+    return allVariables;
+  }, [selectedTemplate]);
 
   // Filter out:
   // 1. Reusable variables (logo, message) - don't need mapping
@@ -256,6 +301,16 @@ export function Step3Mapping({
                         <span className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
                           {variable.variableType}
                         </span>
+                        {variable.surface && (
+                          <span className={cn(
+                            "text-xs px-2 py-0.5 rounded font-medium",
+                            variable.surface === 'front'
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-purple-100 text-purple-700"
+                          )}>
+                            {variable.surface === 'front' ? '📄 Front' : '📄 Back'}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-slate-600 mt-1">
                         Will be personalized for each recipient

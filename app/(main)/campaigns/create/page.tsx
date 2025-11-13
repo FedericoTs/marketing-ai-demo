@@ -9,7 +9,7 @@ import { Step2Audience } from '@/components/campaigns/wizard-steps/step2-audienc
 import { Step3Mapping } from '@/components/campaigns/wizard-steps/step3-mapping';
 import { Step4Review } from '@/components/campaigns/wizard-steps/step4-review';
 import { toast } from 'sonner';
-import type { CampaignWizardState, DesignTemplate, RecipientList, VariableMapping } from '@/lib/database/types';
+import type { CampaignWizardState, DesignTemplate, RecipientList, VariableMapping, LandingPageConfig } from '@/lib/database/types';
 
 export default function CampaignCreatePage() {
   const router = useRouter();
@@ -21,6 +21,18 @@ export default function CampaignCreatePage() {
     campaignName: '',
     campaignDescription: '',
     currentStep: 1,
+    // Landing Page Configuration (Optional)
+    includeLandingPage: false,
+    landingPageConfig: {
+      template_type: 'default',
+      headline: '',
+      subheadline: '',
+      ctaText: '',
+      ctaUrl: '',
+      primary_color: '#3B82F6',
+      secondary_color: '#8B5CF6',
+      background_color: '#FFFFFF',
+    },
   });
 
   // Navigate to specific step (only allow going back)
@@ -78,6 +90,14 @@ export default function CampaignCreatePage() {
     setWizardState((prev) => ({ ...prev, campaignDescription: description }));
   };
 
+  const handleIncludeLandingPageChange = (enabled: boolean) => {
+    setWizardState((prev) => ({ ...prev, includeLandingPage: enabled }));
+  };
+
+  const handleLandingPageConfigChange = (config: LandingPageConfig) => {
+    setWizardState((prev) => ({ ...prev, landingPageConfig: config }));
+  };
+
   const handleCampaignLaunch = async () => {
     if (!wizardState.selectedTemplate || !wizardState.selectedRecipientList) {
       toast.error('Missing required data');
@@ -104,6 +124,9 @@ export default function CampaignCreatePage() {
         variableMappingsSnapshot: wizardState.variableMappings,
         totalRecipients: wizardState.selectedRecipientList.total_recipients,
         status: 'draft',
+        // Landing page configuration (optional)
+        includeLandingPage: wizardState.includeLandingPage,
+        landingPageConfig: wizardState.includeLandingPage ? wizardState.landingPageConfig : undefined,
       }),
     });
 
@@ -168,8 +191,12 @@ export default function CampaignCreatePage() {
             variableMappings={wizardState.variableMappings}
             campaignName={wizardState.campaignName}
             campaignDescription={wizardState.campaignDescription}
+            includeLandingPage={wizardState.includeLandingPage}
+            landingPageConfig={wizardState.landingPageConfig}
             onCampaignNameChange={handleCampaignNameChange}
             onCampaignDescriptionChange={handleCampaignDescriptionChange}
+            onIncludeLandingPageChange={handleIncludeLandingPageChange}
+            onLandingPageConfigChange={handleLandingPageConfigChange}
             onLaunch={handleCampaignLaunch}
             onBack={handleStep4Back}
           />

@@ -13,11 +13,16 @@ export interface DetectedVariable {
 }
 
 /**
- * Regex pattern to match {variableName}
+ * Regex pattern to match {variableName} or {{variableName}}
  * Supports: letters, numbers, underscores
- * Examples: {firstName}, {last_name}, {age123}
+ * Examples: {firstName}, {{firstName}}, {last_name}, {{age123}}
+ *
+ * Pattern breakdown:
+ * - \{?\{ - matches { or {{
+ * - ([a-zA-Z0-9_]+) - captures variable name
+ * - \}\}? - matches } or }}
  */
-const VARIABLE_PATTERN = /\{([a-zA-Z0-9_]+)\}/g;
+const VARIABLE_PATTERN = /\{?\{([a-zA-Z0-9_]+)\}\}?/g;
 
 /**
  * Parse text and detect all {variable} patterns

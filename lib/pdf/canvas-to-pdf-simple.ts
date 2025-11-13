@@ -85,7 +85,7 @@ async function downloadCanvasImages(canvasJSON: any): Promise<any> {
 /**
  * Create HTML with Fabric.js - uses ORIGINAL template, not personalized JSON
  */
-function createHTML(templateJSON: string, recipientData: any, width: number, height: number): string {
+function createHTML(templateJSON: string, recipientData: any, width: number, height: number, variableMappings?: any[]): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -99,12 +99,25 @@ function createHTML(templateJSON: string, recipientData: any, width: number, hei
     window.renderComplete = false;
     window.renderError = null;
 
-    const recipientData = ${JSON.stringify(recipientData)};
+    // CRITICAL: Declare variables outside try-catch for function scope
+    let recipientData;
+    let variableMappings;
+
+    try {
+      recipientData = ${JSON.stringify(recipientData)};
+      variableMappings = ${JSON.stringify(variableMappings || [])};
+    } catch (err) {
+      console.error('❌ [Browser] Failed to parse data:', err);
+      window.renderError = 'Failed to parse data: ' + err.message;
+      throw err;
+    }
 
     function loadFabric() {
       return new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js';
+        // CRITICAL: Use Fabric v6 to match editor version (package.json: ^6.7.1)
+        // v5 cannot deserialize v6 JSON format → 0 objects loaded!
+        s.src = 'https://cdn.jsdelivr.net/npm/fabric@6.7.1/dist/index.min.js';
         s.onload = resolve;
         s.onerror = () => {
           window.renderError = 'Failed to load Fabric.js';
@@ -117,59 +130,117 @@ function createHTML(templateJSON: string, recipientData: any, width: number, hei
     async function render() {
       try {
         await loadFabric();
-        console.log('Fabric loaded');
 
+        // Fabric v6: Use Canvas class from fabric namespace
         const canvas = new fabric.Canvas('canvas', {
           width: ${width},
           height: ${height},
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          renderOnAddRemove: false, // v6: Manual render control
         });
 
         const templateJSON = ${templateJSON};
 
-        await new Promise((resolve, reject) => {
-          canvas.loadFromJSON(templateJSON, () => {
-            console.log('Template loaded, personalizing...');
+        // Fabric v6: loadFromJSON() returns a Promise - await it directly
+        // DO NOT use callback pattern (callbacks fire before objects load in v6)
+        await canvas.loadFromJSON(templateJSON);
 
-            // Personalize text objects (support both {var} and {{var}} syntax)
-            canvas.getObjects().forEach(obj => {
-              if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text') {
-                let text = obj.text || '';
+        // Personalize text objects (support both {var} and {{var}} syntax)
+        let textObjectCount = 0;
+        let replacementCount = 0;
 
-                // Replace placeholders - support both single and double braces
-                text = text.replace(/\\{\\{?firstName\\}?\\}/g, recipientData.name || recipientData.firstName || '');
-                text = text.replace(/\\{\\{?name\\}?\\}/g, recipientData.name || '');
-                text = text.replace(/\\{\\{?lastName\\}?\\}/g, recipientData.lastname || recipientData.lastName || '');
-                text = text.replace(/\\{\\{?lastname\\}?\\}/g, recipientData.lastname || '');
-                text = text.replace(/\\{\\{?fullName\\}?\\}/g,
-                  (recipientData.name || recipientData.firstName || '') + ' ' + (recipientData.lastname || recipientData.lastName || ''));
-                text = text.replace(/\\{\\{?address\\}?\\}/g, recipientData.address || '');
-                text = text.replace(/\\{\\{?addressLine1\\}?\\}/g, recipientData.address || recipientData.addressLine1 || '');
-                text = text.replace(/\\{\\{?city\\}?\\}/g, recipientData.city || '');
-                text = text.replace(/\\{\\{?zip\\}?\\}/g, recipientData.zip || recipientData.zipCode || '');
-                text = text.replace(/\\{\\{?state\\}?\\}/g, recipientData.state || '');
+        canvas.getObjects().forEach((obj, idx) => {
+          if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text') {
+            textObjectCount++;
+            const originalText = obj.text || '';
+            let text = originalText;
 
-                obj.set({ text });
+            // DYNAMIC VARIABLE REPLACEMENT (mapping-based, not hardcoded)
+            // User defines: {address} → "address_line1" via UI
+            // We replace: {address} with recipientData.address_line1
+
+            if (variableMappings && variableMappings.length > 0) {
+              // Use user-defined mappings (Step 3 of campaign wizard)
+              variableMappings.forEach((mapping) => {
+                if (!mapping.templateVariable || !mapping.recipientField) return;
+
+                // Escape special regex characters in variable name (simplified - no square brackets in variable names)
+                // CRITICAL: Double-escape backslashes for template literal → HTML → JavaScript
+                const escapedVar = mapping.templateVariable
+                  .replace(/\\\\/g, '\\\\\\\\')    // Backslash: \\\\ in template literal → \\ in HTML → \ in regex
+                  .replace(/\\./g, '\\\\.')        // Dot: \\. in template literal → \. in HTML
+                  .replace(/\\*/g, '\\\\*')        // Asterisk
+                  .replace(/\\+/g, '\\\\+')        // Plus
+                  .replace(/\\?/g, '\\\\?')        // Question mark
+                  .replace(/\\^/g, '\\\\^')        // Caret
+                  .replace(/\\$/g, '\\\\$')        // Dollar
+                  .replace(/\\{/g, '\\\\{')        // Left brace
+                  .replace(/\\}/g, '\\\\}')        // Right brace
+                  .replace(/\\(/g, '\\\\(')        // Left paren
+                  .replace(/\\)/g, '\\\\)')        // Right paren
+                  .replace(/\\|/g, '\\\\|');       // Pipe
+
+                // Match {var} or {{var}} (case-insensitive)
+                const pattern = new RegExp(\`\\\\{\\\\{?\${escapedVar}\\\\}?\\\\}\`, 'gi');
+
+                // Get value from recipientData using the mapped field
+                const value = recipientData[mapping.recipientField] || '';
+
+                // Replace all occurrences
+                text = text.replace(pattern, value);
+              });
+            } else {
+              // FALLBACK: No mappings provided, use intelligent auto-detection
+              // This handles templates created without variable mapping step
+              text = text.replace(/\\{\\{?firstName\\}?\\}/gi, recipientData.name || recipientData.firstName || recipientData.first_name || '');
+              text = text.replace(/\\{\\{?name\\}?\\}/gi, recipientData.name || recipientData.first_name || '');
+              text = text.replace(/\\{\\{?lastName\\}?\\}/gi, recipientData.lastname || recipientData.lastName || recipientData.last_name || '');
+              text = text.replace(/\\{\\{?lastname\\}?\\}/gi, recipientData.lastname || recipientData.last_name || '');
+              text = text.replace(/\\{\\{?address\\}?\\}/gi, recipientData.address || recipientData.address_line1 || '');
+              text = text.replace(/\\{\\{?city\\}?\\}/gi, recipientData.city || '');
+              text = text.replace(/\\{\\{?zip\\}?\\}/gi, recipientData.zip || recipientData.zip_code || '');
+              text = text.replace(/\\{\\{?phone\\}?\\}/gi, recipientData.phone || '');
+            }
+
+            if (text !== originalText) {
+              replacementCount++;
+
+              // Update text
+              obj.set({ text });
+
+              // CRITICAL: Clear purple chip styling from variable ranges
+              // Fabric.js stores character-level styles separately from text
+              // Reset to default black text with no background
+              if (text.length > 0) {
+                obj.setSelectionStyles(
+                  {
+                    fill: '#000000',           // Default black text
+                    textBackgroundColor: '',   // Remove purple background
+                  },
+                  0,
+                  text.length
+                );
               }
-            });
-
-            canvas.renderAll();
-            console.log('✅ Personalized and rendered');
-            window.renderComplete = true;
-            resolve();
-          }, (err) => {
-            console.error('Load error:', err);
-            window.renderError = 'Load failed: ' + (err && err.message ? err.message : String(err));
-            reject(err);
-          });
+            }
+          }
         });
+
+        canvas.renderAll();
+
+        // Signal that rendering is complete
+        window.renderComplete = true;
       } catch (err) {
-        console.error('Render error:', err);
+        console.error('❌ [Browser] Render error:', err);
+        console.error('❌ [Browser] Error stack:', err.stack);
         window.renderError = err.message || 'Render failed';
       }
     }
 
-    render();
+    // Start rendering
+    render().catch(err => {
+      console.error('❌ [Browser] Unhandled render error:', err);
+      window.renderError = err.message || 'Unhandled render error';
+    });
   </script>
 </body>
 </html>`
@@ -203,10 +274,17 @@ export interface PDFResult {
  */
 async function renderCanvasToImage(
   canvasJSON: any,
-  recipientData: { name?: string; lastname?: string; address?: string; city?: string; zip?: string },
+  recipientData: {
+    // Legacy fields
+    name?: string; lastname?: string; address?: string; city?: string; zip?: string;
+    // Database schema fields
+    first_name?: string; last_name?: string; email?: string; phone?: string;
+    address_line1?: string; address_line2?: string; state?: string; zip_code?: string; country?: string;
+  },
   width: number,
   height: number,
-  browser: Browser
+  browser: Browser,
+  variableMappings?: any[]  // User-defined variable mappings (templateVariable → recipientField)
 ): Promise<string> {
   const page = await browser.newPage()
 
@@ -222,13 +300,17 @@ async function renderCanvasToImage(
 
     // Create HTML with Fabric.js canvas
     const templateString = JSON.stringify(processedTemplate)
-    const html = createHTML(templateString, recipientData, width, height)
+    const html = createHTML(templateString, recipientData, width, height, variableMappings)
 
-    // Forward browser console
+    // Forward browser console for error logging
     page.on('console', msg => {
-      const text = msg.text()
-      if (msg.type() === 'error') console.error(`  [Browser] ${text}`)
-      else console.log(`  [Browser] ${text}`)
+      const type = msg.type()
+      if (type === 'error') console.error(`  [Browser] ${msg.text()}`)
+    })
+
+    // Forward page errors (JavaScript errors that don't go to console)
+    page.on('pageerror', error => {
+      console.error(`  [Browser] Error: ${error.message}`)
     })
 
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 })
@@ -290,9 +372,16 @@ function createBlankPageImage(width: number, height: number): string {
 export async function convertCanvasToPDF(
   frontCanvasJSON: any,
   backCanvasJSON: any | null | { name?: string; lastname?: string },  // null OR recipientData (for backwards compat)
-  recipientData: { name?: string; lastname?: string; address?: string; city?: string; zip?: string } | string,  // recipientData OR formatType
+  recipientData: {
+    // Legacy fields
+    name?: string; lastname?: string; address?: string; city?: string; zip?: string;
+    // Database schema fields
+    first_name?: string; last_name?: string; email?: string; phone?: string;
+    address_line1?: string; address_line2?: string; state?: string; zip_code?: string; country?: string;
+  } | string,  // recipientData OR formatType (for backwards compat)
   formatType?: string,
-  fileName: string = 'design'
+  fileName: string = 'design',
+  variableMappings?: any[]  // Variable mappings from campaign (templateVariable → recipientField)
 ): Promise<PDFResult> {
   // BACKWARDS COMPATIBILITY DETECTION
   // Old signature: (canvasJSON, recipientData, formatType, fileName)
@@ -342,7 +431,8 @@ export async function convertCanvasToPDF(
       actualRecipientData,
       format.widthPixels,
       format.heightPixels,
-      browser
+      browser,
+      variableMappings  // Pass variable mappings for dynamic replacement
     )
     console.log('✅ [PDF] Front page rendered')
 
@@ -355,7 +445,8 @@ export async function convertCanvasToPDF(
         actualRecipientData,
         format.widthPixels,
         format.heightPixels,
-        browser
+        browser,
+        variableMappings  // Pass variable mappings for back page too
       )
       console.log('✅ [PDF] Custom back page rendered')
     } else {

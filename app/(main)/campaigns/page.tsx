@@ -119,8 +119,7 @@ export default function CampaignsPage() {
   };
 
   const handleViewCampaign = (campaignId: string) => {
-    // TODO: Navigate to campaign detail page
-    console.log('View campaign:', campaignId);
+    router.push(`/campaigns/${campaignId}`);
   };
 
   const handleStatusChange = async (campaignId: string, newStatus: string) => {

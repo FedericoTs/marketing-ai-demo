@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
-import {
-  getCampaignById,
-  updateCampaign,
-  deleteCampaign,
-  duplicateCampaign,
-} from "@/lib/database/tracking-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 import { createServiceClient, createClient } from '@/lib/supabase/server';
 
 // GET: Get campaign details by ID
+// Uses ONLY Supabase database
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -16,15 +11,44 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const campaign = getCampaignById(id);
+    console.log('📋 [Campaign GET] Fetching campaign from Supabase:', id);
 
-    if (!campaign) {
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error('❌ [Campaign GET] Auth error:', authError);
       return NextResponse.json(
-        errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
-        { status: 404 }
+        errorResponse("Unauthorized", "UNAUTHORIZED"),
+        { status: 401 }
       );
     }
 
+    console.log('✅ [Campaign GET] User authenticated:', user.id);
+
+    // Fetch campaign using service client (bypasses RLS)
+    const serviceClient = createServiceClient();
+    const { data: campaign, error: fetchError } = await serviceClient
+      .from('campaigns')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        console.warn('⚠️  [Campaign GET] Campaign not found:', id);
+        return NextResponse.json(
+          errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
+          { status: 404 }
+        );
+      }
+
+      console.error('❌ [Campaign GET] Supabase error:', fetchError);
+      throw fetchError;
+    }
+
+    console.log('✅ [Campaign GET] Campaign fetched successfully:', id);
     return NextResponse.json(successResponse(campaign));
   } catch (error) {
     console.error("❌ [Campaign GET] Error:", error);
@@ -36,7 +60,7 @@ export async function GET(
 }
 
 // PATCH: Update campaign (name, message, status)
-// Supports both SQLite (legacy) and Supabase (new) databases
+// Uses ONLY Supabase database
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -46,11 +70,8 @@ export async function PATCH(
     const body = await request.json();
     const { name, message, status } = body;
 
-    // Validate status if provided (supports both old and new status values)
-    const validStatuses = [
-      'active', 'paused', 'completed', // Old SQLite statuses
-      'draft', 'scheduled', 'sending', 'sent', 'failed' // New Supabase statuses
-    ];
+    // Validate status if provided
+    const validStatuses = ['draft', 'scheduled', 'sending', 'sent', 'paused', 'completed', 'failed'];
 
     if (status && !validStatuses.includes(status)) {
       return NextResponse.json(
@@ -64,56 +85,51 @@ export async function PATCH(
 
     console.log('🔄 [Campaign PATCH] Updating campaign:', id, { name, message, status });
 
-    // Try Supabase first (new database)
-    try {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      if (user) {
-        // Use Supabase
-        const serviceClient = createServiceClient();
-        const updateData: any = { updated_at: new Date().toISOString() };
-
-        if (name !== undefined) updateData.name = name;
-        if (message !== undefined) updateData.description = message; // Note: message → description
-        if (status !== undefined) updateData.status = status;
-
-        const { data: campaign, error: updateError } = await serviceClient
-          .from('campaigns')
-          .update(updateData)
-          .eq('id', id)
-          .select('*')
-          .single();
-
-        if (updateError) {
-          console.error('Supabase update error:', updateError);
-          throw updateError;
-        }
-
-        console.log('✅ [Campaign PATCH] Campaign updated successfully (Supabase):', id);
-        return NextResponse.json(
-          successResponse(campaign, "Campaign updated successfully")
-        );
-      }
-    } catch (supabaseError) {
-      console.log('Supabase update failed, falling back to SQLite:', supabaseError);
-    }
-
-    // Fallback to SQLite (legacy database)
-    const updated = updateCampaign(id, { name, message, status });
-
-    if (!updated) {
-      console.warn('⚠️  [Campaign PATCH] Campaign not found:', id);
+    if (authError || !user) {
+      console.error('❌ [Campaign PATCH] Auth error:', authError);
       return NextResponse.json(
-        errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
-        { status: 404 }
+        errorResponse("Unauthorized", "UNAUTHORIZED"),
+        { status: 401 }
       );
     }
 
-    console.log('✅ [Campaign PATCH] Campaign updated successfully (SQLite):', id);
+    console.log('✅ [Campaign PATCH] User authenticated:', user.id);
 
+    // Update campaign using service client (bypasses RLS)
+    const serviceClient = createServiceClient();
+    const updateData: any = { updated_at: new Date().toISOString() };
+
+    if (name !== undefined) updateData.name = name;
+    if (message !== undefined) updateData.description = message; // Note: message → description
+    if (status !== undefined) updateData.status = status;
+
+    const { data: campaign, error: updateError } = await serviceClient
+      .from('campaigns')
+      .update(updateData)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      if (updateError.code === 'PGRST116') {
+        console.warn('⚠️  [Campaign PATCH] Campaign not found:', id);
+        return NextResponse.json(
+          errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
+          { status: 404 }
+        );
+      }
+
+      console.error('❌ [Campaign PATCH] Supabase error:', updateError);
+      throw updateError;
+    }
+
+    console.log('✅ [Campaign PATCH] Campaign updated successfully:', id);
     return NextResponse.json(
-      successResponse(updated, "Campaign updated successfully")
+      successResponse(campaign, "Campaign updated successfully")
     );
   } catch (error) {
     console.error("❌ [Campaign PATCH] Error:", error);
@@ -125,6 +141,7 @@ export async function PATCH(
 }
 
 // DELETE: Delete campaign
+// Uses ONLY Supabase database
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -132,28 +149,60 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const campaign = getCampaignById(id);
-    if (!campaign) {
+    console.log('🗑️ [Campaign DELETE] Deleting campaign:', id);
+
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error('❌ [Campaign DELETE] Auth error:', authError);
       return NextResponse.json(
-        errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
-        { status: 404 }
+        errorResponse("Unauthorized", "UNAUTHORIZED"),
+        { status: 401 }
       );
     }
 
-    const deleted = deleteCampaign(id);
+    console.log('✅ [Campaign DELETE] User authenticated:', user.id);
 
-    if (!deleted) {
-      return NextResponse.json(
-        errorResponse("Failed to delete campaign", "DELETE_ERROR"),
-        { status: 500 }
-      );
+    // First, fetch the campaign to get its name for success message
+    const serviceClient = createServiceClient();
+    const { data: campaign, error: fetchError } = await serviceClient
+      .from('campaigns')
+      .select('name')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        console.warn('⚠️  [Campaign DELETE] Campaign not found:', id);
+        return NextResponse.json(
+          errorResponse("Campaign not found", "CAMPAIGN_NOT_FOUND"),
+          { status: 404 }
+        );
+      }
+
+      console.error('❌ [Campaign DELETE] Supabase fetch error:', fetchError);
+      throw fetchError;
     }
 
+    // Delete the campaign
+    const { error: deleteError } = await serviceClient
+      .from('campaigns')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('❌ [Campaign DELETE] Supabase delete error:', deleteError);
+      throw deleteError;
+    }
+
+    console.log('✅ [Campaign DELETE] Campaign deleted successfully:', id);
     return NextResponse.json(
       successResponse(null, `Campaign "${campaign.name}" deleted successfully`)
     );
   } catch (error) {
-    console.error("Error deleting campaign:", error);
+    console.error("❌ [Campaign DELETE] Error:", error);
     return NextResponse.json(
       errorResponse("Failed to delete campaign", "DELETE_ERROR"),
       { status: 500 }

@@ -61,11 +61,13 @@ export interface CanvasEditorProps {
     variableMappings: Record<string, any>;
     preview: string;
     format: PrintFormat;
+    surfaces?: any[]; // NEW: Multi-surface support (front + back)
   }) => void;
   initialData?: {
     canvasJSON?: string;
     variableMappings?: Record<string, any>;
     format?: PrintFormat;
+    surfaces?: any[]; // NEW: Multi-surface support for loading templates
   };
   templateName?: string;
   templateDescription?: string;
@@ -119,6 +121,12 @@ export function CanvasEditor({
   const [showAssetLibrary, setShowAssetLibrary] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false); // Toggle for showing/hiding variable chip styling
+  const [currentScale, setCurrentScale] = useState<number>(1); // Track current canvas scale for zoom display
+
+  // Pan/zoom navigation state (Adobe XD/Figma style)
+  const canvasViewportRef = useRef<HTMLDivElement>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
   // Keep ref in sync with state (avoid stale closures)
   useEffect(() => {
@@ -265,9 +273,10 @@ export function CanvasEditor({
 
           // Apply variable mappings (try surfaces[0] first, fallback to old variableMappings)
           const frontMappings = initialData?.surfaces?.[0]?.variable_mappings || initialData?.variableMappings;
-          if (frontMappings) {
-            console.log('🏷️ Applying variable mappings to FRONT canvas...');
-            const objects = fabricFrontCanvas.getObjects();
+          const objects = fabricFrontCanvas.getObjects();
+
+          if (frontMappings && Object.keys(frontMappings).length > 0) {
+            console.log('🏷️ Applying stored variable mappings to FRONT canvas...');
             Object.entries(frontMappings).forEach(([idx, mapping]: [string, any]) => {
               const index = parseInt(idx);
               if (objects[index]) {
@@ -291,9 +300,41 @@ export function CanvasEditor({
                 }
               }
             });
-            fabricFrontCanvas.renderAll();
-            console.log('✅ Variable mappings applied to FRONT canvas');
           }
+
+          // CRITICAL: Also scan all text objects for {variables} to detect any variables
+          // that weren't stored in mappings (e.g., templates created before variable tracking)
+          console.log('🔍 Scanning FRONT canvas text objects for variables...');
+          objects.forEach((obj: any) => {
+            if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text') {
+              const textContent = obj.text || '';
+              if (hasVariables(textContent)) {
+                const fieldNames = extractFieldNames(textContent);
+                console.log(`   Found variables in text object:`, fieldNames);
+
+                // Set variable type and field names
+                obj.set({
+                  variableType: 'custom',
+                  variableFieldNames: fieldNames,
+                  isReusable: false,
+                  borderColor: VARIABLE_MARKER_STYLES.borderColor,
+                  borderScaleFactor: VARIABLE_MARKER_STYLES.borderWidth,
+                  borderDashArray: VARIABLE_MARKER_STYLES.borderDashArray,
+                  cornerColor: VARIABLE_MARKER_STYLES.cornerColor,
+                  cornerSize: VARIABLE_MARKER_STYLES.cornerSize,
+                  transparentCorners: VARIABLE_MARKER_STYLES.transparentCorners,
+                });
+
+                // Apply chip styling to variable text
+                if (!isPreviewMode) {
+                  applyVariableChipStyling(obj);
+                }
+              }
+            }
+          });
+
+          fabricFrontCanvas.renderAll();
+          console.log('✅ Variable detection complete for FRONT canvas');
         });
       }
 
@@ -324,9 +365,10 @@ export function CanvasEditor({
 
           // Apply variable mappings to back canvas
           const backMappings = initialData?.surfaces?.[1]?.variable_mappings;
-          if (backMappings) {
-            console.log('🏷️ Applying variable mappings to BACK canvas...');
-            const objects = fabricBackCanvas.getObjects();
+          const objects = fabricBackCanvas.getObjects();
+
+          if (backMappings && Object.keys(backMappings).length > 0) {
+            console.log('🏷️ Applying stored variable mappings to BACK canvas...');
             Object.entries(backMappings).forEach(([idx, mapping]: [string, any]) => {
               const index = parseInt(idx);
               if (objects[index]) {
@@ -349,9 +391,41 @@ export function CanvasEditor({
                 }
               }
             });
-            fabricBackCanvas.renderAll();
-            console.log('✅ Variable mappings applied to BACK canvas');
           }
+
+          // CRITICAL: Also scan all text objects for {variables} to detect any variables
+          // that weren't stored in mappings (e.g., templates created before variable tracking)
+          console.log('🔍 Scanning BACK canvas text objects for variables...');
+          objects.forEach((obj: any) => {
+            if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text') {
+              const textContent = obj.text || '';
+              if (hasVariables(textContent)) {
+                const fieldNames = extractFieldNames(textContent);
+                console.log(`   Found variables in text object:`, fieldNames);
+
+                // Set variable type and field names
+                obj.set({
+                  variableType: 'custom',
+                  variableFieldNames: fieldNames,
+                  isReusable: false,
+                  borderColor: VARIABLE_MARKER_STYLES.borderColor,
+                  borderScaleFactor: VARIABLE_MARKER_STYLES.borderWidth,
+                  borderDashArray: VARIABLE_MARKER_STYLES.borderDashArray,
+                  cornerColor: VARIABLE_MARKER_STYLES.cornerColor,
+                  cornerSize: VARIABLE_MARKER_STYLES.cornerSize,
+                  transparentCorners: VARIABLE_MARKER_STYLES.transparentCorners,
+                });
+
+                // Apply chip styling to variable text
+                if (!isPreviewMode) {
+                  applyVariableChipStyling(obj);
+                }
+              }
+            }
+          });
+
+          fabricBackCanvas.renderAll();
+          console.log('✅ Variable detection complete for BACK canvas');
         });
       } else {
         console.log('ℹ️ No back surface data found - blank back canvas ready for design');
@@ -363,9 +437,8 @@ export function CanvasEditor({
       // Attach event listeners to BACK canvas
       attachCanvasEventListeners(fabricBackCanvas);
 
-      // Set both canvases in state
-      setFrontCanvas(fabricFrontCanvas);
-      setBackCanvas(fabricBackCanvas);
+      // NOTE: Don't set state yet - wait until after auto-fit completes
+      // Otherwise tab switch useEffect will run before dimensions are set
 
     // Keyboard event handler for delete functionality
     handleKeyDown = (e: KeyboardEvent) => {
@@ -502,19 +575,46 @@ export function CanvasEditor({
     // Auto-fit BOTH canvases to screen after initialization
     // Delay to ensure Fabric.js DOM managers are fully initialized
     setTimeout(() => {
-      // Get the actual flex container (the one with "flex-1 flex items-center justify-center")
-      const frontWrapper = frontCanvasRef.current?.parentElement?.parentElement;
-      const container = frontWrapper?.parentElement;
+      // Canvas structure: <canvas> -> border container -> flex container
+      const borderContainer = frontCanvasRef.current?.parentElement;
+      const container = borderContainer?.parentElement;
+
+      console.log('📏 Auto-fit measuring:', {
+        activeSide,
+        borderContainer: !!borderContainer,
+        container: !!container,
+        frontCanvasPosition: frontCanvasRef.current ?
+          window.getComputedStyle(frontCanvasRef.current).position : 'unknown',
+        backCanvasPosition: backCanvasRef.current ?
+          window.getComputedStyle(backCanvasRef.current).position : 'unknown',
+      });
 
       if (container && fabricFrontCanvas?.lowerCanvasEl && fabricBackCanvas?.lowerCanvasEl) {
-        // Get the actual available space (generous padding for UI elements)
-        const containerWidth = container.clientWidth - 100; // Account for padding, borders, and spacing
-        const containerHeight = container.clientHeight - 100;
+        // Get the actual available space for SIDE-BY-SIDE layout
+        // Account for: padding (64px), gap between canvases (32px), labels (40px each), borders
+        const totalPadding = 64; // p-8 on both sides
+        const gap = 32; // gap-8 between canvases
+        const labelHeight = 80; // Label + spacing above each canvas
+        const borderWidth = 8; // Border on each canvas (2px * 2 sides * 2 canvases)
 
-        // Calculate scale to fit while maintaining aspect ratio
-        const scaleX = containerWidth / currentFormat.widthPixels;
-        const scaleY = containerHeight / currentFormat.heightPixels;
-        const scale = Math.min(scaleX, scaleY); // Fit to screen, no arbitrary max limit
+        const availableWidth = container.clientWidth - totalPadding - gap - borderWidth;
+        const availableHeight = container.clientHeight - totalPadding - labelHeight;
+
+        // Each canvas gets half the width
+        const perCanvasWidth = availableWidth / 2;
+
+        console.log('📦 Side-by-side container dimensions:', {
+          containerWidth: container.clientWidth,
+          containerHeight: container.clientHeight,
+          availableWidth,
+          availableHeight,
+          perCanvasWidth,
+        });
+
+        // Calculate scale to fit EACH canvas in its allocated space
+        const scaleX = perCanvasWidth / currentFormat.widthPixels;
+        const scaleY = availableHeight / currentFormat.heightPixels;
+        const scale = Math.min(scaleX, scaleY, 1.0); // Never scale larger than 100%
 
         // 🚨 CRITICAL FIX: DO NOT call setZoom() - it corrupts object coordinates!
         // Only use CSS-only scaling to preserve logical canvas dimensions
@@ -531,6 +631,13 @@ export function CanvasEditor({
             width: currentFormat.widthPixels * scale,
             height: currentFormat.heightPixels * scale
           }, { cssOnly: true });
+
+          // Save scale to state for zoom display
+          setCurrentScale(scale);
+
+          // Recalculate offsets for proper mouse interaction
+          fabricFrontCanvas.calcOffset();
+          fabricBackCanvas.calcOffset();
         } catch (err) {
           console.error('Failed to set canvas dimensions:', err);
         }
@@ -538,18 +645,22 @@ export function CanvasEditor({
         fabricFrontCanvas.renderAll();
         fabricBackCanvas.renderAll();
 
-        console.log('📐 DUAL Canvas auto-fit:', {
-          containerWidth,
-          containerHeight,
-          canvasWidth: currentFormat.widthPixels,
-          canvasHeight: currentFormat.heightPixels,
+        console.log('📐 Side-by-side canvas auto-fit:', {
           format: currentFormat.name,
+          originalSize: `${currentFormat.widthPixels}×${currentFormat.heightPixels}px`,
+          perCanvasWidth,
+          availableHeight,
           scaleX: scaleX.toFixed(3),
           scaleY: scaleY.toFixed(3),
           finalScale: scale.toFixed(3),
-          displayWidth: Math.round(currentFormat.widthPixels * scale),
-          displayHeight: Math.round(currentFormat.heightPixels * scale)
+          scaledSize: `${Math.round(currentFormat.widthPixels * scale)}×${Math.round(currentFormat.heightPixels * scale)}px`
         });
+
+        // ✅ CRITICAL: Set state AFTER auto-fit completes
+        // This prevents tab switch useEffect from running before dimensions are set
+        setFrontCanvas(fabricFrontCanvas);
+        setBackCanvas(fabricBackCanvas);
+        console.log('✅ Canvas state set after auto-fit completion');
       }
     }, 250);
     }, 50); // Close initTimeout setTimeout
@@ -573,6 +684,103 @@ export function CanvasEditor({
       }
     };
   }, [currentFormat, initialData]);
+
+  // Reapply canvas dimensions when switching tabs to prevent size reset
+  useEffect(() => {
+    if (!frontCanvas || !backCanvas) return;
+
+    console.log('🔄 Tab switch useEffect triggered:', {
+      activeSide,
+      frontCanvasExists: !!frontCanvas,
+      backCanvasExists: !!backCanvas,
+    });
+
+    // Small delay to ensure DOM has updated with new positions (relative/absolute)
+    const timeoutId = setTimeout(() => {
+      // Get current CSS dimensions from the active canvas
+      const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+      const widthStr = activeCanvas.lowerCanvasEl.style.width;
+      const heightStr = activeCanvas.lowerCanvasEl.style.height;
+
+      console.log('📐 Current CSS dimensions:', {
+        widthStr,
+        heightStr,
+        activeSide,
+      });
+
+      // Skip if CSS dimensions not set yet (still initializing)
+      if (!widthStr || !heightStr || widthStr === '' || heightStr === '') {
+        console.log('⏭️ Skipping dimension reapply - CSS not set yet');
+        return;
+      }
+
+      const currentWidth = parseInt(widthStr);
+      const currentHeight = parseInt(heightStr);
+
+      console.log('📊 Parsed dimensions:', {
+        currentWidth,
+        currentHeight,
+        expectedWidth: currentFormat.widthPixels,
+        expectedHeight: currentFormat.heightPixels,
+      });
+
+      // Skip if dimensions are full size (not scaled yet)
+      if (currentWidth === currentFormat.widthPixels && currentHeight === currentFormat.heightPixels) {
+        console.log('⏭️ Skipping dimension reapply - canvases at full size (not scaled yet)');
+        return;
+      }
+
+    // Calculate actual scale from CSS dimensions
+    const scaleX = currentWidth / currentFormat.widthPixels;
+    const scaleY = currentHeight / currentFormat.heightPixels;
+    const scale = Math.min(scaleX, scaleY);
+
+    // Verify scale is reasonable (between 10% and 300%)
+    if (scale < 0.1 || scale > 3.0) {
+      console.warn('⚠️ Invalid scale detected:', scale, '- skipping dimension reapply');
+      return;
+    }
+
+    // Ensure BOTH canvases have the same scale (in case one was reset)
+    try {
+      frontCanvas.setDimensions({
+        width: currentFormat.widthPixels * scale,
+        height: currentFormat.heightPixels * scale
+      }, { cssOnly: true });
+
+      backCanvas.setDimensions({
+        width: currentFormat.widthPixels * scale,
+        height: currentFormat.heightPixels * scale
+      }, { cssOnly: true });
+
+      // Update scale in state
+      setCurrentScale(scale);
+
+      // 🚨 CRITICAL: Recalculate canvas offsets for proper mouse interaction
+      // When switching tabs, Fabric.js needs to recalculate bounding boxes
+      // for accurate coordinate conversion (screen coords → canvas coords)
+      frontCanvas.calcOffset();
+      backCanvas.calcOffset();
+
+      frontCanvas.renderAll();
+      backCanvas.renderAll();
+
+      console.log('🔄 Tab switched - reapplied dimensions:', {
+        activeSide,
+        scale: scale.toFixed(3),
+        currentWidth,
+        currentHeight,
+        displayWidth: Math.round(currentFormat.widthPixels * scale),
+        displayHeight: Math.round(currentFormat.heightPixels * scale),
+        offsetsRecalculated: true,
+      });
+    } catch (err) {
+      console.error('Failed to reapply canvas dimensions:', err);
+    }
+    }, 50); // 50ms delay for DOM update
+
+    return () => clearTimeout(timeoutId);
+  }, [activeSide, frontCanvas, backCanvas, currentFormat]);
 
   // Save canvas state to history
   const saveToHistory = useCallback((canvas: Canvas) => {
@@ -746,7 +954,9 @@ export function CanvasEditor({
 
   // Add text
   const addText = useCallback(() => {
-    if (!canvas) return;
+    // CRITICAL FIX: Use active canvas directly to avoid stale references
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     // Use Textbox instead of IText to enable text wrapping and prevent stretching
     const text = new Textbox('Double-click to edit', {
@@ -769,19 +979,20 @@ export function CanvasEditor({
       // Note: scaleX and scaleY are converted to width/height by object:scaling event
     });
 
-    canvas.add(text);
-    canvas.setActiveObject(text);
-    canvas.renderAll();
+    activeCanvas.add(text);
+    activeCanvas.setActiveObject(text);
+    activeCanvas.renderAll();
 
     // Save to history
-    saveToHistory(canvas);
+    saveToHistory(activeCanvas);
 
     toast.success('Text box added! Resize width to wrap text.');
-  }, [canvas, currentFormat, saveToHistory]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add Title (H1 - Large heading style)
   const addTitle = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const title = new Textbox('Your Title Here', {
       left: currentFormat.widthPixels / 2 - 400,
@@ -800,16 +1011,17 @@ export function CanvasEditor({
       splitByGrapheme: true,
     });
 
-    canvas.add(title);
-    canvas.setActiveObject(title);
-    canvas.renderAll();
-    saveToHistory(canvas);
+    activeCanvas.add(title);
+    activeCanvas.setActiveObject(title);
+    activeCanvas.renderAll();
+    saveToHistory(activeCanvas);
     toast.success('Title added (H1)');
-  }, [canvas, currentFormat, saveToHistory]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add Heading (H2 - Section heading style)
   const addHeading = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const heading = new Textbox('Section Heading', {
       left: 100,
@@ -828,16 +1040,17 @@ export function CanvasEditor({
       splitByGrapheme: true,
     });
 
-    canvas.add(heading);
-    canvas.setActiveObject(heading);
-    canvas.renderAll();
-    saveToHistory(canvas);
+    activeCanvas.add(heading);
+    activeCanvas.setActiveObject(heading);
+    activeCanvas.renderAll();
+    saveToHistory(activeCanvas);
     toast.success('Heading added (H2)');
-  }, [canvas, currentFormat, saveToHistory]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add Subheading (H3 - Subsection heading style)
   const addSubheading = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const subheading = new Textbox('Subheading Text', {
       left: 100,
@@ -856,16 +1069,17 @@ export function CanvasEditor({
       splitByGrapheme: true,
     });
 
-    canvas.add(subheading);
-    canvas.setActiveObject(subheading);
-    canvas.renderAll();
-    saveToHistory(canvas);
+    activeCanvas.add(subheading);
+    activeCanvas.setActiveObject(subheading);
+    activeCanvas.renderAll();
+    saveToHistory(activeCanvas);
     toast.success('Subheading added (H3)');
-  }, [canvas, currentFormat, saveToHistory]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add Body Text (Regular paragraph text)
   const addBodyText = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const bodyText = new Textbox('Start typing your body text here. This is perfect for paragraphs and longer content.', {
       left: 100,
@@ -885,16 +1099,17 @@ export function CanvasEditor({
       splitByGrapheme: true,
     });
 
-    canvas.add(bodyText);
-    canvas.setActiveObject(bodyText);
-    canvas.renderAll();
-    saveToHistory(canvas);
+    activeCanvas.add(bodyText);
+    activeCanvas.setActiveObject(bodyText);
+    activeCanvas.renderAll();
+    saveToHistory(activeCanvas);
     toast.success('Body text added');
-  }, [canvas, currentFormat, saveToHistory]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add Caption (Small supplementary text)
   const addCaption = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const caption = new Textbox('Caption or small text', {
       left: 100,
@@ -913,16 +1128,17 @@ export function CanvasEditor({
       splitByGrapheme: true,
     });
 
-    canvas.add(caption);
-    canvas.setActiveObject(caption);
-    canvas.renderAll();
-    saveToHistory(canvas);
+    activeCanvas.add(caption);
+    activeCanvas.setActiveObject(caption);
+    activeCanvas.renderAll();
+    saveToHistory(activeCanvas);
     toast.success('Caption added');
-  }, [canvas, currentFormat, saveToHistory]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add rectangle
   const addRectangle = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const rect = new Rect({
       left: currentFormat.widthPixels / 2,
@@ -937,14 +1153,16 @@ export function CanvasEditor({
       centeredRotation: true,
     });
 
-    canvas.add(rect);
-    canvas.setActiveObject(rect);
-    canvas.renderAll();
-  }, [canvas]);
+    activeCanvas.add(rect);
+    activeCanvas.setActiveObject(rect);
+    activeCanvas.renderAll();
+    saveToHistory(activeCanvas);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add circle
   const addCircle = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const circle = new FabricCircle({
       left: currentFormat.widthPixels / 2,
@@ -958,14 +1176,16 @@ export function CanvasEditor({
       centeredRotation: true,
     });
 
-    canvas.add(circle);
-    canvas.setActiveObject(circle);
-    canvas.renderAll();
-  }, [canvas]);
+    activeCanvas.add(circle);
+    activeCanvas.setActiveObject(circle);
+    activeCanvas.renderAll();
+    saveToHistory(activeCanvas);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add image from upload
   const addImage = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const input = document.createElement('input');
     input.type = 'file';
@@ -989,7 +1209,7 @@ export function CanvasEditor({
 
           img.set({
             left: currentFormat.widthPixels / 2,
-            top: currentFormat.widthPixels / 2,
+            top: currentFormat.heightPixels / 2,  // CRITICAL FIX: Use heightPixels not widthPixels!
             scaleX: scale,
             scaleY: scale,
             originX: 'center',
@@ -997,9 +1217,10 @@ export function CanvasEditor({
             centeredRotation: true,
           });
 
-          canvas.add(img);
-          canvas.setActiveObject(img);
-          canvas.renderAll();
+          activeCanvas.add(img);
+          activeCanvas.setActiveObject(img);
+          activeCanvas.renderAll();
+          saveToHistory(activeCanvas);
           toast.success('Image added to canvas');
         } catch (error) {
           console.error('Failed to load image:', error);
@@ -1011,11 +1232,12 @@ export function CanvasEditor({
     };
 
     input.click();
-  }, [canvas, currentFormat]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add QR code placeholder
   const addQRCode = useCallback(async () => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     try {
       // Show loading toast
@@ -1027,14 +1249,14 @@ export function CanvasEditor({
       // Create Fabric image from QR code
       const qrImg = await FabricImage.fromURL(qrDataUrl);
 
-      // EXACT COPY of regular image scaling - DO NOT CHANGE ANYTHING!
+      // Scale QR code to fit canvas (max 50% width)
       const maxWidth = currentFormat.widthPixels * 0.5;
       const scale = maxWidth / (qrImg.width || 1);
 
-      // EXACT COPY of regular image positioning - DO NOT CHANGE ANYTHING!
+      // Position QR code at center
       qrImg.set({
         left: currentFormat.widthPixels / 2,
-        top: currentFormat.widthPixels / 2,
+        top: currentFormat.heightPixels / 2,  // CRITICAL FIX: Use heightPixels not widthPixels!
         scaleX: scale,
         scaleY: scale,
         originX: 'center',
@@ -1047,9 +1269,10 @@ export function CanvasEditor({
       (qrImg as any).variableType = 'qrCode';
       (qrImg as any).isReusable = false; // Each contact gets unique QR code
 
-      canvas.add(qrImg);
-      canvas.setActiveObject(qrImg);
-      canvas.renderAll();
+      activeCanvas.add(qrImg);
+      activeCanvas.setActiveObject(qrImg);
+      activeCanvas.renderAll();
+      saveToHistory(activeCanvas);
 
       // Dismiss loading and show success
       toast.dismiss(loadingToast);
@@ -1058,11 +1281,12 @@ export function CanvasEditor({
       console.error('Failed to add QR code:', error);
       toast.error('Failed to add QR code placeholder');
     }
-  }, [canvas, currentFormat, saveToHistory]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Add asset from library
   const addAssetToCanvas = useCallback(async (asset: any) => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     try {
       // Use signed URL to load image
@@ -1085,88 +1309,128 @@ export function CanvasEditor({
         centeredRotation: true,
       });
 
-      canvas.add(img);
-      canvas.setActiveObject(img);
-      canvas.renderAll();
-      saveToHistory(canvas);
+      activeCanvas.add(img);
+      activeCanvas.setActiveObject(img);
+      activeCanvas.renderAll();
+      saveToHistory(activeCanvas);
       toast.success(`${asset.name} added to canvas`);
     } catch (error) {
       console.error('Failed to load asset:', error);
       toast.error('Failed to load asset');
     }
-  }, [canvas, currentFormat]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat, saveToHistory]);
 
   // Delete selected object
   const deleteSelected = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
-    const activeObjects = canvas.getActiveObjects();
+    const activeObjects = activeCanvas.getActiveObjects();
     if (activeObjects.length === 0) {
       toast.error('No objects selected');
       return;
     }
 
-    activeObjects.forEach(obj => canvas.remove(obj));
-    canvas.discardActiveObject();
-    canvas.renderAll();
-  }, [canvas]);
+    activeObjects.forEach(obj => activeCanvas.remove(obj));
+    activeCanvas.discardActiveObject();
+    activeCanvas.renderAll();
+    saveToHistory(activeCanvas);
+  }, [frontCanvas, backCanvas, activeSide, saveToHistory]);
 
   // Zoom in
   const zoomIn = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     // Get current CSS dimensions (BOTH width AND height!)
-    const currentWidth = parseInt(canvas.lowerCanvasEl.style.width) || currentFormat.widthPixels;
-    const currentHeight = parseInt(canvas.lowerCanvasEl.style.height) || currentFormat.heightPixels;
+    const currentWidth = parseInt(activeCanvas.lowerCanvasEl.style.width) || currentFormat.widthPixels;
+    const currentHeight = parseInt(activeCanvas.lowerCanvasEl.style.height) || currentFormat.heightPixels;
 
     // Scale BOTH dimensions independently to maintain aspect ratio
     const newWidth = Math.min(currentWidth * 1.2, currentFormat.widthPixels * 3);
     const newHeight = Math.min(currentHeight * 1.2, currentFormat.heightPixels * 3);
 
+    // Calculate new scale
+    const newScale = Math.min(newWidth / currentFormat.widthPixels, newHeight / currentFormat.heightPixels);
+
     // CORRECT FIX: Only use CSS scaling (cssOnly: true) WITHOUT setZoom()
     // This prevents double-transform: CSS stretch alone scales both canvas AND content proportionally
-    canvas.setDimensions({
-      width: newWidth,
-      height: newHeight
+    // Apply to BOTH canvases to keep them in sync
+    frontCanvas?.setDimensions({
+      width: currentFormat.widthPixels * newScale,
+      height: currentFormat.heightPixels * newScale
     }, { cssOnly: true });
 
+    backCanvas?.setDimensions({
+      width: currentFormat.widthPixels * newScale,
+      height: currentFormat.heightPixels * newScale
+    }, { cssOnly: true });
+
+    // Update scale in state
+    setCurrentScale(newScale);
+
+    // Recalculate offsets for accurate mouse interaction after zoom
+    frontCanvas?.calcOffset();
+    backCanvas?.calcOffset();
+
     // DON'T call setZoom() - CSS scaling handles everything!
-    canvas.renderAll();
+    frontCanvas?.renderAll();
+    backCanvas?.renderAll();
 
     setForceUpdate(prev => prev + 1);
-  }, [canvas, currentFormat]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat]);
 
   // Zoom out
   const zoomOut = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     // Get current CSS dimensions (BOTH width AND height!)
-    const currentWidth = parseInt(canvas.lowerCanvasEl.style.width) || currentFormat.widthPixels;
-    const currentHeight = parseInt(canvas.lowerCanvasEl.style.height) || currentFormat.heightPixels;
+    const currentWidth = parseInt(activeCanvas.lowerCanvasEl.style.width) || currentFormat.widthPixels;
+    const currentHeight = parseInt(activeCanvas.lowerCanvasEl.style.height) || currentFormat.heightPixels;
 
     // Scale BOTH dimensions independently to maintain aspect ratio
     const newWidth = Math.max(currentWidth / 1.2, currentFormat.widthPixels * 0.1);
     const newHeight = Math.max(currentHeight / 1.2, currentFormat.heightPixels * 0.1);
 
+    // Calculate new scale
+    const newScale = Math.min(newWidth / currentFormat.widthPixels, newHeight / currentFormat.heightPixels);
+
     // CORRECT FIX: Only use CSS scaling (cssOnly: true) WITHOUT setZoom()
-    canvas.setDimensions({
-      width: newWidth,
-      height: newHeight
+    // Apply to BOTH canvases to keep them in sync
+    frontCanvas?.setDimensions({
+      width: currentFormat.widthPixels * newScale,
+      height: currentFormat.heightPixels * newScale
     }, { cssOnly: true });
 
+    backCanvas?.setDimensions({
+      width: currentFormat.widthPixels * newScale,
+      height: currentFormat.heightPixels * newScale
+    }, { cssOnly: true });
+
+    // Update scale in state
+    setCurrentScale(newScale);
+
+    // Recalculate offsets for accurate mouse interaction after zoom
+    frontCanvas?.calcOffset();
+    backCanvas?.calcOffset();
+
     // DON'T call setZoom() - CSS scaling handles everything!
-    canvas.renderAll();
+    frontCanvas?.renderAll();
+    backCanvas?.renderAll();
 
     setForceUpdate(prev => prev + 1);
-  }, [canvas, currentFormat]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat]);
 
   // Fit to screen
   const fitToScreen = useCallback(() => {
-    if (!canvas || !canvasRef.current) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    const activeCanvasRef = activeSide === 'front' ? frontCanvasRef : backCanvasRef;
+    if (!activeCanvas || !activeCanvasRef.current) return;
 
-    // Get the actual flex container (go up 3 levels: canvas -> border div -> wrapper div -> flex container)
-    const canvasWrapper = canvasRef.current.parentElement?.parentElement;
-    const container = canvasWrapper?.parentElement;
+    // Canvas structure: <canvas> -> border container -> flex container
+    const borderContainer = activeCanvasRef.current.parentElement;
+    const container = borderContainer?.parentElement;
     if (!container) return;
 
     const containerWidth = container.clientWidth - 100; // Account for padding, borders, and spacing
@@ -1178,16 +1442,30 @@ export function CanvasEditor({
     const scale = Math.min(scaleX, scaleY); // Fit to available space
 
     // CORRECT FIX: Only use CSS scaling (cssOnly: true) WITHOUT setZoom()
-    canvas.setDimensions({
+    // Apply to BOTH canvases to keep them in sync
+    frontCanvas?.setDimensions({
       width: currentFormat.widthPixels * scale,
       height: currentFormat.heightPixels * scale
     }, { cssOnly: true });
 
+    backCanvas?.setDimensions({
+      width: currentFormat.widthPixels * scale,
+      height: currentFormat.heightPixels * scale
+    }, { cssOnly: true });
+
+    // Update scale in state
+    setCurrentScale(scale);
+
+    // Recalculate offsets for accurate mouse interaction after zoom
+    frontCanvas?.calcOffset();
+    backCanvas?.calcOffset();
+
     // DON'T call setZoom() - CSS scaling handles everything!
-    canvas.renderAll();
+    frontCanvas?.renderAll();
+    backCanvas?.renderAll();
 
     setForceUpdate(prev => prev + 1);
-  }, [canvas, currentFormat]);
+  }, [frontCanvas, backCanvas, frontCanvasRef, backCanvasRef, activeSide, currentFormat]);
 
   // Helper function to extract surface data from a canvas
   const extractSurfaceData = useCallback((
@@ -1302,42 +1580,43 @@ export function CanvasEditor({
 
   // Download as PNG (full 300 DPI)
   const downloadPNG = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     try {
       console.log('📥 Starting PNG export...');
       console.log('   Canvas dimensions (internal):', currentFormat.widthPixels, 'x', currentFormat.heightPixels);
 
       // Save current viewport and display state
-      const currentZoom = canvas.getZoom();
-      const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+      const currentZoom = activeCanvas.getZoom();
+      const currentVpt = activeCanvas.viewportTransform ? [...activeCanvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
       console.log('   Current zoom:', currentZoom);
       console.log('   Current viewport:', currentVpt);
 
       // Get current CSS dimensions
-      const currentWidth = canvas.getWidth();
-      const currentHeight = canvas.getHeight();
+      const currentWidth = activeCanvas.getWidth();
+      const currentHeight = activeCanvas.getHeight();
       console.log('   Current CSS dimensions:', currentWidth, 'x', currentHeight);
 
       // Reset to full resolution for export
       // 1. Reset zoom to 1:1
-      canvas.setZoom(1);
+      activeCanvas.setZoom(1);
 
       // 2. Reset viewport transform to identity
-      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      activeCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
 
       // 3. Reset CSS dimensions to match internal dimensions
-      canvas.setDimensions({
+      activeCanvas.setDimensions({
         width: currentFormat.widthPixels,
         height: currentFormat.heightPixels
       }, { cssOnly: true });
 
       // 4. Force re-render at full resolution
-      canvas.renderAll();
+      activeCanvas.renderAll();
       console.log('✅ Canvas reset to full resolution for export');
 
       // Export at full resolution
-      const dataURL = canvas.toDataURL({
+      const dataURL = activeCanvas.toDataURL({
         format: 'png',
         quality: 1.0,
         multiplier: 1, // Export at actual canvas internal dimensions (300 DPI)
@@ -1348,44 +1627,46 @@ export function CanvasEditor({
 
       // Restore original state
       // 1. Restore viewport transform to identity (no pan/offset)
-      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      activeCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
 
       // 2. Keep zoom at 1.0 (NEVER restore a potentially corrupted zoom)
-      canvas.setZoom(1);
+      activeCanvas.setZoom(1);
 
       // 3. Restore CSS display dimensions
-      canvas.setDimensions({
+      activeCanvas.setDimensions({
         width: currentWidth,
         height: currentHeight
       }, { cssOnly: true });
 
       // 4. Force re-render with restored state
-      canvas.renderAll();
+      activeCanvas.renderAll();
       console.log('✅ Canvas state restored (zoom locked at 1.0)');
 
       // Download the image
       const link = document.createElement('a');
-      link.download = `design-${currentFormat.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
+      const sideName = activeSide === 'front' ? 'front' : 'back';
+      link.download = `design-${sideName}-${currentFormat.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
       link.href = dataURL;
       link.click();
 
-      toast.success(`Exported ${currentFormat.name} at ${currentFormat.widthPixels}×${currentFormat.heightPixels}px!`);
+      toast.success(`Exported ${activeSide} page at ${currentFormat.widthPixels}×${currentFormat.heightPixels}px!`);
       console.log('✅ PNG export complete');
     } catch (error) {
       console.error('❌ Export failed:', error);
       toast.error('Failed to export PNG');
     }
-  }, [canvas, currentFormat]);
+  }, [frontCanvas, backCanvas, activeSide, currentFormat]);
 
   // Toggle Preview Mode (show/hide variable chip styling)
   const togglePreviewMode = useCallback(() => {
-    if (!canvas) return;
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (!activeCanvas) return;
 
     const newPreviewMode = !isPreviewMode;
     setIsPreviewMode(newPreviewMode);
 
     // Apply or remove chip styling from all text objects with variables
-    const objects = canvas.getObjects();
+    const objects = activeCanvas.getObjects();
     objects.forEach((obj: any) => {
       if (obj.type === 'textbox' || obj.type === 'i-text' || obj.type === 'text') {
         const textContent = obj.text || '';
@@ -1402,23 +1683,93 @@ export function CanvasEditor({
       }
     });
 
-    canvas.renderAll();
+    activeCanvas.renderAll();
     toast.success(newPreviewMode ? 'Preview Mode (variables as plain text)' : 'Edit Mode (variables highlighted)');
-  }, [canvas, isPreviewMode]);
+  }, [frontCanvas, backCanvas, activeSide, isPreviewMode]);
+
+  // Auto-center canvas when clicked (Adobe XD/Figma style)
+  const centerCanvas = useCallback((side: 'front' | 'back') => {
+    if (!canvasViewportRef.current) return;
+
+    const viewport = canvasViewportRef.current;
+    const targetCanvas = side === 'front' ? frontCanvasRef.current : backCanvasRef.current;
+    if (!targetCanvas) return;
+
+    // Get the canvas container (includes label)
+    const canvasContainer = targetCanvas.parentElement?.parentElement;
+    if (!canvasContainer) return;
+
+    // Calculate scroll position to center the canvas
+    const viewportRect = viewport.getBoundingClientRect();
+    const canvasRect = canvasContainer.getBoundingClientRect();
+
+    const scrollLeft = canvasRect.left - viewportRect.left + viewport.scrollLeft - (viewportRect.width / 2) + (canvasRect.width / 2);
+    const scrollTop = canvasRect.top - viewportRect.top + viewport.scrollTop - (viewportRect.height / 2) + (canvasRect.height / 2);
+
+    // Smooth scroll animation
+    viewport.scrollTo({
+      left: scrollLeft,
+      top: scrollTop,
+      behavior: 'smooth'
+    });
+
+    // Set active side
+    setActiveSide(side);
+  }, [frontCanvasRef, backCanvasRef]);
+
+  // Pan handling (click and drag to move viewport)
+  const handlePanStart = useCallback((e: React.MouseEvent) => {
+    // Pan with left mouse button on viewport background (not on canvas elements)
+    const target = e.target as HTMLElement;
+    const isViewport = target === canvasViewportRef.current || target.classList.contains('inline-flex');
+
+    if (e.button === 0 && isViewport) {
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+    }
+  }, []);
+
+  const handlePanMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning || !canvasViewportRef.current) return;
+
+    const dx = e.clientX - panStart.x;
+    const dy = e.clientY - panStart.y;
+
+    canvasViewportRef.current.scrollLeft -= dx;
+    canvasViewportRef.current.scrollTop -= dy;
+
+    setPanStart({ x: e.clientX, y: e.clientY });
+  }, [isPanning, panStart]);
+
+  const handlePanEnd = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  // Center front canvas on initial load
+  useEffect(() => {
+    if (frontCanvas && backCanvas && canvasViewportRef.current) {
+      // Small delay to ensure layout is complete
+      setTimeout(() => {
+        centerCanvas('front');
+      }, 500);
+    }
+  }, [frontCanvas, backCanvas, centerCanvas]);
 
   // Trigger re-render when panels update canvas
   const handleCanvasUpdate = useCallback(() => {
-    if (canvas) {
-      canvas.renderAll();
+    const activeCanvas = activeSide === 'front' ? frontCanvas : backCanvas;
+    if (activeCanvas) {
+      activeCanvas.renderAll();
 
       // Save to history for property changes (color, opacity, etc.)
       // This ensures undo/redo works for PropertyPanel changes
       // The saveToHistory function already checks isLoadingHistoryRef to skip during undo/redo
       console.log('🎨 Property changed via panel, saving to history');
-      saveToHistory(canvas);
+      saveToHistory(activeCanvas);
     }
     setForceUpdate(prev => prev + 1);
-  }, [canvas, saveToHistory]);
+  }, [frontCanvas, backCanvas, activeSide, saveToHistory]);
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
@@ -1583,7 +1934,7 @@ export function CanvasEditor({
           >
             <ZoomOut className="h-4 w-4" />
           </Button>
-          <span className="text-xs text-slate-600 w-12 text-center">{Math.round((canvas?.getZoom() || 0.25) * 100)}%</span>
+          <span className="text-xs text-slate-600 w-12 text-center">{Math.round(currentScale * 100)}%</span>
           <Button
             variant="ghost"
             size="icon"
@@ -1718,8 +2069,16 @@ export function CanvasEditor({
           </button>
         )}
 
-        {/* Center - Canvas */}
-        <div className="flex-1 flex items-center justify-center p-4 overflow-auto relative bg-slate-50">
+        {/* Center - Canvas Viewport (scrollable/pannable) */}
+        <div
+          ref={canvasViewportRef}
+          className={`flex-1 overflow-auto relative bg-slate-50 ${isPanning ? 'cursor-grabbing' : 'cursor-default'}`}
+          onMouseDown={handlePanStart}
+          onMouseMove={handlePanMove}
+          onMouseUp={handlePanEnd}
+          onMouseLeave={handlePanEnd}
+          style={{ cursor: isPanning ? 'grabbing' : 'default' }}
+        >
           {/* Panel Toggle Buttons */}
           {showLayersPanel && (
             <button
@@ -1740,38 +2099,64 @@ export function CanvasEditor({
             </button>
           )}
 
-          {/* Front/Back Tabs */}
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
-            <Tabs value={activeSide} onValueChange={(value) => setActiveSide(value as 'front' | 'back')}>
-              <TabsList className="bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200">
-                <TabsTrigger value="front" className="gap-2">
-                  <FileText className="w-4 h-4" />
-                  Front
-                </TabsTrigger>
-                <TabsTrigger value="back" className="gap-2">
-                  <FileCheck className="w-4 h-4" />
-                  Back
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* Side-by-side canvas view - Adobe XD/Figma style with pan/scroll navigation */}
+          <div className="inline-flex items-center justify-center gap-8 p-8 min-w-full min-h-full">
+            {/* Front Canvas Container */}
+            <div
+              className="flex flex-col items-center gap-3 cursor-pointer transition-all flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                centerCanvas('front');
+              }}
+            >
+              {/* Label */}
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                activeSide === 'front'
+                  ? 'bg-blue-100 text-blue-700 font-semibold'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}>
+                <FileText className="w-4 h-4" />
+                <span className="text-sm">Front</span>
+              </div>
 
-          {/* Canvas wrapper with proper spacing */}
-          <div className="flex items-center justify-center w-full h-full">
-            <div className="border-2 border-slate-300 shadow-2xl bg-white rounded-sm relative inline-block">
-              {/* Front canvas - visible when activeSide === 'front' */}
-              <canvas
-                ref={frontCanvasRef}
-                style={{ display: activeSide === 'front' ? 'block' : 'none' }}
-              />
-              {/* Back canvas - visible when activeSide === 'back' */}
-              <canvas
-                ref={backCanvasRef}
-                style={{ display: activeSide === 'back' ? 'block' : 'none' }}
-              />
+              {/* Canvas Container */}
+              <div className={`bg-white rounded-sm transition-all ${
+                activeSide === 'front'
+                  ? 'ring-4 ring-blue-400 shadow-2xl'
+                  : 'border-2 border-slate-300 shadow-lg hover:shadow-xl'
+              }`}>
+                <canvas ref={frontCanvasRef} style={{ display: 'block' }} />
+              </div>
+            </div>
 
-              {/* PostGrid Address Block Overlay - only visible on back tab */}
-              {activeSide === 'back' && (() => {
+            {/* Back Canvas Container */}
+            <div
+              className="flex flex-col items-center gap-3 cursor-pointer transition-all flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                centerCanvas('back');
+              }}
+            >
+              {/* Label */}
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                activeSide === 'back'
+                  ? 'bg-blue-100 text-blue-700 font-semibold'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}>
+                <FileCheck className="w-4 h-4" />
+                <span className="text-sm">Back</span>
+              </div>
+
+              {/* Canvas Container with Address Block Overlay */}
+              <div className={`relative bg-white rounded-sm transition-all ${
+                activeSide === 'back'
+                  ? 'ring-4 ring-blue-400 shadow-2xl'
+                  : 'border-2 border-slate-300 shadow-lg hover:shadow-xl'
+              }`}>
+                <canvas ref={backCanvasRef} style={{ display: 'block' }} />
+
+                {/* PostGrid Address Block Overlay - always visible on back */}
+                {(() => {
                 // Get PostGrid address block zone for current format
                 const zone = getAddressBlockZone(currentFormat.id, 'US');
 
@@ -1824,11 +2209,7 @@ export function CanvasEditor({
                 );
               })()}
 
-              {/* Corner markers for visibility */}
-              <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
-              <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
-              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full opacity-30"></div>
+              </div>
             </div>
           </div>
         </div>

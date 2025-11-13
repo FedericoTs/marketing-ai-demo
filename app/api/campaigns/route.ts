@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllCampaigns, createCampaign } from '@/lib/database/campaign-supabase-queries';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient, createServiceClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
+import { createLandingPages } from '@/lib/database/landing-queries';
+import { nanoid } from 'nanoid';
+import type { LandingPageInsert, LandingPageConfig } from '@/lib/database/types';
 
 /**
  * GET /api/campaigns
@@ -112,9 +115,24 @@ export async function POST(request: NextRequest) {
 
     // 3. Parse request body
     const body = await request.json();
-    const { name, message, designSnapshot, variableMappingsSnapshot, templateId, recipientListId, totalRecipients, status } = body;
+    const {
+      name,
+      message,
+      designSnapshot,
+      variableMappingsSnapshot,
+      templateId,
+      recipientListId,
+      totalRecipients,
+      status,
+      includeLandingPage,
+      landingPageConfig
+    } = body;
 
-    console.log('📝 [Campaigns API] POST request - Creating campaign:', { name, organizationId: userProfile.organization_id });
+    console.log('📝 [Campaigns API] POST request - Creating campaign:', {
+      name,
+      organizationId: userProfile.organization_id,
+      includeLandingPage
+    });
 
     // Validate required fields
     if (!name) {
@@ -139,6 +157,56 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('✅ [Campaigns API] Campaign created:', campaign.id);
+
+    // 5. Generate landing pages if enabled
+    if (includeLandingPage && recipientListId && landingPageConfig) {
+      try {
+        console.log('🌐 [Campaigns API] Generating landing pages for campaign:', campaign.id);
+
+        // Fetch recipients from the recipient list
+        const supabaseService = createServiceClient();
+        const { data: recipients, error: recipientsError } = await supabaseService
+          .from('recipients')
+          .select('id, first_name, last_name, city, state, zip_code')
+          .eq('recipient_list_id', recipientListId)
+          .limit(1000); // Safety limit for batch operations
+
+        if (recipientsError) {
+          console.error('❌ [Campaigns API] Error fetching recipients:', recipientsError);
+        } else if (recipients && recipients.length > 0) {
+          // Generate landing pages for each recipient
+          const landingPagesToCreate: LandingPageInsert[] = recipients.map((recipient) => {
+            // Generate unique tracking code for this recipient
+            const trackingCode = nanoid(12);
+
+            return {
+              campaign_id: campaign.id,
+              tracking_code: trackingCode,
+              template_type: landingPageConfig.template_type || 'default',
+              page_config: landingPageConfig as LandingPageConfig,
+              recipient_data: {
+                firstName: recipient.first_name || '',
+                lastName: recipient.last_name || '',
+                city: recipient.city || '',
+                state: recipient.state || '',
+                zipCode: recipient.zip_code || '',
+              },
+              is_active: true,
+            };
+          });
+
+          // Batch create landing pages
+          const createdPages = await createLandingPages(landingPagesToCreate);
+
+          console.log(`✅ [Campaigns API] Created ${createdPages.length} landing pages for campaign ${campaign.id}`);
+        } else {
+          console.log('⚠️ [Campaigns API] No recipients found for recipient list:', recipientListId);
+        }
+      } catch (landingPageError) {
+        // Log error but don't fail campaign creation
+        console.error('❌ [Campaigns API] Error creating landing pages:', landingPageError);
+      }
+    }
 
     return NextResponse.json(
       successResponse(campaign)

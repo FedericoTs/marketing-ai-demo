@@ -6,6 +6,8 @@
  */
 
 import { replaceVariables } from '@/lib/design/variable-parser'
+import { generateCampaignQRCode } from '@/lib/qr-generator'
+import type { Recipient } from '@/lib/database/types'
 
 export interface PersonalizationJob {
   templateId: string
@@ -37,6 +39,39 @@ export interface PersonalizationProgress {
  * Process 50 variants at a time to avoid memory issues
  */
 const CHUNK_SIZE = 50
+
+/**
+ * Convert Recipient database object to row data format for variable replacement
+ * Maps database field names to friendly variable names
+ */
+function recipientToRowData(recipient: Recipient): Record<string, string> {
+  return {
+    // Name fields
+    firstName: recipient.first_name,
+    lastName: recipient.last_name,
+    fullName: `${recipient.first_name} ${recipient.last_name}`,
+
+    // Contact fields
+    email: recipient.email || '',
+    phone: recipient.phone || '',
+
+    // Address fields
+    addressLine1: recipient.address_line1,
+    addressLine2: recipient.address_line2 || '',
+    address: recipient.address_line2
+      ? `${recipient.address_line1}\n${recipient.address_line2}`
+      : recipient.address_line1,
+    city: recipient.city,
+    state: recipient.state,
+    zipCode: recipient.zip_code,
+    zip: recipient.zip_code,
+    country: recipient.country,
+    fullAddress: `${recipient.address_line1}${recipient.address_line2 ? '\n' + recipient.address_line2 : ''}\n${recipient.city}, ${recipient.state} ${recipient.zip_code}`,
+
+    // Spread custom metadata fields
+    ...(recipient.metadata || {}),
+  }
+}
 
 /**
  * Create personalized canvas variants from CSV data
@@ -78,6 +113,87 @@ export function personalizeCanvas(
 
       return obj
     })
+  }
+
+  return personalizedCanvas
+}
+
+/**
+ * Enhanced personalization for campaign-based VDP
+ * Supports QR code replacement and reusable element preservation
+ *
+ * @param canvasJSON - Template canvas JSON from Fabric.js
+ * @param variableMappings - Index-based variable metadata (e.g., { "3": { variableType: "qrCode", isReusable: false } })
+ * @param recipientData - Full recipient database record
+ * @param campaignId - Campaign ID for QR code generation
+ * @returns Personalized canvas JSON with recipient data and unique QR code
+ */
+export async function personalizeCanvasWithRecipient(
+  canvasJSON: any,
+  variableMappings: Record<string, { variableType: string; isReusable: boolean }>,
+  recipientData: Recipient,
+  campaignId: string
+): Promise<any> {
+  // Deep clone canvas JSON to avoid mutations
+  const personalizedCanvas = JSON.parse(JSON.stringify(canvasJSON))
+
+  // Convert recipient to row data for text replacement
+  const rowData = recipientToRowData(recipientData)
+
+  // Process all objects in the canvas
+  if (personalizedCanvas.objects) {
+    // Use Promise.all to handle async QR code generation
+    personalizedCanvas.objects = await Promise.all(
+      personalizedCanvas.objects.map(async (obj: any, index: number) => {
+        const mapping = variableMappings[index.toString()]
+
+        // STEP 1.3: Preserve reusable elements (logo, message)
+        if (mapping?.isReusable) {
+          return obj // Keep original object unchanged
+        }
+
+        // STEP 1.2: Handle QR code replacement
+        if (mapping?.variableType === 'qrCode') {
+          try {
+            // Generate unique QR code for this recipient
+            const qrCodeDataUrl = await generateCampaignQRCode(campaignId, recipientData.id)
+
+            // Replace image source while preserving position/size
+            return {
+              ...obj,
+              src: qrCodeDataUrl,
+            }
+          } catch (error) {
+            console.error(`❌ Failed to generate QR code for recipient ${recipientData.id}:`, error)
+            // Return original object on error (placeholder QR will remain)
+            return obj
+          }
+        }
+
+        // Handle text-based objects (existing logic)
+        const objType = (obj.type || '').toLowerCase()
+        if (objType === 'textbox' || objType === 'itext' || objType === 'i-text' || objType === 'text') {
+          const originalText = obj.text || ''
+
+          // Replace variables with actual data from recipient
+          const personalizedText = replaceVariables(originalText, rowData)
+
+          // Remove character-level styles (purple chip styling)
+          const cleanedObj = {
+            ...obj,
+            text: personalizedText,
+          }
+
+          delete cleanedObj.styles
+          delete cleanedObj.styleHas
+
+          return cleanedObj
+        }
+
+        // Return unchanged for other object types
+        return obj
+      })
+    )
   }
 
   return personalizedCanvas

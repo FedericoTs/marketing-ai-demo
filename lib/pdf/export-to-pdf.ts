@@ -82,10 +82,11 @@ export async function exportCanvasToPDF(
 
     console.log('🖼️ [PDF EXPORT] Canvas exported to PNG');
 
-    // Step 2: Create PDF with exact physical dimensions
+    // Step 2: Create PDF with exact physical dimensions + bleed
     // jsPDF uses points (pt) where 1 inch = 72 points
-    const widthPt = format.widthInches * 72;
-    const heightPt = format.heightInches * 72;
+    // Add bleed on all sides (0.125" each side = 0.25" total per dimension)
+    const widthPt = (format.widthInches + format.bleedInches * 2) * 72;
+    const heightPt = (format.heightInches + format.bleedInches * 2) * 72;
 
     // Create PDF in portrait or landscape based on dimensions
     const orientation = format.widthInches > format.heightInches ? 'landscape' : 'portrait';
@@ -102,29 +103,27 @@ export async function exportCanvasToPDF(
       pageSize: `${widthPt}pt × ${heightPt}pt`,
     });
 
-    // Step 3: Embed PNG at 300 DPI
-    // Image size in points = (pixels / DPI) * 72
-    const imgWidthPt = (format.widthPixels / format.dpi) * 72;
-    const imgHeightPt = (format.heightPixels / format.dpi) * 72;
+    // Step 3: Embed PNG at 300 DPI with bleed
+    // Scale canvas image to fill the bleed area (extends design to edges)
+    // This creates a "full bleed" effect where the design extends past trim lines
+    const bleedPt = format.bleedInches * 72;
 
     pdf.addImage(
       dataURL,
       'PNG',
-      0, // x position
-      0, // y position
-      imgWidthPt, // width in points (maintains 300 DPI)
-      imgHeightPt, // height in points (maintains 300 DPI)
+      -bleedPt, // Offset left by bleed amount (negative to extend beyond page)
+      -bleedPt, // Offset top by bleed amount
+      widthPt, // Full width including bleed
+      heightPt, // Full height including bleed
       undefined, // alias
       'FAST' // compression (FAST = best quality)
     );
 
-    console.log('✅ [PDF EXPORT] Image embedded at 300 DPI', {
-      imageSize: `${imgWidthPt}pt × ${imgHeightPt}pt`,
-      dpiVerification: {
-        calculatedWidth: imgWidthPt,
-        expectedWidth: widthPt,
-        match: Math.abs(imgWidthPt - widthPt) < 0.1,
-      },
+    console.log('✅ [PDF EXPORT] Image embedded at 300 DPI with bleed', {
+      pdfPageSize: `${widthPt}pt × ${heightPt}pt`,
+      bleedOffset: `${bleedPt}pt (${format.bleedInches}")`,
+      trimSize: `${format.widthInches}" × ${format.heightInches}"`,
+      finalSize: `${(widthPt/72)}" × ${(heightPt/72)}"`,
     });
 
     // Step 4: Add metadata

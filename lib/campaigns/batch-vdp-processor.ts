@@ -200,9 +200,27 @@ export async function processCampaignBatch(
 
     console.log('🎨 [processCampaignBatch] Template loaded:', template.name)
 
+    // 🔍 DEBUG: Log template structure
+    console.log('🔍 [processCampaignBatch] Template structure:', {
+      id: template.id,
+      hasSurfaces: !!template.surfaces,
+      surfaceCount: template.surfaces?.length || 0,
+      surfaceSides: template.surfaces?.map(s => s.side) || [],
+      hasLegacyCanvasJSON: !!template.canvas_json,
+    })
+
     // Load front and back surfaces from template
     const frontSurface = getFrontSurface(template)
     const backSurface = getBackSurface(template)
+
+    console.log('🔍 [processCampaignBatch] Surface extraction:', {
+      hasFront: !!frontSurface,
+      hasBack: !!backSurface,
+      frontObjects: frontSurface?.canvas_json?.objects?.length || 0,
+      backObjects: backSurface?.canvas_json?.objects?.length || 0,
+      frontMappings: Object.keys(frontSurface?.variable_mappings || {}).length,
+      backMappings: Object.keys(backSurface?.variable_mappings || {}).length,
+    })
 
     if (!frontSurface) {
       throw new Error('Template has no front surface')
@@ -210,7 +228,43 @@ export async function processCampaignBatch(
 
     const frontCanvasJSON = frontSurface.canvas_json
     const backCanvasJSON = backSurface?.canvas_json || null
-    const variableMappings = frontSurface.variable_mappings || template.variable_mappings || campaign.variable_mappings_snapshot
+
+    // CRITICAL: User-defined mappings from Step 3 MUST take priority!
+    // Campaign snapshot contains the manual {variable} → [field] associations
+    const variableMappings = campaign.variable_mappings_snapshot
+                          || frontSurface.variable_mappings
+                          || template.variable_mappings
+
+    // 🔍 DEBUG: Log actual canvas JSON structure
+    console.log('🔍 [processCampaignBatch] Front canvas JSON structure:', {
+      hasObjects: !!frontCanvasJSON?.objects,
+      objectCount: frontCanvasJSON?.objects?.length || 0,
+      objectTypes: frontCanvasJSON?.objects?.map((o: any) => o.type) || [],
+      firstObject: frontCanvasJSON?.objects?.[0] ? {
+        type: frontCanvasJSON.objects[0].type,
+        hasText: 'text' in frontCanvasJSON.objects[0],
+        text: frontCanvasJSON.objects[0].text || 'NO TEXT PROPERTY',
+      } : 'NO OBJECTS',
+    })
+
+    // Determine which source was actually used
+    let mappingSource = 'none';
+    if (campaign.variable_mappings_snapshot) {
+      mappingSource = 'campaign_snapshot (user-defined)';
+    } else if (frontSurface.variable_mappings) {
+      mappingSource = 'front_surface (template metadata)';
+    } else if (template.variable_mappings) {
+      mappingSource = 'template (legacy)';
+    }
+
+    console.log('🔍 [processCampaignBatch] Variable mappings source:', {
+      source: mappingSource,
+      fromCampaign: !!campaign.variable_mappings_snapshot,
+      fromFrontSurface: !!frontSurface.variable_mappings,
+      fromTemplate: !!template.variable_mappings,
+      mappingCount: Array.isArray(variableMappings) ? variableMappings.length : Object.keys(variableMappings || {}).length,
+      mappings: variableMappings,
+    })
 
     if (backCanvasJSON) {
       console.log('📄 [processCampaignBatch] Template has custom back page ✅')
@@ -252,13 +306,25 @@ export async function processCampaignBatch(
         // Generate unique QR code URL for tracking
         const qrCodeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/lp/campaign/${campaignId}?r=${encodeURIComponent(recipient.id)}&t=${trackingCode}`
 
-        // Prepare recipient data
+        // Prepare recipient data (match database schema exactly)
         const recipientData = {
+          // Legacy field names (for backwards compatibility)
           name: recipient.first_name,
           lastname: recipient.last_name,
-          address: recipient.address,
+          address: recipient.address_line1 || recipient.address,
           city: recipient.city,
           zip: recipient.zip_code,
+
+          // Database schema field names (for variable mappings)
+          first_name: recipient.first_name,
+          last_name: recipient.last_name,
+          email: recipient.email,
+          phone: recipient.phone,
+          address_line1: recipient.address_line1 || recipient.address,
+          address_line2: recipient.address_line2,
+          state: recipient.state,
+          zip_code: recipient.zip_code,
+          country: recipient.country,
         }
 
         // Generate personalized PDF (front + back pages)
@@ -267,7 +333,8 @@ export async function processCampaignBatch(
           backCanvasJSON,         // Back page canvas (null = blank for PostGrid)
           recipientData,          // Recipient data for personalization
           template.format_type,   // Format (e.g., 'postcard_4x6')
-          `${campaign.name}-${recipient.id}`
+          `${campaign.name}-${recipient.id}`,
+          campaign.variable_mappings_snapshot // CRITICAL: Pass user-defined variable mappings
         )
         const personalizedPDFBuffer = pdfResult.buffer
 

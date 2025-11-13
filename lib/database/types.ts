@@ -784,12 +784,17 @@ export function getAddressBlockZone(
   country: 'US' | 'CA' | 'UK' | 'EU' = 'US'
 ): AddressBlockZone {
   // US 4×6 Postcard (most common)
+  // USPS Requirements (2025):
+  // - Address area: 4" wide × 1.5" tall minimum in LOWER RIGHT
+  // - Barcode clear zone: Bottom 5/8" (0.625") must be completely clear
+  // - Total reserved: 4" wide × 2.125" tall from bottom right
+  // Reference: https://pe.usps.com/text/qsg300/q201a.htm
   if (formatType === 'postcard_4x6') {
     return {
-      x: 825,     // 2.75" at 300 DPI (right half starts)
-      y: 319,     // 1.0625" at 300 DPI (vertical center)
-      width: 1050, // 3.5" at 300 DPI (right half width)
-      height: 562, // 1.875" at 300 DPI (address block height)
+      x: 675,      // 2.25" from left = right 4" of 6.25" postcard (at 300 DPI)
+      y: 637,      // 2.125" from bottom = lower right position (at 300 DPI)
+      width: 1200, // 4" wide per USPS spec (at 300 DPI)
+      height: 638, // 2.125" tall: 1.5" address + 0.625" barcode (at 300 DPI)
       country
     };
   }

@@ -17,7 +17,8 @@ import {
   Eye,
 } from 'lucide-react';
 import { CampaignPreviewModal } from '@/components/campaigns/campaign-preview-modal';
-import type { DesignTemplate, RecipientList, VariableMapping } from '@/lib/database/types';
+import { LandingPageConfigComponent } from '@/components/campaigns/wizard-steps/landing-page-config';
+import type { DesignTemplate, RecipientList, VariableMapping, LandingPageConfig } from '@/lib/database/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -27,8 +28,12 @@ interface Step4ReviewProps {
   variableMappings: VariableMapping[];
   campaignName: string;
   campaignDescription: string;
+  includeLandingPage: boolean;
+  landingPageConfig: LandingPageConfig;
   onCampaignNameChange: (name: string) => void;
   onCampaignDescriptionChange: (description: string) => void;
+  onIncludeLandingPageChange: (enabled: boolean) => void;
+  onLandingPageConfigChange: (config: LandingPageConfig) => void;
   onLaunch: () => Promise<void>;
   onBack: () => void;
 }
@@ -39,8 +44,12 @@ export function Step4Review({
   variableMappings,
   campaignName,
   campaignDescription,
+  includeLandingPage,
+  landingPageConfig,
   onCampaignNameChange,
   onCampaignDescriptionChange,
+  onIncludeLandingPageChange,
+  onLandingPageConfigChange,
   onLaunch,
   onBack,
 }: Step4ReviewProps) {
@@ -229,6 +238,15 @@ export function Step4Review({
           </CardContent>
         </Card>
       </div>
+
+      {/* Landing Page Configuration */}
+      <LandingPageConfigComponent
+        enabled={includeLandingPage}
+        config={landingPageConfig}
+        campaignName={campaignName}
+        onEnabledChange={onIncludeLandingPageChange}
+        onConfigChange={onLandingPageConfigChange}
+      />
 
       {/* Validation Warning */}
       {!isValid && (

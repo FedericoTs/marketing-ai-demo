@@ -110,6 +110,7 @@ export default function TemplatesPage() {
     variableMappings: Record<string, any>;
     preview: string;
     format: PrintFormat;
+    surfaces?: any[]; // NEW: Multi-surface support (front + back)
   }) => {
     if (!templateName.trim()) {
       toast.error('Please enter a template name in the layers panel');
@@ -150,23 +151,21 @@ export default function TemplatesPage() {
         name: templateName,
         format: data.format.name,
         organization: profile.organization_id,
+        hasSurfaces: !!data.surfaces,
+        surfaceCount: data.surfaces?.length || 0,
       });
 
-      // 🔍 ULTRA-DEBUG: Log canvas JSON structure before saving
-      const parsedCanvas = JSON.parse(data.canvasJSON);
-      console.log('🔍 [SAVE DEBUG] Canvas JSON structure:', {
-        objectCount: parsedCanvas.objects?.length || 0,
-        version: parsedCanvas.version,
-      });
-
-      parsedCanvas.objects?.forEach((obj: any, idx: number) => {
-        console.log(`🔍 [SAVE DEBUG] Object ${idx}:`, {
-          type: obj.type,
-          hasText: !!obj.text,
-          textContent: obj.text,
-          textLength: obj.text?.length || 0,
-        });
-      });
+      // 🔍 ULTRA-DEBUG: Log surfaces structure
+      if (data.surfaces && data.surfaces.length > 0) {
+        console.log('🔍 [SAVE DEBUG] Surfaces:', data.surfaces.map((s: any) => ({
+          side: s.side,
+          objectCount: s.canvas_json?.objects?.length || 0,
+          hasMappings: !!s.variable_mappings,
+          hasAddressBlock: !!s.address_block_zone,
+        })));
+      } else {
+        console.log('🔍 [SAVE DEBUG] No surfaces - using legacy single canvas');
+      }
 
       // Try database first, fallback to localStorage
       let savedToDatabase = false;
@@ -183,6 +182,9 @@ export default function TemplatesPage() {
             created_by: user.id,
             name: templateName,
             description: templateDescription || null,
+            // NEW: Send surfaces array (front + back)
+            surfaces: data.surfaces,
+            // BACKWARDS COMPATIBLE: Old single-canvas fields (fallback)
             canvas_json: JSON.parse(data.canvasJSON),
             canvas_width: data.format.widthPixels,
             canvas_height: data.format.heightPixels,
@@ -213,6 +215,9 @@ export default function TemplatesPage() {
           id: templateId,
           name: templateName,
           description: templateDescription || null,
+          // NEW: Multi-surface support
+          surfaces: data.surfaces,
+          // BACKWARDS COMPATIBLE: Old fields
           canvas_json: JSON.parse(data.canvasJSON),
           canvas_width: data.format.widthPixels,
           canvas_height: data.format.heightPixels,
@@ -230,8 +235,11 @@ export default function TemplatesPage() {
       }
 
       if (savedToDatabase) {
+        const surfaceInfo = data.surfaces
+          ? `${data.surfaces.length} surface${data.surfaces.length > 1 ? 's' : ''} (${data.surfaces.map((s: any) => s.side).join(', ')})`
+          : '1 surface (front)';
         toast.success(`Template "${templateName}" saved to database!`, {
-          description: `Format: ${data.format.name}`,
+          description: `Format: ${data.format.name} • ${surfaceInfo}`,
         });
       } else {
         toast.success(`Template "${templateName}" saved locally!`, {

@@ -1902,6 +1902,17 @@ Allow users to mark canvas objects as variables (e.g., `{{recipient_name}}`).
 - ✅ **Variable Detection**: Fixed case sensitivity bug (Fabric.js v6 uses 'Textbox' not 'textbox')
 - ✅ **Delete Button**: Fixed z-index stacking issue (added z-20 class)
 
+**Bug Fixes (2025-11-13)**: ✅ **CRITICAL FIX - PDF Variable Replacement**
+- ✅ **JavaScript Scoping Error**: Fixed `canvas-to-pdf-simple.ts` variable replacement timeout
+  - **Root Cause**: `recipientData` and `variableMappings` declared with `const` inside try-catch block (block-scoped)
+  - **Symptom**: Browser timeout after 60 seconds, `ReferenceError: recipientData is not defined` in render function
+  - **Fix**: Changed to `let` declarations outside try-catch for function-level scope
+  - **Result**: 5/5 PDFs generated successfully with correct variable replacement in 42 seconds
+- ✅ **Regex Character Class Syntax**: Simplified escaping by removing square bracket handling (chained `.replace()` calls)
+- ✅ **Missing Function Parameter**: Added `variableMappings` parameter to `createHTML()` function
+- ✅ **Production Cleanup**: Removed debug logging, kept error handling, simplified console forwarding
+- **Verified Variables**: `{firstname}` → "Jane", `{lastname}` → "Davis", `{address}` → "2600 Main St", `{phone}` → "555-127-7382" ✅
+
 **New Features (2025-11-05)**: 🎉 **PDF EXPORT ENGINE**
 
 **Implementation Summary**:

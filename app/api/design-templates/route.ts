@@ -54,6 +54,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // 🔍 DEBUG: Log incoming request body structure
+    console.log('🔍 [POST /api/design-templates] Incoming request:', {
+      name: body.name,
+      hasSurfaces: !!body.surfaces,
+      surfaceCount: body.surfaces?.length || 0,
+      hasCanvasJSON: !!body.canvas_json,
+    });
+
     // Validate required fields
     if (!body.organization_id) {
       return NextResponse.json(
@@ -128,6 +136,13 @@ export async function POST(request: NextRequest) {
       name: templateData.name,
       format: templateData.format_type,
       dimensions: `${templateData.canvas_width}×${templateData.canvas_height}px`,
+      surfaceCount: templateData.surfaces?.length || 0,
+      surfaces: templateData.surfaces?.map((s: any) => ({
+        side: s.side,
+        objectCount: s.canvas_json?.objects?.length || 0,
+        hasMappings: !!s.variable_mappings,
+        mappingCount: Object.keys(s.variable_mappings || {}).length,
+      })),
     });
 
     // Use admin client to bypass RLS for server-side operations
