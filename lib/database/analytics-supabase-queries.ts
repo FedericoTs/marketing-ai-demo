@@ -582,3 +582,297 @@ export async function getSankeyChartData(
     };
   }
 }
+
+// ============================================================================
+// DASHBOARD OVERVIEW STATS
+// ============================================================================
+
+export interface DashboardStats {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  totalRecipients: number;
+  totalPageViews: number;
+  qrScans: number;
+  totalConversions: number;
+  formConversions: number;
+  responseRate: number;
+  conversionRate: number;
+}
+
+export async function getDashboardStats(
+  organizationId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<DashboardStats> {
+  const supabase = createServiceClient();
+
+  try {
+    // Get all campaigns for this organization
+    const { data: campaigns } = await supabase
+      .from('campaigns')
+      .select('id, status')
+      .eq('organization_id', organizationId);
+
+    if (!campaigns || campaigns.length === 0) {
+      return {
+        totalCampaigns: 0,
+        activeCampaigns: 0,
+        totalRecipients: 0,
+        totalPageViews: 0,
+        qrScans: 0,
+        totalConversions: 0,
+        formConversions: 0,
+        responseRate: 0,
+        conversionRate: 0,
+      };
+    }
+
+    const campaignIds = campaigns.map(c => c.id);
+    const totalCampaigns = campaigns.length;
+    const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
+
+    // Count total recipients (with optional date filter)
+    let recipientQuery = supabase
+      .from('campaign_recipients')
+      .select('*', { count: 'exact', head: true })
+      .in('campaign_id', campaignIds);
+
+    if (startDate && endDate) {
+      recipientQuery = recipientQuery
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+    }
+
+    const { count: totalRecipients } = await recipientQuery;
+
+    // Count page views
+    let pageViewQuery = supabase
+      .from('events')
+      .select('*', { count: 'exact', head: true })
+      .in('campaign_id', campaignIds)
+      .eq('event_type', 'page_view');
+
+    if (startDate && endDate) {
+      pageViewQuery = pageViewQuery
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+    }
+
+    const { count: totalPageViews } = await pageViewQuery;
+
+    // Count QR scans
+    let qrScanQuery = supabase
+      .from('events')
+      .select('*', { count: 'exact', head: true })
+      .in('campaign_id', campaignIds)
+      .eq('event_type', 'qr_scan');
+
+    if (startDate && endDate) {
+      qrScanQuery = qrScanQuery
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+    }
+
+    const { count: qrScans } = await qrScanQuery;
+
+    // Count total conversions
+    let conversionQuery = supabase
+      .from('conversions')
+      .select('*', { count: 'exact', head: true })
+      .in('campaign_id', campaignIds);
+
+    if (startDate && endDate) {
+      conversionQuery = conversionQuery
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+    }
+
+    const { count: totalConversions } = await conversionQuery;
+
+    // Count form submissions
+    let formQuery = supabase
+      .from('conversions')
+      .select('*', { count: 'exact', head: true })
+      .in('campaign_id', campaignIds)
+      .eq('conversion_type', 'form_submission');
+
+    if (startDate && endDate) {
+      formQuery = formQuery
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+    }
+
+    const { count: formConversions } = await formQuery;
+
+    // Calculate rates
+    const responseRate = (totalRecipients || 0) > 0
+      ? ((totalPageViews || 0) / (totalRecipients || 1)) * 100
+      : 0;
+
+    const conversionRate = (totalRecipients || 0) > 0
+      ? ((totalConversions || 0) / (totalRecipients || 1)) * 100
+      : 0;
+
+    return {
+      totalCampaigns,
+      activeCampaigns,
+      totalRecipients: totalRecipients || 0,
+      totalPageViews: totalPageViews || 0,
+      qrScans: qrScans || 0,
+      totalConversions: totalConversions || 0,
+      formConversions: formConversions || 0,
+      responseRate,
+      conversionRate,
+    };
+  } catch (error) {
+    console.error('[getDashboardStats] Error:', error);
+    return {
+      totalCampaigns: 0,
+      activeCampaigns: 0,
+      totalRecipients: 0,
+      totalPageViews: 0,
+      qrScans: 0,
+      totalConversions: 0,
+      formConversions: 0,
+      responseRate: 0,
+      conversionRate: 0,
+    };
+  }
+}
+
+// ============================================================================
+// ENGAGEMENT METRICS (Timing Analysis)
+// ============================================================================
+
+export interface EngagementMetrics {
+  avg_time_to_first_view_seconds: number | null;
+  avg_time_to_conversion_seconds: number | null;
+  avg_total_time_seconds: number | null;
+  avg_time_to_appointment_seconds: number | null;
+}
+
+export async function getOverallEngagementMetrics(
+  organizationId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<EngagementMetrics> {
+  const supabase = createServiceClient();
+
+  try {
+    // Get all campaigns for this organization
+    const { data: campaigns } = await supabase
+      .from('campaigns')
+      .select('id')
+      .eq('organization_id', organizationId);
+
+    if (!campaigns || campaigns.length === 0) {
+      return {
+        avg_time_to_first_view_seconds: null,
+        avg_time_to_conversion_seconds: null,
+        avg_total_time_seconds: null,
+        avg_time_to_appointment_seconds: null,
+      };
+    }
+
+    const campaignIds = campaigns.map(c => c.id);
+
+    // Get recipients with their first events and conversions
+    let recipientQuery = supabase
+      .from('campaign_recipients')
+      .select('id, created_at, campaign_id')
+      .in('campaign_id', campaignIds);
+
+    if (startDate && endDate) {
+      recipientQuery = recipientQuery
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+    }
+
+    const { data: recipients } = await recipientQuery;
+
+    if (!recipients || recipients.length === 0) {
+      return {
+        avg_time_to_first_view_seconds: null,
+        avg_time_to_conversion_seconds: null,
+        avg_total_time_seconds: null,
+        avg_time_to_appointment_seconds: null,
+      };
+    }
+
+    // Get first view times for each recipient
+    const { data: firstViews } = await supabase
+      .from('events')
+      .select('recipient_id, created_at')
+      .in('recipient_id', recipients.map(r => r.id))
+      .eq('event_type', 'page_view')
+      .order('created_at', { ascending: true });
+
+    // Get first conversion times for each recipient
+    const { data: firstConversions } = await supabase
+      .from('conversions')
+      .select('recipient_id, created_at')
+      .in('recipient_id', recipients.map(r => r.id))
+      .order('created_at', { ascending: true });
+
+    // Calculate timing metrics
+    let timeToFirstViewSum = 0;
+    let timeToFirstViewCount = 0;
+    let timeToConversionSum = 0;
+    let timeToConversionCount = 0;
+    let totalTimeSum = 0;
+    let totalTimeCount = 0;
+
+    for (const recipient of recipients) {
+      const recipientCreatedAt = new Date(recipient.created_at).getTime();
+
+      // Find first view for this recipient
+      const firstView = firstViews?.find(v => v.recipient_id === recipient.id);
+      if (firstView) {
+        const viewTime = new Date(firstView.created_at).getTime();
+        const timeDiff = (viewTime - recipientCreatedAt) / 1000; // seconds
+        timeToFirstViewSum += timeDiff;
+        timeToFirstViewCount++;
+      }
+
+      // Find first conversion for this recipient
+      const firstConversion = firstConversions?.find(c => c.recipient_id === recipient.id);
+      if (firstConversion) {
+        const conversionTime = new Date(firstConversion.created_at).getTime();
+
+        // Time from first view to conversion
+        if (firstView) {
+          const viewTime = new Date(firstView.created_at).getTime();
+          const timeDiff = (conversionTime - viewTime) / 1000; // seconds
+          timeToConversionSum += timeDiff;
+          timeToConversionCount++;
+        }
+
+        // Total time from recipient created to conversion
+        const totalTime = (conversionTime - recipientCreatedAt) / 1000; // seconds
+        totalTimeSum += totalTime;
+        totalTimeCount++;
+      }
+    }
+
+    return {
+      avg_time_to_first_view_seconds: timeToFirstViewCount > 0
+        ? timeToFirstViewSum / timeToFirstViewCount
+        : null,
+      avg_time_to_conversion_seconds: timeToConversionCount > 0
+        ? timeToConversionSum / timeToConversionCount
+        : null,
+      avg_total_time_seconds: totalTimeCount > 0
+        ? totalTimeSum / totalTimeCount
+        : null,
+      avg_time_to_appointment_seconds: null, // Not implemented in Supabase yet
+    };
+  } catch (error) {
+    console.error('[getOverallEngagementMetrics] Error:', error);
+    return {
+      avg_time_to_first_view_seconds: null,
+      avg_time_to_conversion_seconds: null,
+      avg_total_time_seconds: null,
+      avg_time_to_appointment_seconds: null,
+    };
+  }
+}

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from '@/lib/supabase/server';
 import {
   getDashboardStats,
   getOverallEngagementMetrics,
-} from "@/lib/database/tracking-queries";
-import { getAllCallMetrics } from "@/lib/database/call-tracking-queries";
+} from "@/lib/database/analytics-supabase-queries";
 import { formatEngagementTime } from "@/lib/format-time";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
@@ -13,11 +13,43 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate") || undefined;
     const endDate = searchParams.get("endDate") || undefined;
 
-    const stats = getDashboardStats(startDate, endDate);
-    const engagementMetrics = getOverallEngagementMetrics(startDate, endDate);
+    const supabase = await createClient();
 
-    // Get call tracking metrics (with date filtering)
-    const callMetrics = getAllCallMetrics(startDate, endDate);
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        errorResponse('Unauthorized', 'AUTH_ERROR'),
+        { status: 401 }
+      );
+    }
+
+    // Get user's organization
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.organization_id) {
+      return NextResponse.json(
+        errorResponse('Organization not found', 'ORG_ERROR'),
+        { status: 404 }
+      );
+    }
+
+    // Get dashboard stats for this organization
+    const stats = await getDashboardStats(profile.organization_id, startDate, endDate);
+    const engagementMetrics = await getOverallEngagementMetrics(profile.organization_id, startDate, endDate);
+
+    // Call metrics temporarily disabled (SQLite dependency)
+    const callMetrics = {
+      totalCalls: 0,
+      successfulCalls: 0,
+      avgDuration: 0,
+      conversionRate: 0,
+    };
 
     return NextResponse.json(
       successResponse(
