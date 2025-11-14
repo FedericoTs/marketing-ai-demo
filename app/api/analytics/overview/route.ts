@@ -2,27 +2,42 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getDashboardStats,
   getOverallEngagementMetrics,
-} from "@/lib/database/tracking-queries";
+  getInvestmentMetrics,
+} from "@/lib/database/analytics-supabase-queries";
 import { getAllCallMetrics } from "@/lib/database/call-tracking-queries";
 import { formatEngagementTime } from "@/lib/format-time";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
+/**
+ * Analytics Overview API - Supabase Version
+ * Phase 5.7 - Advanced DM Analytics
+ *
+ * Returns comprehensive analytics data including:
+ * - Dashboard stats (campaigns, recipients, conversions)
+ * - Investment metrics (costs, budget utilization)
+ * - Engagement metrics (time-based patterns)
+ * - Call tracking metrics (ElevenLabs integration)
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate") || undefined;
     const endDate = searchParams.get("endDate") || undefined;
+    const organizationId = searchParams.get("organizationId") || undefined;
 
-    const stats = getDashboardStats(startDate, endDate);
-    const engagementMetrics = getOverallEngagementMetrics(startDate, endDate);
-
-    // Get call tracking metrics (with date filtering)
-    const callMetrics = getAllCallMetrics(startDate, endDate);
+    // Fetch all analytics data in parallel for optimal performance
+    const [stats, engagementMetrics, investmentMetrics, callMetrics] = await Promise.all([
+      getDashboardStats(startDate, endDate, organizationId),
+      getOverallEngagementMetrics(startDate, endDate, organizationId),
+      getInvestmentMetrics(organizationId),
+      Promise.resolve(getAllCallMetrics(startDate, endDate)), // Keep call metrics as-is for now
+    ]);
 
     return NextResponse.json(
       successResponse(
         {
           ...stats,
+          investmentMetrics,
           callMetrics,
           engagementMetrics: {
             avgTimeToFirstView: formatEngagementTime(engagementMetrics.avg_time_to_first_view_seconds),
