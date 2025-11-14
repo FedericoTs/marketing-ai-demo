@@ -6,6 +6,7 @@ import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock, Ba
 import { DateRangePicker } from "./date-range-picker";
 import { SankeyChart } from "./sankey-chart";
 import { InvestmentDashboard } from "./investment-dashboard";
+import { CampaignCostComparison } from "./campaign-cost-comparison";
 // Import standardized KPI utilities for consistent calculations
 import { calculateConversionRate, formatPercentage, formatDuration } from "@/lib/utils/kpi-calculator";
 
@@ -180,8 +181,11 @@ export function DashboardOverview() {
         </CardContent>
       </Card>
 
-      {/* Investment Tracking Dashboard - Phase 5.7 */}
+      {/* Investment Tracking Dashboard - Phase 5.7 Module 1 */}
       <InvestmentDashboard />
+
+      {/* Campaign Cost Comparison Table - Phase 5.7 Module 3 */}
+      <CampaignCostComparison />
 
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
