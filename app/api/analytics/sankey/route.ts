@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
-import { getSankeyChartData } from "@/lib/database/tracking-queries";
+import { createClient } from '@/lib/supabase/server';
+import { getSankeyChartData } from "@/lib/database/analytics-supabase-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function GET(request: NextRequest) {
@@ -16,7 +17,34 @@ export async function GET(request: NextRequest) {
       hasEndDate: !!endDate
     });
 
-    const data = getSankeyChartData(startDate, endDate);
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        errorResponse('Unauthorized', 'AUTH_ERROR'),
+        { status: 401 }
+      );
+    }
+
+    // Get user's organization
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.organization_id) {
+      return NextResponse.json(
+        errorResponse('Organization not found', 'ORG_ERROR'),
+        { status: 404 }
+      );
+    }
+
+    // Get Sankey chart data for this organization
+    const data = await getSankeyChartData(profile.organization_id, startDate, endDate);
 
     console.log('[Sankey API] Data returned:', {
       nodesCount: data.nodes.length,

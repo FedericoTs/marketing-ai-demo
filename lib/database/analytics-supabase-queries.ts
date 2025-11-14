@@ -420,3 +420,165 @@ export async function getCampaignComparisons(
 
   return results;
 }
+
+// ============================================================================
+// SANKEY CHART DATA (Customer Journey Visualization)
+// ============================================================================
+
+export interface SankeyNode {
+  name: string;
+}
+
+export interface SankeyLink {
+  source: number;
+  target: number;
+  value: number;
+}
+
+export interface SankeyData {
+  nodes: SankeyNode[];
+  links: SankeyLink[];
+  metrics: {
+    totalRecipients: number;
+    totalPageViews: number;
+    totalConversions: number;
+    conversionRate: number;
+  };
+}
+
+export async function getSankeyChartData(
+  organizationId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<SankeyData> {
+  const supabase = createServiceClient();
+
+  try {
+    // Get all campaigns for this organization
+    const { data: campaigns } = await supabase
+      .from('campaigns')
+      .select('id')
+      .eq('organization_id', organizationId);
+
+    if (!campaigns || campaigns.length === 0) {
+      return {
+        nodes: [],
+        links: [],
+        metrics: {
+          totalRecipients: 0,
+          totalPageViews: 0,
+          totalConversions: 0,
+          conversionRate: 0,
+        },
+      };
+    }
+
+    const campaignIds = campaigns.map(c => c.id);
+
+    // Count total recipients
+    const { count: totalRecipients } = await supabase
+      .from('campaign_recipients')
+      .select('*', { count: 'exact', head: true })
+      .in('campaign_id', campaignIds);
+
+    // Build query for events with optional date filtering
+    let eventsQuery = supabase
+      .from('events')
+      .select('event_type')
+      .in('campaign_id', campaignIds);
+
+    if (startDate) {
+      eventsQuery = eventsQuery.gte('created_at', startDate);
+    }
+    if (endDate) {
+      eventsQuery = eventsQuery.lte('created_at', endDate);
+    }
+
+    const { data: events } = await eventsQuery;
+
+    // Count page views and QR scans
+    const pageViews = events?.filter(e => e.event_type === 'page_view').length || 0;
+    const qrScans = events?.filter(e => e.event_type === 'qr_scan').length || 0;
+
+    // Count conversions with optional date filtering
+    let conversionsQuery = supabase
+      .from('conversions')
+      .select('*', { count: 'exact', head: true })
+      .in('campaign_id', campaignIds);
+
+    if (startDate) {
+      conversionsQuery = conversionsQuery.gte('created_at', startDate);
+    }
+    if (endDate) {
+      conversionsQuery = conversionsQuery.lte('created_at', endDate);
+    }
+
+    const { count: totalConversions } = await conversionsQuery;
+
+    // Define nodes
+    const nodes: SankeyNode[] = [
+      { name: 'Recipients' },      // 0
+      { name: 'QR Scans' },        // 1
+      { name: 'Page Views' },      // 2
+      { name: 'Conversions' },     // 3
+    ];
+
+    // Define links (customer journey flow)
+    const links: SankeyLink[] = [];
+
+    // Recipients → QR Scans
+    if (qrScans > 0) {
+      links.push({
+        source: 0,
+        target: 1,
+        value: qrScans,
+      });
+    }
+
+    // QR Scans → Page Views (assuming most page views come from QR scans)
+    if (qrScans > 0 && pageViews > 0) {
+      links.push({
+        source: 1,
+        target: 2,
+        value: Math.min(qrScans, pageViews),
+      });
+    }
+
+    // Page Views → Conversions
+    if (pageViews > 0 && totalConversions && totalConversions > 0) {
+      links.push({
+        source: 2,
+        target: 3,
+        value: totalConversions,
+      });
+    }
+
+    const conversionRate =
+      (totalRecipients || 0) > 0
+        ? ((totalConversions || 0) / (totalRecipients || 1)) * 100
+        : 0;
+
+    return {
+      nodes,
+      links,
+      metrics: {
+        totalRecipients: totalRecipients || 0,
+        totalPageViews: pageViews,
+        totalConversions: totalConversions || 0,
+        conversionRate,
+      },
+    };
+  } catch (error) {
+    console.error('Error generating Sankey chart data:', error);
+    return {
+      nodes: [],
+      links: [],
+      metrics: {
+        totalRecipients: 0,
+        totalPageViews: 0,
+        totalConversions: 0,
+        conversionRate: 0,
+      },
+    };
+  }
+}
