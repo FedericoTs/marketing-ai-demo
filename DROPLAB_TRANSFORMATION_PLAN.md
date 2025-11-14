@@ -97,23 +97,39 @@ A complete direct mail platform requires these 5 core capabilities:
 - **Phase 9.1: PostGrid Integration** - **COMPLETE** ✅ (Nov 11, 2025)
 
 **🎯 IMMEDIATE NEXT PRIORITY** (November 14, 2025):
-- **Phase 4: AI Intelligence & Automation** - START NOW
-  - AI-powered postal compliance validation (USPS regulations)
-  - Response rate prediction engine
-  - Design quality scoring
-  - OR
-- **Phase 9.2: Stripe Billing Integration** - Alternative priority
-  - Subscription management
-  - Usage-based metering (per piece)
-  - Credit system integration
-  - Payment processing
+
+**REVISED PRIORITY ORDER** (Per user request):
+1. **Phase 5.7: Advanced DM Analytics** - **IMMEDIATE PRIORITY** ⚡
+   - Investment tracking (campaign costs, ROI)
+   - Advanced performance metrics (geographic, temporal, demographic)
+   - Comparative analytics & A/B testing
+   - Predictive analytics & forecasting
+   - Export & reporting capabilities
+   - **Timeline**: 1-1.5 weeks
+   - **Blocks**: Stripe billing (need cost data)
+   - **Status**: 40% complete (basic analytics exist, need DM-specific enhancements)
+
+2. **Phase 9.2: Stripe Billing Integration** - After Analytics
+   - Subscription management
+   - Usage-based metering (per piece)
+   - Credit system integration
+   - Payment processing
+   - **Timeline**: 1-2 weeks
+
+3. **Phase 4: AI Intelligence & Automation** - After Billing
+   - AI-powered postal compliance validation
+   - Response rate prediction engine
+   - Design quality scoring
+   - **Timeline**: 2-3 weeks
 
 **⏸️ DEFERRED (Post-Launch)**:
-- Phase 5.7: Email Marketing - **MOVED TO PHASE 9** (too complex now)
+- Email Marketing (previously Phase 5.7) - **MOVED TO PHASE 9.3** (replaced by Analytics)
 - Phase 6: Collaboration (real-time multi-user) - DEFERRED
 - Phase 7: Marketplace (template sharing) - DEFERRED
 - Phase 8: Developer API - DEFERRED
 - Phase 10: Beta Launch (50 users) - READY SOON
+
+**📝 NOTE**: Phase 5.7 now refers to **Advanced DM Analytics** (see line 102 above)
 
 **🎯 NEXT STEP DECISION CRITERIA**:
 
@@ -4021,622 +4037,320 @@ npm install recharts
 
 ---
 
-### **Phase 5.7: Email Marketing & Multi-Channel Campaigns** ⏸️ **DEFERRED TO PHASE 9**
+### **Phase 5.7: Advanced DM Analytics & Investment Tracking** ⚡ **IMMEDIATE PRIORITY**
 
-**Timeline**: TBD (Post-Launch Enhancement)
-**Complexity**: High
-**Value**: Very High
-**Status**: Deferred - Too complex for current stage, focus on core DM workflow first
+**Status**: 40% Complete (Basic analytics exist, need DM-specific enhancements)
+**Timeline**: 1-1.5 weeks (10-15 hours)
+**Complexity**: Medium
+**Value**: 🔴 CRITICAL - Required for customer ROI demonstration and platform differentiation
+**Priority**: User-requested immediate priority (November 14, 2025)
 
-**Goal**: Add email campaign capabilities with coordinated multi-channel sequences (Direct Mail + Email + SMS), automated follow-ups, and unified analytics to maximize campaign ROI and enable sophisticated customer journeys.
-
-**Strategic Importance**: Email is the critical second touchpoint in direct mail campaigns. Research shows multi-channel campaigns deliver 3x higher conversion rates than single-channel. This feature enables: DM arrives → Email reminder → SMS follow-up → Landing page conversion. Without this, we're leaving 70% of potential revenue on the table. Email also provides low-cost retargeting for non-converters (scanned QR but didn't buy).
-
-**Business Impact**:
-- **Revenue Increase**: Multi-channel campaigns → 3x higher conversion (industry data)
-- **Customer Retention**: Automated follow-ups reduce drop-off 40%
-- **LTV Growth**: Email nurture sequences increase customer lifetime value 2.5x
-- **Competitive Advantage**: No direct mail platform offers coordinated email automation
-- **Data Moat**: Multi-channel attribution data feeds AI predictions
+**📋 Detailed Plan**: See `PHASE5.7_ADVANCED_DM_ANALYTICS_PLAN.md` for complete implementation specification
 
 ---
 
-#### **Core Features**
+#### **Goal**
 
-**1. Email Campaign Builder** (Primary Feature)
-
-**Template System**:
-- **Follow-up Email**: "Did you receive our mail?" reminder
-- **QR Scan Triggered**: "Thanks for scanning! Here's your offer"
-- **Non-Converter Retargeting**: "Still interested? Here's 10% off"
-- **Appointment Reminder**: "Your consultation is tomorrow at 2pm"
-- **Thank You Email**: Post-conversion confirmation
-- **Survey Request**: "How did we do?" feedback
-- **Re-engagement**: "We haven't heard from you in 30 days"
-- **Custom Template**: Blank canvas with drag-drop builder
-
-**Drag-Drop Email Builder**:
-```
-components/email/
-├── email-builder.tsx              # Main builder UI (500 lines)
-│   ├── Visual drag-drop editor (Unlayer/GrapesJS)
-│   ├── Variable insertion ({firstName}, {offer}, etc.)
-│   ├── Image upload
-│   ├── Link tracking (UTM parameters auto-added)
-│   ├── Preview modes (desktop/mobile)
-│   └── Send test email
-└── email-templates/
-    ├── follow-up-template.tsx
-    ├── qr-scan-template.tsx
-    ├── retargeting-template.tsx
-    └── custom-template.tsx
-```
-
-**Variable Replacement** (Same as DM):
-- `{firstName}`, `{lastName}`, `{address}`, `{city}`, `{zip}`
-- Custom fields from recipient data
-- Campaign-specific variables (`{offer}`, `{deadline}`, `{discount_code}`)
-- Conditional content (if homeowner, show mortgage offer)
-
-**2. Multi-Channel Campaign Sequences**
-
-**Coordinated Workflows**:
-```typescript
-campaign_sequence: {
-  channels: [
-    {
-      type: 'direct_mail',
-      delay: 0, // Send immediately
-      template_id: 'dm_template_123'
-    },
-    {
-      type: 'email',
-      delay: 3, // 3 days after DM
-      trigger: 'dm_sent',
-      template_id: 'email_follow_up_456',
-      subject: 'Did you receive our letter, {firstName}?'
-    },
-    {
-      type: 'email',
-      delay: 0, // Immediately
-      trigger: 'qr_scanned',
-      template_id: 'email_thank_you_789',
-      subject: 'Thanks for your interest!'
-    },
-    {
-      type: 'sms',
-      delay: 7, // 7 days if no conversion
-      trigger: 'no_conversion',
-      message: 'Hi {firstName}, your 10% off expires tomorrow!'
-    }
-  ]
-}
-```
-
-**Behavioral Triggers**:
-- **DM Sent**: Email reminder 3 days after DM sent
-- **QR Scanned**: Immediate thank you email + offer
-- **No Conversion**: Retargeting email after 7 days
-- **Partial Form**: Abandoned form reminder (filled name but didn't submit)
-- **Conversion**: Thank you email + survey request
-- **Anniversary**: "It's been 1 year since..." re-engagement
-
-**3. Email Automation & Drip Campaigns**
-
-**Drip Sequences**:
-- **Welcome Series**: 5 emails over 2 weeks for new recipients
-- **Education Series**: Teach recipients about product/service
-- **Nurture Series**: Move cold leads to warm (3 months)
-- **Onboarding Series**: New customer setup (1 week)
-- **Re-engagement**: Win back inactive customers (30 days)
-
-**Automation Rules**:
-```typescript
-automation: {
-  trigger: 'qr_scanned',
-  condition: {
-    field: 'landing_page_conversion',
-    operator: 'equals',
-    value: false // Did NOT convert
-  },
-  actions: [
-    { type: 'wait', days: 1 },
-    { type: 'send_email', template: 'retargeting_1' },
-    { type: 'wait', days: 3 },
-    { type: 'send_email', template: 'retargeting_2' },
-    { type: 'wait', days: 7 },
-    { type: 'send_sms', message: 'Final chance for 10% off!' }
-  ]
-}
-```
-
-**4. Email Tracking & Analytics**
-
-**Engagement Metrics**:
-- **Delivery Rate**: % successfully delivered
-- **Open Rate**: % who opened email
-- **Click Rate**: % who clicked links
-- **Conversion Rate**: % who converted after email
-- **Bounce Rate**: Hard vs soft bounces
-- **Unsubscribe Rate**: % who opted out
-- **Spam Complaints**: Sender reputation tracking
-
-**Link Tracking**:
-- Auto-add UTM parameters to all links
-- Track individual link clicks
-- Heatmap showing which links clicked most
-- Attribution: Which email → landing page → conversion
-
-**A/B Testing**:
-- Test subject lines (which gets higher open rate?)
-- Test send times (morning vs evening)
-- Test email content (long vs short copy)
-- Test CTA buttons (color, text, placement)
-- Auto-declare winner based on conversion rate
-
-**5. Multi-Channel Attribution**
-
-**Unified Dashboard**:
-```
-Campaign: "Black Friday Promo"
-├── Direct Mail: 1,000 sent
-│   ├── Cost: $1,500
-│   ├── QR Scans: 120 (12%)
-│   └── Direct Conversions: 15 (1.5%)
-├── Email Follow-up: 1,000 sent
-│   ├── Opened: 450 (45%)
-│   ├── Clicked: 89 (8.9%)
-│   └── Email Conversions: 25 (2.5%)
-├── SMS Reminder: 50 sent (to non-converters)
-│   ├── Clicked: 12 (24%)
-│   └── SMS Conversions: 5 (10%)
-└── Total Campaign Results:
-    ├── Total Conversions: 45 (4.5% overall)
-    ├── Revenue: $9,000
-    ├── ROI: 500%
-    └── Best Channel: Email (highest conversion rate)
-```
-
-**Attribution Models**:
-- **Last Touch**: Credit to last channel before conversion
-- **First Touch**: Credit to DM (started the journey)
-- **Linear**: Equal credit to all touchpoints
-- **Time Decay**: More recent touchpoints get more credit
-- **Position-Based**: 40% to DM, 40% to conversion touchpoint, 20% to middle
-
-**6. Email Deliverability & Compliance**
-
-**Email Service Provider (ESP) Integration**:
-```
-Recommended: Resend (modern, developer-friendly)
-Alternatives: SendGrid, Postmark, AWS SES, Mailgun
-
-Features needed:
-- Transactional email API
-- Bulk email sending
-- Email templates
-- Link/open tracking
-- Bounce handling
-- Unsubscribe management
-- DKIM/SPF/DMARC setup
-```
-
-**Compliance Features**:
-- **CAN-SPAM Compliance**: Unsubscribe link in every email
-- **GDPR Compliance**: Consent tracking, data deletion
-- **CCPA Compliance**: "Do not sell" opt-out
-- **Unsubscribe Management**: One-click unsubscribe
-- **Suppression List**: Never email unsubscribed contacts
-- **Bounce Handling**: Remove invalid emails automatically
-
-**Sender Reputation**:
-- Domain authentication (SPF, DKIM, DMARC)
-- IP warming (gradual increase in send volume)
-- Engagement tracking (remove non-openers after 90 days)
-- Spam score checker (before sending)
+Transform existing basic platform analytics into a comprehensive Direct Mail-specific analytics suite that tracks investment, performance, and ROI across geographic, temporal, and demographic dimensions. Essential for proving customer ROI and competing with enterprise DM platforms.
 
 ---
 
-#### **Technical Implementation**
+#### **Current State (40% Complete)**
+
+**✅ Existing Infrastructure** (Discovered November 14, 2025):
+- Analytics dashboard `/analytics` with 5 tabs (Overview, Campaigns, Calls, Charts, Activity)
+- 13 analytics components (DashboardOverview, ConversionFunnel, SankeyChart, etc.)
+- 10 API endpoints for analytics data
+- Complete tracking database (events, conversions, campaign_recipients, landing_pages)
+- Platform-wide metrics: campaigns, recipients, page views, conversions, QR scans
+- ElevenLabs call tracking integration
+- Engagement metrics: time to first view, time to conversion, time to appointment
+- Multi-channel attribution (Sankey diagram)
+
+---
+
+#### **Gap Analysis (60% Missing)**
+
+❌ **Missing DM-Specific Features**:
+
+1. **Investment Tracking & Financial Analytics** (🔴 HIGHEST PRIORITY):
+   - Campaign cost breakdown (design + print + postage + Data Axle)
+   - Cost per piece, cost per QR scan, cost per conversion
+   - ROI calculations (revenue vs. spend)
+   - Budget vs. actual spend tracking
+   - Cumulative investment over time
+   - Profit margin per campaign
+
+2. **Geographic & Temporal Analytics**:
+   - QR scan heatmap (city/state/zip distribution)
+   - Response rate by region
+   - Scan rate over time (hourly/daily/weekly patterns)
+   - Day-of-week and time-of-day performance
+   - Delivery-to-scan lag tracking
+
+3. **Demographic Analytics** (if Data Axle data available):
+   - Performance by age, income, homeownership
+   - Segment-specific conversion rates
+
+4. **Comparative Analytics & A/B Testing**:
+   - Campaign-to-campaign comparison (multiple campaigns side-by-side)
+   - Template performance leaderboard
+   - Audience segment performance ranking
+   - Statistical significance testing (Chi-square)
+
+5. **Export & Reporting Capabilities**:
+   - PDF campaign reports (executive summary)
+   - CSV data exports
+   - Scheduled reports (weekly/monthly)
+   - Custom date range reports
+
+---
+
+#### **Implementation Modules**
+
+**Module 1: Investment Tracking & Financial Analytics** (3-4 hours)
+
+**Database Changes**:
+```sql
+-- Add cost tracking columns to campaigns table
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_design NUMERIC(10,2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_print NUMERIC(10,2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_postage NUMERIC(10,2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_data_axle NUMERIC(10,2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_total NUMERIC(10,2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS budget NUMERIC(10,2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS roi NUMERIC(8,2);
+
+-- Add revenue attribution to conversions
+ALTER TABLE conversions ADD COLUMN IF NOT EXISTS revenue_attribution NUMERIC(12,2);
+```
 
 **New Components**:
-```
-components/email/
-├── email-campaign-builder.tsx     # Main builder UI (400 lines)
-│   ├── Drag-drop email editor
-│   ├── Subject line + preview text
-│   ├── Variable insertion
-│   ├── Image upload
-│   ├── Send test email
-│   └── Schedule send
-├── email-sequence-builder.tsx     # Multi-step sequence UI (300 lines)
-│   ├── Visual workflow builder
-│   ├── Trigger selection (DM sent, QR scanned, etc.)
-│   ├── Delay configuration
-│   ├── Condition rules (if/then)
-│   └── Preview sequence timeline
-├── email-template-selector.tsx    # Template library (150 lines)
-│   ├── Template cards with previews
-│   ├── Category filters (follow-up, retargeting, etc.)
-│   └── "Start from blank" option
-├── email-analytics.tsx            # Email performance dashboard (250 lines)
-│   ├── Open/click/conversion rates
-│   ├── Engagement over time chart
-│   ├── Link click heatmap
-│   └── A/B test results
-└── multi-channel-dashboard.tsx    # Unified campaign analytics (300 lines)
-    ├── All channels in one view
-    ├── Attribution breakdown
-    ├── ROI calculator
-    └── Export to CSV
+- `InvestmentDashboard` - Financial overview across all campaigns
+- `CampaignCostBreakdown` - Pie/bar chart showing cost distribution
+- `ROICalculator` - Visual ROI metrics with sparklines
+- `CostPerMetric` - Cards showing cost per piece/scan/conversion
 
-lib/email/
-├── email-sender.ts                # Send email via ESP (200 lines)
-│   ├── sendEmail()
-│   ├── sendBulkEmail()
-│   ├── trackOpen()
-│   ├── trackClick()
-│   └── handleBounce()
-├── email-templates.ts             # Template rendering (150 lines)
-│   ├── renderTemplate()
-│   ├── applyVariables()
-│   ├── injectTrackingPixel()
-│   └── addUTMParameters()
-└── sequence-engine.ts             # Automation logic (250 lines)
-    ├── processSequence()
-    ├── checkTriggerConditions()
-    ├── scheduleNextAction()
-    └── handleCompletion()
-```
+**New API Endpoints**:
+- `GET /api/analytics/financial-overview` - Platform-wide financial metrics
+- `GET /api/campaigns/[id]/costs` - Individual campaign cost breakdown
+- `POST /api/campaigns/[id]/costs` - Update campaign costs
+- `GET /api/analytics/roi-timeline` - ROI trend over time
 
-**API Routes**:
-```
-app/api/email/
-├── send/route.ts                  # POST - Send single email
-├── bulk/route.ts                  # POST - Send bulk emails
-├── sequence/route.ts              # POST - Create automation sequence
-├── track-open/route.ts            # GET - Track email open (1x1 pixel)
-├── track-click/[linkId]/route.ts  # GET - Track link click (redirect)
-└── unsubscribe/route.ts           # POST - Handle unsubscribe request
-```
+**Campaign Wizard Integration**:
+- Add "Campaign Budget" step (optional)
+- Cost input fields (design, print, postage, Data Axle)
+- Budget warning alerts when approaching limit
 
-**Database Schema** (New Migration Required):
+---
 
-```sql
--- Email Campaigns Table
-CREATE TABLE email_campaigns (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
-  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+**Module 2: Geographic & Temporal Analytics** (2-3 hours)
 
-  -- Email Content
-  subject TEXT NOT NULL,
-  preview_text TEXT,
-  html_body TEXT NOT NULL,
-  plain_text_body TEXT,
+**New Components**:
+- `GeographicHeatmap` - Leaflet.js/Mapbox map showing QR scan density
+- `RegionalPerformanceTable` - Sortable table by state/city/zip
+- `TemporalPerformanceChart` - Line/bar charts for time patterns
+- `DayOfWeekChart` - Bar chart showing performance by day
+- `HourOfDayChart` - Heatmap showing hourly scan patterns
+- `DeliveryLagAnalysis` - Histogram of delivery-to-scan time
 
-  -- Sender Info
-  from_name TEXT NOT NULL,
-  from_email TEXT NOT NULL,
-  reply_to EMAIL,
+**New API Endpoints**:
+- `GET /api/analytics/geographic` - Geographic performance data
+- `GET /api/analytics/temporal` - Temporal patterns (hourly/daily/weekly)
+- `GET /api/analytics/demographic` - Demographic breakdowns (if available)
 
-  -- Configuration
-  template_type TEXT,
-
-  -- Scheduling
-  scheduled_at TIMESTAMPTZ,
-  sent_at TIMESTAMPTZ,
-
-  -- Status
-  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sending', 'sent', 'paused', 'failed')),
-
-  -- Stats (cached)
-  total_recipients INT DEFAULT 0,
-  delivered INT DEFAULT 0,
-  opened INT DEFAULT 0,
-  clicked INT DEFAULT 0,
-  bounced INT DEFAULT 0,
-  unsubscribed INT DEFAULT 0,
-
-  -- Metadata
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Email Recipients Table (links to campaign_recipients)
-CREATE TABLE email_recipients (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email_campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
-  campaign_recipient_id UUID REFERENCES campaign_recipients(id) ON DELETE CASCADE,
-
-  email TEXT NOT NULL,
-
-  -- Personalization
-  variables JSONB, -- {firstName: "John", offer: "10% off"}
-
-  -- Tracking
-  delivered_at TIMESTAMPTZ,
-  opened_at TIMESTAMPTZ,
-  clicked_at TIMESTAMPTZ,
-  bounced_at TIMESTAMPTZ,
-  bounce_type TEXT, -- 'hard', 'soft', 'spam'
-  unsubscribed_at TIMESTAMPTZ,
-
-  -- Status
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'unsubscribed')),
-
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Email Sequences Table (Automation)
-CREATE TABLE email_sequences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
-  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-
-  name TEXT NOT NULL,
-  description TEXT,
-
-  -- Trigger
-  trigger_type TEXT NOT NULL CHECK (trigger_type IN
-    ('dm_sent', 'qr_scanned', 'no_conversion', 'conversion', 'custom')),
-  trigger_conditions JSONB, -- {field: 'landing_page_conversion', operator: 'equals', value: false}
-
-  -- Sequence Steps
-  steps JSONB NOT NULL, -- Array of {type, delay, template_id, conditions}
-
-  -- Status
-  is_active BOOLEAN DEFAULT TRUE,
-
-  -- Stats
-  total_triggered INT DEFAULT 0,
-  total_completed INT DEFAULT 0,
-
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Email Links Table (Click Tracking)
-CREATE TABLE email_links (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email_campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
-
-  original_url TEXT NOT NULL,
-  tracking_url TEXT UNIQUE NOT NULL, -- /api/email/track-click/[id]
-
-  -- Stats
-  total_clicks INT DEFAULT 0,
-  unique_clicks INT DEFAULT 0,
-
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Unsubscribes Table
-CREATE TABLE email_unsubscribes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-
-  email TEXT NOT NULL,
-  reason TEXT,
-
-  unsubscribed_at TIMESTAMPTZ DEFAULT NOW(),
-
-  UNIQUE(organization_id, email)
-);
-
--- Indexes
-CREATE INDEX idx_email_campaigns_campaign ON email_campaigns(campaign_id);
-CREATE INDEX idx_email_campaigns_org ON email_campaigns(organization_id);
-CREATE INDEX idx_email_campaigns_status ON email_campaigns(status);
-
-CREATE INDEX idx_email_recipients_campaign ON email_recipients(email_campaign_id);
-CREATE INDEX idx_email_recipients_email ON email_recipients(email);
-CREATE INDEX idx_email_recipients_status ON email_recipients(status);
-
-CREATE INDEX idx_email_sequences_campaign ON email_sequences(campaign_id);
-CREATE INDEX idx_email_sequences_active ON email_sequences(is_active);
-
-CREATE INDEX idx_email_unsubscribes_email ON email_unsubscribes(email);
+**Dependencies**:
+```bash
+npm install leaflet react-leaflet @types/leaflet
+# OR npm install mapbox-gl react-map-gl
 ```
 
 ---
 
-#### **Implementation Tasks**
+**Module 3: Comparative Analytics & A/B Testing** (2-3 hours)
 
-**Task 5.7.1: Email Service Provider Setup (2 hours)**
-- [ ] Research ESP options (Resend, SendGrid, Postmark)
-- [ ] Create account with chosen ESP
-- [ ] Configure domain authentication (SPF, DKIM, DMARC)
-- [ ] Set up API keys
-- [ ] Test sending single email
-- [ ] Verify deliverability to Gmail/Outlook
-- [ ] Configure webhook endpoints (bounces, opens, clicks)
+**New Components**:
+- `CampaignComparisonTable` - Side-by-side multi-campaign comparison
+- `TemplatePerformanceLeaderboard` - Ranked templates by conversion rate
+- `AudienceSegmentRanking` - Performance by segment (age, income, etc.)
+- `ABTestAnalyzer` - Statistical significance calculator
+- `PerformanceSparklines` - Micro-charts in tables
 
-**Task 5.7.2: Email Builder UI (6 hours)**
-- [ ] Install email builder library (Unlayer, GrapesJS, or custom)
-- [ ] Create email-campaign-builder component
-- [ ] Build subject line + preview text inputs
-- [ ] Implement variable insertion UI
-- [ ] Add image upload functionality
-- [ ] Build "Send test email" feature
-- [ ] Add schedule send date/time picker
-- [ ] Create mobile preview mode
-- [ ] Test with all email clients (Gmail, Outlook, Apple Mail)
+**New API Endpoints**:
+- `GET /api/analytics/campaign-comparison?ids=a,b,c` - Multi-campaign data
+- `GET /api/analytics/template-performance` - Template leaderboard
+- `GET /api/analytics/segment-performance` - Demographic segment performance
 
-**Task 5.7.3: Database Schema (2 hours)**
-- [ ] Create migration 020_email_campaigns_schema.sql
-- [ ] Define email_campaigns table
-- [ ] Define email_recipients table
-- [ ] Define email_sequences table
-- [ ] Define email_links table
-- [ ] Define email_unsubscribes table
-- [ ] Add RLS policies (organization isolation)
-- [ ] Add GRANT statements
-- [ ] Run migration on Supabase
+**Statistical Analysis**:
+- Chi-square test for A/B significance
+- Confidence intervals (95%)
+- Sample size recommendations
 
-**Task 5.7.4: Email Sending Logic (4 hours)**
-- [ ] Create lib/email/email-sender.ts
-- [ ] Implement sendEmail() function
-- [ ] Implement sendBulkEmail() function
-- [ ] Add variable replacement logic
-- [ ] Inject tracking pixel for opens
-- [ ] Replace links with tracking URLs
-- [ ] Add UTM parameters automatically
-- [ ] Handle ESP errors gracefully
-- [ ] Implement retry logic for failures
+---
 
-**Task 5.7.5: Tracking & Analytics (4 hours)**
-- [ ] Create track-open API route (1x1 pixel)
-- [ ] Create track-click API route (redirect)
-- [ ] Build email-analytics component
-- [ ] Display open/click/conversion rates
-- [ ] Create engagement timeline chart
-- [ ] Build link click heatmap
-- [ ] Add export analytics to CSV
-- [ ] Test tracking accuracy
+**Module 4: Export & Reporting** (1-2 hours)
 
-**Task 5.7.6: Multi-Channel Sequences (6 hours)**
-- [ ] Create email-sequence-builder UI
-- [ ] Build visual workflow editor
-- [ ] Implement trigger selection
-- [ ] Add delay configuration
-- [ ] Build condition rules (if/then)
-- [ ] Create lib/email/sequence-engine.ts
-- [ ] Implement processSequence() logic
-- [ ] Add background job for sequence processing
-- [ ] Test complex sequences (DM → Email → SMS → Email)
+**New Components**:
+- `ReportGenerator` - PDF campaign report builder
+- `CSVExporter` - Export analytics data to CSV
+- `ScheduledReportConfig` - Configure automated reports
+- `DateRangePicker` - Custom date range selection (already exists)
 
-**Task 5.7.7: Unsubscribe & Compliance (3 hours)**
-- [ ] Build unsubscribe landing page
-- [ ] Create API endpoint for unsubscribe
-- [ ] Add unsubscribe link to all emails
-- [ ] Implement suppression list check
-- [ ] Add GDPR consent tracking
-- [ ] Build "manage preferences" page
-- [ ] Test one-click unsubscribe
+**New API Endpoints**:
+- `GET /api/analytics/export/pdf?campaign_id=x` - Generate PDF report
+- `GET /api/analytics/export/csv?campaign_id=x&metrics=a,b,c` - Export CSV
+- `POST /api/analytics/scheduled-reports` - Create scheduled report
 
-**Task 5.7.8: Multi-Channel Dashboard (4 hours)**
-- [ ] Create multi-channel-dashboard component
-- [ ] Display all channels (DM + Email + SMS)
-- [ ] Build attribution breakdown chart
-- [ ] Calculate ROI across channels
-- [ ] Add export to CSV/PDF
-- [ ] Test with sample multi-channel campaign
+**Libraries**:
+```bash
+npm install jspdf jspdf-autotable  # PDF generation
+npm install papaparse              # CSV generation (already installed)
+```
 
-**Task 5.7.9: Integration with Campaign Wizard (2 hours)**
-- [ ] Add "Email Sequence" step to campaign wizard (optional)
-- [ ] Auto-create default follow-up email
-- [ ] Link email triggers to campaign events
-- [ ] Update campaign preview to show email templates
-- [ ] Test end-to-end: Campaign → DM → Email → Conversion
+**PDF Report Sections**:
+1. Executive Summary (KPIs, ROI)
+2. Investment Breakdown (cost chart)
+3. Performance Metrics (QR scans, conversions, response rate)
+4. Geographic Analysis (heatmap screenshot)
+5. Temporal Analysis (scan timeline)
+6. Recommendations (AI-generated insights - future)
 
-**Task 5.7.10: Testing & Polish (3 hours)**
-- [ ] Send test emails to 10+ email clients
-- [ ] Verify tracking (opens/clicks) works
-- [ ] Test unsubscribe flow
-- [ ] Check spam score (SpamAssassin)
-- [ ] Test multi-channel sequences
-- [ ] Verify analytics accuracy
-- [ ] Performance audit (send 1000 emails <5 min)
-- [ ] Fix any deliverability issues
+---
+
+#### **Timeline & Milestones**
+
+**Total Effort**: 10-15 hours (1-1.5 weeks)
+
+**Day 1** (3-4 hours): Module 1 - Investment Tracking
+- Apply database migration (cost columns)
+- Create InvestmentDashboard component
+- Build financial API endpoints
+- Add cost input to campaign wizard
+- Test ROI calculations
+
+**Day 2** (2-3 hours): Module 2 - Geographic Analytics
+- Install Leaflet.js/Mapbox
+- Create GeographicHeatmap component
+- Build geographic API endpoint
+- Test with sample campaign data
+
+**Day 3** (2-3 hours): Module 2 & 3 - Temporal & Comparative
+- Create TemporalPerformanceChart
+- Create CampaignComparisonTable
+- Build comparative API endpoints
+- Implement statistical tests
+
+**Day 4-5** (1-2 hours): Module 4 - Export & Reporting
+- Create ReportGenerator (PDF)
+- Create CSVExporter
+- Build export API endpoints
+- Test with real campaign data
+
+**Day 5** (2 hours): Testing & Polish
+- End-to-end testing with real campaigns
+- Performance optimization
+- UI polish and refinement
+- Documentation updates
 
 ---
 
 #### **Success Criteria**
 
-- [ ] Users can create email campaigns with drag-drop builder
-- [ ] Emails send successfully via ESP (99%+ delivery rate)
-- [ ] Open/click tracking works accurately
-- [ ] Multi-channel sequences trigger correctly (DM → Email → SMS)
-- [ ] Unsubscribe flow compliant with CAN-SPAM/GDPR
-- [ ] Analytics dashboard shows unified multi-channel metrics
-- [ ] Attribution correctly tracks which channel drove conversion
-- [ ] Emails render correctly in Gmail, Outlook, Apple Mail
-- [ ] Spam score <5 (SpamAssassin)
-- [ ] Send 1000 emails in <5 minutes
+**Investment Tracking**:
+- [ ] Campaign costs tracked (design, print, postage, Data Axle)
+- [ ] ROI automatically calculated (revenue / cost)
+- [ ] Cost per conversion shown in dashboard
+- [ ] Budget alerts when approaching limit
+
+**Geographic Analytics**:
+- [ ] Heatmap shows QR scan density by region
+- [ ] Regional performance table sortable by metrics
+- [ ] Identify top/bottom performing regions
+
+**Temporal Analytics**:
+- [ ] Scan timeline shows daily/weekly patterns
+- [ ] Day-of-week chart reveals optimal mail days
+- [ ] Hour-of-day heatmap shows peak engagement times
+
+**Comparative Analytics**:
+- [ ] Side-by-side campaign comparison (2+ campaigns)
+- [ ] Template leaderboard ranks by conversion rate
+- [ ] A/B test results show statistical significance
+
+**Export & Reporting**:
+- [ ] PDF report generated with all key metrics
+- [ ] CSV export includes all analytics data
+- [ ] Reports ready to share with clients/stakeholders
 
 ---
 
-#### **Premium Features (Future Enhancements)**
+#### **Database Migration Required**
 
-**Tier 1 - Email Automation** (+$40/month):
-- Unlimited email sequences
-- Advanced triggers (behavioral, time-based)
-- A/B testing (subject lines, content)
-- Send time optimization (AI)
+**Migration**: `supabase/migrations/024_analytics_investment_tracking.sql`
 
-**Tier 2 - Advanced Personalization** (+$60/month):
-- Dynamic content blocks (show/hide based on data)
-- Product recommendations (AI)
-- Countdown timers (urgency)
-- Personalized images
+```sql
+-- Campaign Cost Tracking
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_design NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_print NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_postage NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_data_axle NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS cost_total NUMERIC(10,2) GENERATED ALWAYS AS (
+  COALESCE(cost_design, 0) + COALESCE(cost_print, 0) +
+  COALESCE(cost_postage, 0) + COALESCE(cost_data_axle, 0)
+) STORED;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS budget NUMERIC(10,2);
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS roi NUMERIC(8,2);
 
-**Tier 3 - Enterprise Email** (+$150/month):
-- Dedicated IP address (better deliverability)
-- Custom SMTP domain
-- White-label emails
-- Priority support
-- 99.9% SLA
+-- Revenue Attribution
+ALTER TABLE conversions ADD COLUMN IF NOT EXISTS revenue_attribution NUMERIC(12,2);
 
-**Tier 4 - AI Optimization** (+$100/month):
-- AI-generated subject lines (GPT-4)
-- Auto-optimize send times (per recipient)
-- Predictive churn prevention
-- Smart segmentation
-
----
-
-#### **Dependencies**
-
-```bash
-# Email service provider SDK
-npm install resend  # or @sendgrid/mail, postmark, etc.
-
-# Email builder (choose one)
-npm install react-email  # Vercel's email builder
-# OR npm install grapesjs grapesjs-preset-newsletter
-
-# Email validation
-npm install validator
-
-# HTML to plain text (for plain_text_body)
-npm install html-to-text
-
-# MJML (responsive email markup)
-npm install mjml mjml-react
-
-# Already installed:
-# npm install zod react-hook-form recharts
+-- Indexes for Analytics Performance
+CREATE INDEX IF NOT EXISTS idx_events_campaign_created
+  ON events(campaign_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_conversions_campaign_created
+  ON conversions(campaign_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_campaign_recipients_campaign
+  ON campaign_recipients(campaign_id);
 ```
 
 ---
 
-#### **Design References**
+#### **Next Steps After Completion**
 
-**Inspired by**:
-- **Klaviyo**: Multi-channel sequences, behavioral triggers
-- **Mailchimp**: Email builder UI, template library
-- **ActiveCampaign**: Automation workflows, visual builder
-- **Customer.io**: Event-based triggers, multi-channel attribution
-- **Sendgrid**: Email analytics, deliverability tools
+Once Phase 5.7 is complete, the platform will have:
+✅ Complete financial visibility (costs, ROI, budget tracking)
+✅ Deep performance insights (geographic, temporal, demographic)
+✅ Competitive analytics (A/B testing, template rankings)
+✅ Professional reporting (PDF/CSV exports)
+
+**Then proceed to**:
+1. **Phase 9.2: Stripe Billing Integration** - Monetize with subscription model
+2. **Phase 4: AI Intelligence & Automation** - Predictive analytics, AI insights
+3. **Phase 9: Email Marketing** - Multi-channel campaigns (deferred from original 5.7)
 
 ---
 
-**⚠️ DEFERRAL RATIONALE**:
+#### **Why This Matters**
 
-After strategic review, email marketing has been **deferred to Phase 9** (post-launch) for the following reasons:
+**Customer Value**:
+- "Show me the ROI" - Customers can prove direct mail effectiveness
+- Geographic insights → target high-performing regions, optimize underperformers
+- Temporal insights → mail on optimal days/times for max engagement
+- Professional reports → share results with stakeholders/clients
 
-1. **Complexity**: Requires ESP integration, domain authentication, deliverability tuning, compliance (CAN-SPAM, GDPR)
-2. **Dependencies**: Works best with established landing pages + campaign data
-3. **Priority**: Core DM workflow must be completed first (Design → Personalize → Print → Track)
-4. **Timing**: Better as post-launch enhancement after proving core value proposition
+**Competitive Advantage**:
+- Most direct mail platforms lack detailed investment tracking
+- Geographic/temporal analytics rare in DM space
+- Data-driven insights differentiate from "send and hope" competitors
 
-**Recommended Implementation Sequence**:
-- ✅ **NOW**: Phase 5.6 (Landing Pages) - Completes tracking loop for DM campaigns
-- ⏸️ **NEXT**: Phase 9 (PostGrid Integration) - Actual printing and fulfillment
-- 🔜 **THEN**: Phase 9 (Email Marketing) - Multi-channel enhancement after core workflow proven
+**Platform Growth**:
+- Financial data feeds Stripe billing (usage metering)
+- Performance data feeds AI predictions (Phase 4)
+- Export capabilities enable agency white-labeling
 
-This keeps development focused on shipping a complete, working direct mail platform before adding multi-channel complexity.
+---
+
+**📋 Full Implementation Details**: See `PHASE5.7_ADVANCED_DM_ANALYTICS_PLAN.md` (590 lines)
 
 ---
 
