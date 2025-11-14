@@ -36,32 +36,6 @@ export async function GET(request: NextRequest) {
       successResponse(data, "Sankey chart data retrieved successfully")
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const isSQLiteError = errorMessage.includes('invalid ELF header') ||
-                          errorMessage.includes('better_sqlite3');
-
-    if (isSQLiteError) {
-      console.warn("[Sankey API] SQLite not available - returning empty dataset");
-      // Return empty but valid data structure
-      return NextResponse.json(
-        successResponse(
-          {
-            nodes: [],
-            links: [],
-            metrics: {
-              total_recipients: 0,
-              qr_scans: 0,
-              page_views: 0,
-              conversions: 0,
-              scan_rate: 0,
-              conversion_rate: 0,
-            },
-          },
-          "Sankey chart unavailable (requires local database)"
-        )
-      );
-    }
-
     console.error("[Sankey API] ❌ Error fetching Sankey chart data:", error);
     console.error("[Sankey API] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(

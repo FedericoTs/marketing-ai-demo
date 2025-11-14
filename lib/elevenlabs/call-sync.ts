@@ -37,25 +37,8 @@ export async function syncElevenLabsCalls(
   console.log('[Call Sync] Starting ElevenLabs call sync...');
 
   try {
-    // Get last sync timestamp (may fail if SQLite unavailable in WSL2)
-    let lastSyncTimestamp: number | null = null;
-    try {
-      lastSyncTimestamp = getLastSyncTimestamp();
-    } catch (dbError: any) {
-      const isSQLiteError = dbError?.message?.includes('invalid ELF header') ||
-                            dbError?.message?.includes('better_sqlite3');
-      if (isSQLiteError) {
-        console.warn('[Call Sync] SQLite unavailable - call tracking feature disabled');
-        return {
-          success: true,
-          newCalls: 0,
-          attributedCalls: 0,
-          errors: [],
-          lastSyncTimestamp: null,
-        };
-      }
-      throw dbError; // Re-throw if it's a different error
-    }
+    // Get last sync timestamp
+    const lastSyncTimestamp = getLastSyncTimestamp();
 
     console.log('[Call Sync] Last sync timestamp:', lastSyncTimestamp ? new Date(lastSyncTimestamp * 1000).toISOString() : 'Never');
 

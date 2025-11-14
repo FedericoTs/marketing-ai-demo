@@ -58,34 +58,11 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    // Check if this is a SQLite/better-sqlite3 error (common in WSL2)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const isSQLiteError = errorMessage.includes('invalid ELF header') ||
-                          errorMessage.includes('better_sqlite3');
-
-    if (isSQLiteError) {
-      console.warn('[API] ElevenLabs sync skipped - SQLite not available in this environment');
-      // Return success with zero results (graceful degradation)
-      return NextResponse.json(
-        successResponse(
-          {
-            newCalls: 0,
-            attributedCalls: 0,
-            errors: [],
-            lastSyncTimestamp: null,
-            skipped: true,
-            reason: 'SQLite not available (call tracking requires local database)',
-          },
-          'Call sync skipped - feature unavailable'
-        )
-      );
-    }
-
     console.error('[API] Error in sync-elevenlabs-calls:', error);
 
     return NextResponse.json(
       errorResponse(
-        `Failed to sync ElevenLabs calls: ${errorMessage}`,
+        `Failed to sync ElevenLabs calls: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'SYNC_ERROR'
       ),
       { status: 500 }

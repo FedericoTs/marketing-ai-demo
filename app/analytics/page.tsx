@@ -25,7 +25,6 @@ function AnalyticsContent() {
   }, [searchParams]);
 
   // Global ElevenLabs sync - runs every 2 minutes regardless of active tab
-  // Gracefully handles failures if ElevenLabs is not configured
   useEffect(() => {
     const syncFromElevenLabs = async () => {
       try {
@@ -36,41 +35,29 @@ function AnalyticsContent() {
         });
 
         if (!response.ok) {
-          // Silently fail if ElevenLabs is not configured (common in development)
-          const result = await response.json().catch(() => ({}));
-          if (result.code === 'API_KEY_MISSING') {
-            // Expected - ElevenLabs not configured, skip sync silently
-            return;
-          }
-          console.warn('[Analytics] ElevenLabs sync skipped:', response.status);
+          console.error('[Analytics] GLOBAL sync failed: HTTP', response.status);
           return;
         }
 
         const result = await response.json();
 
         if (!result.success) {
-          console.warn('[Analytics] ElevenLabs sync completed with errors:', result.error || 'Unknown error');
+          console.error('[Analytics] GLOBAL sync failed:', result.error || 'Unknown error');
         }
       } catch (error) {
-        // Network errors or other issues - fail silently
-        console.debug('[Analytics] ElevenLabs sync unavailable:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('[Analytics] GLOBAL sync error:', error instanceof Error ? error.message : 'Unknown error');
       }
     };
 
-    // Initial sync on mount (with delay to avoid blocking page load)
-    const initialTimeout = setTimeout(() => {
-      syncFromElevenLabs();
-    }, 2000);
+    // Initial sync on mount
+    syncFromElevenLabs();
 
     // Auto-sync every 2 minutes
     const syncInterval = setInterval(() => {
       syncFromElevenLabs();
     }, 120000); // 2 minutes
 
-    return () => {
-      clearTimeout(initialTimeout);
-      clearInterval(syncInterval);
-    };
+    return () => clearInterval(syncInterval);
   }, []);
 
   const handleTabChange = (value: string) => {
