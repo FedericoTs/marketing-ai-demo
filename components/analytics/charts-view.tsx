@@ -8,6 +8,7 @@ import { DateRangePicker } from "./date-range-picker";
 import { TimeSeriesChart } from "./time-series-chart";
 import { ConversionFunnel } from "./conversion-funnel";
 import { CampaignComparison } from "./campaign-comparison";
+import { GeographicPerformance } from "./geographic-performance";
 import { Loader2 } from "lucide-react";
 
 interface TimeSeriesData {
@@ -222,6 +223,9 @@ export function ChartsView() {
           title="Campaign Performance Comparison"
         />
       )}
+
+      {/* Geographic Performance - Phase 5.7 Module 2 */}
+      <GeographicPerformance />
     </div>
   );
 }
