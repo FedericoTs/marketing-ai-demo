@@ -4,7 +4,6 @@ import {
   getOverallEngagementMetrics,
   getInvestmentMetrics,
 } from "@/lib/database/analytics-supabase-queries";
-import { getAllCallMetrics } from "@/lib/database/call-tracking-queries";
 import { formatEngagementTime } from "@/lib/format-time";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
@@ -16,7 +15,7 @@ import { successResponse, errorResponse } from "@/lib/utils/api-response";
  * - Dashboard stats (campaigns, recipients, conversions)
  * - Investment metrics (costs, budget utilization)
  * - Engagement metrics (time-based patterns)
- * - Call tracking metrics (ElevenLabs integration)
+ * - Call tracking metrics (optional - ElevenLabs integration)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -26,12 +25,15 @@ export async function GET(request: NextRequest) {
     const organizationId = searchParams.get("organizationId") || undefined;
 
     // Fetch all analytics data in parallel for optimal performance
-    const [stats, engagementMetrics, investmentMetrics, callMetrics] = await Promise.all([
+    const [stats, engagementMetrics, investmentMetrics] = await Promise.all([
       getDashboardStats(startDate, endDate, organizationId),
       getOverallEngagementMetrics(startDate, endDate, organizationId),
       getInvestmentMetrics(organizationId),
-      Promise.resolve(getAllCallMetrics(startDate, endDate)), // Keep call metrics as-is for now
     ]);
+
+    // Call metrics are optional (requires ElevenLabs + SQLite setup)
+    // Skip if not available to avoid errors in Supabase-only environment
+    const callMetrics = null;
 
     return NextResponse.json(
       successResponse(
