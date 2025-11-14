@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Sparkles, Download, AlertCircle, CheckCircle2, Loader2, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { PrintCampaignModal } from './print-campaign-modal'
+import { CampaignRecipientsTable } from './campaign-recipients-table'
 
 interface CampaignGenerationPanelProps {
   campaignId: string
@@ -58,6 +59,8 @@ export function CampaignGenerationPanel({
     errors: GenerationError[]
   } | null>(null)
   const [showPrintModal, setShowPrintModal] = useState(false)
+  const [showRecipients, setShowRecipients] = useState(false)
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Check if campaign has existing PDFs on mount (use props from parent)
   React.useEffect(() => {
@@ -94,8 +97,67 @@ export function CampaignGenerationPanel({
       })
 
       console.log('✅ [CampaignGenerationPanel] State updated - print button should now be visible!')
+      setShowRecipients(true) // Show recipients table for existing campaigns
     }
   }, [campaignStatus, generatedCount, totalRecipients]) // Watch for prop changes
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
+  }, [])
+
+  // Poll campaign stats during generation
+  const startProgressPolling = () => {
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+    }
+
+    console.log('🔄 [Progress Polling] Starting real-time progress updates...')
+
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/campaigns/${campaignId}/stats`)
+        const data = await response.json()
+
+        if (response.ok && data.success) {
+          const { generatedCount: currentCount, status } = data.stats
+
+          // Update progress
+          setProgress((prev) => ({
+            ...prev,
+            current: currentCount,
+            percentage: Math.round((currentCount / totalRecipients) * 100),
+          }))
+
+          console.log(`📊 [Progress Polling] ${currentCount}/${totalRecipients} (${Math.round((currentCount / totalRecipients) * 100)}%)`)
+
+          // Stop polling when complete
+          if (status === 'completed' || status === 'failed') {
+            console.log('✅ [Progress Polling] Campaign completed, stopping polling')
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ [Progress Polling] Error:', error)
+      }
+    }, 2000) // Poll every 2 seconds
+  }
+
+  const stopProgressPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+      console.log('🛑 [Progress Polling] Stopped')
+    }
+  }
 
   const handleGenerate = async () => {
     try {
@@ -108,8 +170,12 @@ export function CampaignGenerationPanel({
         status: 'processing',
       })
       setResult(null)
+      setShowRecipients(false)
 
       console.log('🚀 Starting campaign generation...')
+
+      // Start progress polling
+      startProgressPolling()
 
       const response = await fetch(`/api/campaigns/${campaignId}/generate`, {
         method: 'POST',
@@ -120,6 +186,9 @@ export function CampaignGenerationPanel({
       })
 
       const data = await response.json()
+
+      // Stop polling when API returns
+      stopProgressPolling()
 
       if (!response.ok) {
         throw new Error(data.message || 'Generation failed')
@@ -141,6 +210,9 @@ export function CampaignGenerationPanel({
         errors: data.data.errors || [],
       })
 
+      // Show recipients table
+      setShowRecipients(true)
+
       // Notify parent component that generation completed
       if (onGenerationComplete) {
         onGenerationComplete()
@@ -158,6 +230,7 @@ export function CampaignGenerationPanel({
     } catch (error) {
       console.error('❌ Generation error:', error)
 
+      stopProgressPolling()
       setProgress((prev) => ({ ...prev, status: 'failed' }))
 
       toast.error(error instanceof Error ? error.message : 'Failed to generate campaign')
@@ -336,6 +409,16 @@ export function CampaignGenerationPanel({
             </Button>
           )}
         </CardContent>
+      )}
+
+      {/* Recipients Table - Show after generation completes */}
+      {showRecipients && progress.status === 'completed' && (
+        <div className="mt-6">
+          <CampaignRecipientsTable
+            campaignId={campaignId}
+            totalRecipients={totalRecipients}
+          />
+        </div>
       )}
 
       {/* Print Campaign Modal */}
