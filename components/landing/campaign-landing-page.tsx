@@ -151,29 +151,29 @@ export default function CampaignLandingPageClient({
 
   // Fallback to original layout if no template config
   const legacyTheme = theme;
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    preferredDate: '',
-    message: '',
-  });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  // Initialize form data based on mode
-  useEffect(() => {
+  // Initialize form data based on mode (avoid hydration mismatch)
+  const [formData, setFormData] = useState(() => {
     if (mode === 'personalized' && recipientData) {
-      setFormData({
+      return {
         name: `${recipientData.name} ${recipientData.lastname}`,
         email: recipientData.email || '',
         phone: recipientData.phone || '',
         preferredDate: '',
         message: '',
-      });
+      };
     }
-  }, [mode, recipientData]);
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      preferredDate: '',
+      message: '',
+    };
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Track page view
   useEffect(() => {
