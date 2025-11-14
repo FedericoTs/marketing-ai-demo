@@ -1,37 +1,21 @@
 import { notFound } from 'next/navigation';
 import { decryptRecipientId } from '@/lib/landing-page/encryption';
-import {
-  getCampaignLandingPageConfig,
-  getRecipientById,
-  getCampaign,
-  getCampaignLandingPage,
-} from '@/lib/database/campaign-landing-page-queries';
-import { getActiveTrackingSnippets, getTemplateConfig } from '@/lib/database/template-queries';
-import { getBrandProfile } from '@/lib/database/tracking-queries';
-import { mergeBrandKitWithTemplate } from '@/lib/templates/brand-kit-merger';
+import { getCampaignPublic, getRecipientPublic } from '@/lib/database/campaign-supabase-queries';
+import { getLandingPagesByCampaign } from '@/lib/database/landing-queries';
 import CampaignLandingPageClient from '@/components/landing/campaign-landing-page';
 
 /**
- * Campaign-Based Landing Page (Server Component)
+ * Campaign-Based Landing Page (Server Component) - Supabase Version
  *
  * Dual Mode Architecture:
- * 1. Personalized Mode: /lp/campaign/{campaignId}?r={encrypted_recipient_id}
- *    - Decrypts recipient ID from QR code
- *    - Pre-fills form with recipient data
- *    - Shows personalized greeting
- *    - Tracks with recipient attribution
+ * 1. Personalized Mode: /lp/campaign/{campaignId}?r={recipientId}&t={trackingCode}
+ *    - Shows recipient data
+ *    - Pre-fills form with recipient info
+ *    - Personalized greeting
  *
  * 2. Generic Mode: /lp/campaign/{campaignId}
- *    - No recipient ID provided
- *    - Shows generic greeting
- *    - Empty form (user fills manually)
- *    - Tracks as generic conversion
- *
- * Benefits:
- * - One landing page per campaign (vs one per recipient)
- * - Shareable campaign URLs
- * - Works without recipients (preview, testing)
- * - Graceful degradation
+ *    - Generic greeting
+ *    - Empty form
  */
 
 interface PageProps {
@@ -39,102 +23,88 @@ interface PageProps {
     campaignId: string;
   }>;
   searchParams: Promise<{
-    r?: string; // Encrypted recipient ID
-    t?: string; // Optional tracking parameter
+    r?: string; // Recipient ID (not encrypted in current implementation)
+    t?: string; // Tracking code
   }>;
 }
 
 export default async function CampaignLandingPage({ params, searchParams }: PageProps) {
   // Await the params and searchParams
   const { campaignId } = await params;
-  const { r: encryptedRecipientId, t: trackingParam } = await searchParams;
+  const { r: recipientId, t: trackingCode } = await searchParams;
 
-  // 1. Fetch campaign data
-  const campaign = getCampaign(campaignId);
+  console.log(`🌐 [Landing Page] Campaign: ${campaignId}, Recipient: ${recipientId || 'none'}, Tracking: ${trackingCode || 'none'}`);
+
+  // 1. Fetch campaign data from Supabase
+  const campaign = await getCampaignPublic(campaignId);
 
   if (!campaign) {
-    console.log(`Campaign not found: ${campaignId}`);
+    console.log(`❌ [Landing Page] Campaign not found: ${campaignId}`);
     notFound();
   }
 
-  // 2. Fetch campaign landing page configuration
-  const config = getCampaignLandingPageConfig(campaignId);
-  const landingPageRecord = getCampaignLandingPage(campaignId);
+  console.log(`✅ [Landing Page] Campaign loaded: ${campaign.name}`);
 
-  // 3. Fetch active tracking snippets
-  const trackingSnippets = getActiveTrackingSnippets();
+  // 2. Fetch landing pages for this campaign
+  const landingPages = await getLandingPagesByCampaign(campaignId);
 
-  // 4. Fetch and apply template configuration (if template is linked)
-  let templateConfig = null;
-  if (landingPageRecord?.campaign_template_id) {
-    const rawTemplateConfig = getTemplateConfig(landingPageRecord.campaign_template_id);
+  console.log(`📋 [Landing Page] Found ${landingPages.length} landing pages for campaign`);
 
-    if (rawTemplateConfig) {
-      // Fetch brand profile for the company
-      const brandProfile = getBrandProfile(campaign.company_name);
-
-      // Merge brand kit with template (brand kit takes priority)
-      templateConfig = mergeBrandKitWithTemplate(rawTemplateConfig, brandProfile);
-
-      console.log(`✅ Template applied: ${landingPageRecord.campaign_template_id} with brand kit integration`);
-    }
-  }
-
-  if (!config) {
-    console.log(`Landing page config not found for campaign: ${campaignId}`);
-    // Return a basic landing page based on campaign data
-    // This allows campaigns without explicit landing page configs to still work
-    const fallbackConfig = {
-      title: campaign.name,
-      message: campaign.message,
-      companyName: campaign.company_name,
-      formFields: ['name', 'email', 'phone', 'preferredDate'],
-      ctaText: 'Schedule Consultation',
-      thankYouMessage: 'Thank you! We will contact you soon.',
-      fallbackMessage: 'Welcome! Schedule your consultation today.',
-    };
-
-    return (
-      <CampaignLandingPageClient
-        config={fallbackConfig}
-        campaignId={campaignId}
-        campaignName={campaign.name}
-        recipientData={null}
-        mode="generic"
-        trackingSnippets={trackingSnippets}
-        templateConfig={templateConfig}
-      />
-    );
-  }
-
-  // 5. Check for personalization (encrypted recipient ID in query parameter)
+  // 3. Check for personalization (recipient ID in query parameter)
   let recipientData = null;
   let mode: 'personalized' | 'generic' = 'generic';
 
-  if (encryptedRecipientId) {
-    // Attempt to decrypt recipient ID
-    const recipientId = decryptRecipientId(encryptedRecipientId, campaignId);
+  if (recipientId) {
+    // Fetch recipient data
+    const recipient = await getRecipientPublic(recipientId);
 
-    if (recipientId) {
-      // Successfully decrypted - fetch recipient data
-      const recipient = getRecipientById(recipientId);
-
-      if (recipient && recipient.campaign_id === campaignId) {
-        // Valid recipient for this campaign
-        recipientData = recipient;
-        mode = 'personalized';
-        console.log(`Personalized mode activated for recipient: ${recipient.name} ${recipient.lastname}`);
-      } else {
-        // Recipient not found or doesn't belong to this campaign
-        console.log('Recipient not found or campaign mismatch - falling back to generic mode');
-      }
+    if (recipient) {
+      recipientData = {
+        id: recipient.id,
+        name: recipient.first_name,
+        lastname: recipient.last_name,
+        firstName: recipient.first_name,
+        lastName: recipient.last_name,
+        email: recipient.email,
+        phone: recipient.phone,
+        address: recipient.address_line1,
+        city: recipient.city,
+        state: recipient.state,
+        zip: recipient.zip_code,
+        country: recipient.country,
+      };
+      mode = 'personalized';
+      console.log(`✅ [Landing Page] Personalized mode for: ${recipient.first_name} ${recipient.last_name}`);
     } else {
-      // Decryption failed (tampered, expired, wrong campaign)
-      console.log('Failed to decrypt recipient ID - falling back to generic mode');
+      console.log(`⚠️ [Landing Page] Recipient not found: ${recipientId} - using generic mode`);
     }
   }
 
-  // 6. Render landing page with appropriate mode and template
+  // 4. Build config from landing page data or campaign fallback
+  const landingPage = landingPages[0]; // Use first landing page if available
+
+  const config = landingPage
+    ? {
+        title: landingPage.page_config?.title || campaign.name,
+        message: landingPage.page_config?.message || campaign.description || 'Welcome to our campaign!',
+        companyName: campaign.name,
+        formFields: landingPage.page_config?.formFields || ['name', 'email', 'phone'],
+        ctaText: landingPage.page_config?.ctaText || 'Submit',
+        thankYouMessage: landingPage.page_config?.thankYouMessage || 'Thank you!',
+        fallbackMessage: 'Welcome! Please fill out the form below.',
+      }
+    : {
+        // Fallback config if no landing pages exist
+        title: campaign.name,
+        message: campaign.description || 'Welcome to our campaign!',
+        companyName: campaign.name,
+        formFields: ['name', 'email', 'phone', 'message'],
+        ctaText: 'Submit',
+        thankYouMessage: 'Thank you! We will be in touch soon.',
+        fallbackMessage: 'Welcome! Please fill out the form below.',
+      };
+
+  // 5. Render landing page
   return (
     <CampaignLandingPageClient
       config={config}
@@ -142,8 +112,8 @@ export default async function CampaignLandingPage({ params, searchParams }: Page
       campaignName={campaign.name}
       recipientData={recipientData}
       mode={mode}
-      trackingSnippets={trackingSnippets}
-      templateConfig={templateConfig}
+      trackingSnippets={[]} // No tracking snippets for now
+      templateConfig={null} // No template config for now
     />
   );
 }
@@ -153,7 +123,7 @@ export default async function CampaignLandingPage({ params, searchParams }: Page
  */
 export async function generateMetadata({ params }: PageProps) {
   const { campaignId } = await params;
-  const campaign = getCampaign(campaignId);
+  const campaign = await getCampaignPublic(campaignId);
 
   if (!campaign) {
     return {
@@ -161,10 +131,8 @@ export async function generateMetadata({ params }: PageProps) {
     };
   }
 
-  const config = getCampaignLandingPageConfig(campaignId);
-
   return {
-    title: config?.title || campaign.name,
-    description: config?.message || campaign.message,
+    title: campaign.name,
+    description: campaign.description || `Campaign: ${campaign.name}`,
   };
 }

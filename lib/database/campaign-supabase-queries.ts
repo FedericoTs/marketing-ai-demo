@@ -171,6 +171,53 @@ export async function getCampaignById(
 }
 
 /**
+ * Get campaign by ID (public - for landing pages)
+ * Does NOT verify organization_id for public access
+ */
+export async function getCampaignPublic(
+  campaignId: string
+): Promise<Campaign | null> {
+  const supabase = createServiceClient();
+
+  const { data: campaign, error } = await supabase
+    .from('campaigns')
+    .select('*')
+    .eq('id', campaignId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    console.error('❌ [getCampaignPublic] Error:', error);
+    return null;
+  }
+
+  return campaign;
+}
+
+/**
+ * Get recipient by ID (public - for landing pages)
+ */
+export async function getRecipientPublic(
+  recipientId: string
+): Promise<any | null> {
+  const supabase = createServiceClient();
+
+  const { data: recipient, error } = await supabase
+    .from('recipients')
+    .select('*')
+    .eq('id', recipientId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    console.error('❌ [getRecipientPublic] Error:', error);
+    return null;
+  }
+
+  return recipient;
+}
+
+/**
  * Get all campaigns for organization
  */
 export async function getAllCampaigns(
