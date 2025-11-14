@@ -1913,6 +1913,34 @@ Allow users to mark canvas objects as variables (e.g., `{{recipient_name}}`).
 - ✅ **Production Cleanup**: Removed debug logging, kept error handling, simplified console forwarding
 - **Verified Variables**: `{firstname}` → "Jane", `{lastname}` → "Davis", `{address}` → "2600 Main St", `{phone}` → "555-127-7382" ✅
 
+**Bug Fixes (2025-11-14)**: ✅ **CRITICAL FIX - QR Code Personalization**
+- ✅ **QR Code Replacement**: Fixed QR codes not being personalized with unique tracking codes
+  - **Root Cause**: `personalizeCanvasWithRecipient()` was never called in `batch-vdp-processor.ts` before PDF generation
+  - **Symptom**: All PDFs showed identical placeholder QR code despite unique recipient IDs in database
+  - **Investigation**: Added comprehensive DEBUG logging to trace execution flow through 3 layers:
+    - Layer 1: `batch-vdp-processor.ts` - Campaign orchestration
+    - Layer 2: `personalization-engine.ts` - QR code generation and canvas modification
+    - Layer 3: `qr-generator.ts` - Unique QR code data URL generation
+  - **Fix**:
+    - Added personalization calls for both front and back surfaces before PDF generation (lines 330-365)
+    - Upgraded QR error correction from M (15% recovery) to H (30% recovery) for physical mail durability
+    - Added comprehensive logging to trace QR generation timeline
+  - **Result**: 5/5 PDFs generated with unique QR codes verified in terminal logs ✅
+    - Jane Davis: 10,306 char QR → `...AAAcDElEQVR4AezBQa4kubYgQfeE9r9lb0...`
+    - Sarah Williams: 10,402 char QR → `...AAAb80lEQVR4AezBQa4gubYgQffE3f+WvZ...`
+    - Sarah Johnson: 10,314 char QR → `...AAAcBUlEQVR4AezBQY4cuZYAQfeE7n9lH2...`
+    - Michael Brown: 10,266 char QR → `...AAAcBklEQVR4AezBQY4cuZYAQfeE7n9lH2...`
+    - Mary Rodriguez: 10,314 char QR → `...AAAcA0lEQVR4AezBQa4gubYgQffE3f+WvT...`
+  - **Each QR encodes unique encrypted recipient ID**: `/lp/campaign/{campaignId}?r={encrypted_recipient_id}&t={tracking_code}`
+- ✅ **QR Code Error Correction**: Upgraded all 4 QR generation functions to error correction level "H"
+  - `generateCampaignQRCode()` - Campaign-based tracking
+  - `generateQRCode()` - Legacy recipient tracking
+  - `generateGenericCampaignQRCode()` - Campaign-only tracking
+  - `generatePlaceholderQRCode()` - Template editor placeholder
+- ✅ **Development Server Caching**: Resolved stale code issue caused by 7 concurrent dev servers on port 3000
+  - **Fix**: Killed all Node processes, cleared `.next` cache, restarted single server
+  - **Verification**: DEBUG logs now appear confirming code changes deployed
+
 **New Features (2025-11-05)**: 🎉 **PDF EXPORT ENGINE**
 
 **Implementation Summary**:

@@ -154,17 +154,29 @@ export async function personalizeCanvasWithRecipient(
 
         // STEP 1.2: Handle QR code replacement
         if (mapping?.variableType === 'qrCode') {
+          console.log(`🔍 [PERSONALIZE] Object ${index} detected as QR code`)
+          console.log(`🔍 [PERSONALIZE] Original obj.src: ${obj.src?.substring(0, 100)}...`)
+          console.log(`🔍 [PERSONALIZE] Generating unique QR for recipient: ${recipientData.id} (${recipientData.first_name} ${recipientData.last_name})`)
+
           try {
             // Generate unique QR code for this recipient
             const qrCodeDataUrl = await generateCampaignQRCode(campaignId, recipientData.id)
 
+            console.log(`✅ [PERSONALIZE] QR generated successfully: ${qrCodeDataUrl.substring(0, 100)}...`)
+            console.log(`🔍 [PERSONALIZE] QR code length: ${qrCodeDataUrl.length} characters`)
+
             // Replace image source while preserving position/size
-            return {
+            const newObj = {
               ...obj,
               src: qrCodeDataUrl,
             }
+
+            console.log(`✅ [PERSONALIZE] Replaced obj.src for object ${index}`)
+            console.log(`🔍 [PERSONALIZE] New obj.src: ${newObj.src.substring(0, 100)}...`)
+
+            return newObj
           } catch (error) {
-            console.error(`❌ Failed to generate QR code for recipient ${recipientData.id}:`, error)
+            console.error(`❌ [PERSONALIZE] Failed to generate QR code for recipient ${recipientData.id}:`, error)
             // Return original object on error (placeholder QR will remain)
             return obj
           }

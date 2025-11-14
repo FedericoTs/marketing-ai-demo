@@ -19,7 +19,7 @@ export async function generateQRCode(url: string): Promise<string> {
         dark: "#000000",
         light: "#FFFFFF",
       },
-      errorCorrectionLevel: "M",
+      errorCorrectionLevel: "H",
     });
 
     return dataUrl;
@@ -69,7 +69,7 @@ export async function generateCampaignQRCode(
         dark: "#000000",
         light: "#FFFFFF",
       },
-      errorCorrectionLevel: "M", // Medium error correction (handles ~15% damage)
+      errorCorrectionLevel: "H", // High error correction (handles ~30% damage) - critical for physical mail
     });
 
     return dataUrl;
@@ -104,7 +104,7 @@ export async function generateGenericCampaignQRCode(campaignId: string): Promise
         dark: "#000000",
         light: "#FFFFFF",
       },
-      errorCorrectionLevel: "M",
+      errorCorrectionLevel: "H",
     });
 
     return dataUrl;
@@ -139,7 +139,7 @@ export async function generatePlaceholderQRCode(): Promise<string> {
         dark: "#000000",
         light: "#FFFFFF",
       },
-      errorCorrectionLevel: "M",
+      errorCorrectionLevel: "H",
     });
 
     return dataUrl;

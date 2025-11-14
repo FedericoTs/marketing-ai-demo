@@ -327,14 +327,51 @@ export async function processCampaignBatch(
           country: recipient.country,
         }
 
-        // Generate personalized PDF (front + back pages)
+        // ==================== PERSONALIZE CANVAS (QR CODES + VARIABLES) ====================
+        // Step 1: Personalize front canvas (replace QR codes with unique tracking codes)
+        console.log(`    🔍 [DEBUG] Checking personalization for ${recipientName}:`, {
+          hasFrontSurface: !!frontSurface,
+          hasFrontMappings: !!frontSurface.variable_mappings,
+          mappingsType: typeof frontSurface.variable_mappings,
+          mappingsKeys: frontSurface.variable_mappings ? Object.keys(frontSurface.variable_mappings) : 'undefined',
+          mappingsLength: frontSurface.variable_mappings ? Object.keys(frontSurface.variable_mappings).length : 0,
+          mappingsDetail: frontSurface.variable_mappings, // ← Show FULL mappings object
+        })
+
+        let personalizedFrontCanvasJSON = frontCanvasJSON
+        if (frontSurface.variable_mappings && Object.keys(frontSurface.variable_mappings).length > 0) {
+          console.log(`    🎨 Personalizing front canvas for ${recipientName}...`)
+          personalizedFrontCanvasJSON = await personalizeCanvasWithRecipient(
+            frontCanvasJSON,
+            frontSurface.variable_mappings,
+            recipient,
+            campaignId
+          )
+        } else {
+          console.log(`    ⏭️  Skipping personalization for ${recipientName} - no variable mappings`)
+        }
+
+        // Step 2: Personalize back canvas if it exists and has variable mappings
+        let personalizedBackCanvasJSON = backCanvasJSON
+        if (backSurface && backCanvasJSON && backSurface.variable_mappings && Object.keys(backSurface.variable_mappings).length > 0) {
+          console.log(`    🎨 Personalizing back canvas for ${recipientName}...`)
+          personalizedBackCanvasJSON = await personalizeCanvasWithRecipient(
+            backCanvasJSON,
+            backSurface.variable_mappings,
+            recipient,
+            campaignId
+          )
+        }
+
+        // ==================== GENERATE PDF WITH PERSONALIZED CANVASES ====================
+        // Generate personalized PDF (front + back pages with unique QR codes)
         const pdfResult = await convertCanvasToPDF(
-          frontCanvasJSON,        // Front page canvas
-          backCanvasJSON,         // Back page canvas (null = blank for PostGrid)
-          recipientData,          // Recipient data for personalization
-          template.format_type,   // Format (e.g., 'postcard_4x6')
+          personalizedFrontCanvasJSON,  // ✅ Personalized front (unique QR codes)
+          personalizedBackCanvasJSON,   // ✅ Personalized back (unique QR codes if present)
+          recipientData,                // Recipient data for text variable replacement
+          template.format_type,         // Format (e.g., 'postcard_4x6')
           `${campaign.name}-${recipient.id}`,
-          campaign.variable_mappings_snapshot // CRITICAL: Pass user-defined variable mappings
+          campaign.variable_mappings_snapshot // User-defined text variable mappings
         )
         const personalizedPDFBuffer = pdfResult.buffer
 
@@ -345,7 +382,7 @@ export async function processCampaignBatch(
         await createCampaignRecipient({
           campaignId,
           recipientId: recipient.id,
-          personalizedCanvasJson: frontCanvasJSON, // Store front canvas reference
+          personalizedCanvasJson: personalizedFrontCanvasJSON, // ✅ Store personalized canvas with unique QR
           trackingCode,
           qrCodeUrl: qrCodeUrl, // Store QR URL for reference
           personalizedPdfUrl: pdfUrl,
