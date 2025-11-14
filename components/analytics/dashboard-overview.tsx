@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock, BarChart3, Phone, DollarSign, TrendingDown, Wallet, PiggyBank } from "lucide-react";
+import { Users, Eye, TrendingUp, Target, QrCode, CheckCircle, Loader2, Clock, BarChart3, Phone } from "lucide-react";
 import { DateRangePicker } from "./date-range-picker";
 import { SankeyChart } from "./sankey-chart";
+import { InvestmentDashboard } from "./investment-dashboard";
 // Import standardized KPI utilities for consistent calculations
 import { calculateConversionRate, formatPercentage, formatDuration } from "@/lib/utils/kpi-calculator";
 
@@ -28,22 +29,6 @@ interface CallMetrics {
   calls_this_month: number;
 }
 
-interface InvestmentMetrics {
-  total_investment: number;
-  total_budget: number;
-  budget_utilization_percent: number;
-  average_cost_per_piece: number;
-  average_cost_per_scan: number;
-  average_cost_per_conversion: number;
-  campaigns_with_costs: number;
-  cost_breakdown: {
-    design: number;
-    print: number;
-    postage: number;
-    data_axle: number;
-  };
-}
-
 interface DashboardStats {
   totalCampaigns: number;
   activeCampaigns: number;
@@ -54,7 +39,6 @@ interface DashboardStats {
   qrScans: number;
   formSubmissions: number;
   callMetrics?: CallMetrics;
-  investmentMetrics?: InvestmentMetrics;
   engagementMetrics?: {
     avgTimeToFirstView: EngagementMetric | null;
     avgTimeToConversion: EngagementMetric | null;
@@ -195,6 +179,9 @@ export function DashboardOverview() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Investment Tracking Dashboard - Phase 5.7 */}
+      <InvestmentDashboard />
 
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -364,221 +351,6 @@ export function DashboardOverview() {
           </Card>
         )}
       </div>
-
-      {/* Investment Tracking - Phase 5.7 */}
-      {stats.investmentMetrics && stats.investmentMetrics.campaigns_with_costs > 0 && (
-        <>
-          <div className="mt-8 mb-4">
-            <h3 className="text-xl font-bold text-slate-900 mb-1 flex items-center gap-2">
-              <DollarSign className="h-6 w-6 text-emerald-600" />
-              Investment & Cost Analytics
-            </h3>
-            <p className="text-sm text-slate-600">
-              Track campaign costs and ROI metrics across {stats.investmentMetrics.campaigns_with_costs} campaigns with cost data
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Total Investment */}
-            <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-emerald-900">Total Investment</p>
-                    <p className="text-3xl font-bold text-emerald-900 mt-2">
-                      ${stats.investmentMetrics.total_investment.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-emerald-700 mt-1">
-                      {stats.investmentMetrics.campaigns_with_costs} campaigns
-                    </p>
-                  </div>
-                  <Wallet className="h-10 w-10 text-emerald-600" />
-                </div>
-                {/* Cost breakdown mini chart */}
-                <div className="mt-4 space-y-1">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-slate-600">Design</span>
-                    <span className="font-semibold text-slate-900">
-                      ${stats.investmentMetrics.cost_breakdown.design.toFixed(0)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-slate-600">Print</span>
-                    <span className="font-semibold text-slate-900">
-                      ${stats.investmentMetrics.cost_breakdown.print.toFixed(0)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-slate-600">Postage</span>
-                    <span className="font-semibold text-slate-900">
-                      ${stats.investmentMetrics.cost_breakdown.postage.toFixed(0)}
-                    </span>
-                  </div>
-                  {stats.investmentMetrics.cost_breakdown.data_axle > 0 && (
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-slate-600">Data Axle</span>
-                      <span className="font-semibold text-slate-900">
-                        ${stats.investmentMetrics.cost_breakdown.data_axle.toFixed(0)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Cost per Piece */}
-            <Card className="border-blue-200">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Cost per Piece</p>
-                    <p className="text-3xl font-bold text-blue-900 mt-2">
-                      ${stats.investmentMetrics.average_cost_per_piece.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Per direct mail sent
-                    </p>
-                  </div>
-                  <TrendingDown className="h-10 w-10 text-blue-600" />
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-1">
-                    Calculation
-                  </p>
-                  <p className="text-xs text-slate-600">
-                    ${stats.investmentMetrics.total_investment.toFixed(2)} ÷ {stats.totalRecipients} pieces
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Cost per QR Scan */}
-            <Card className="border-indigo-200">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">Cost per Scan</p>
-                    <p className="text-3xl font-bold text-indigo-900 mt-2">
-                      {stats.qrScans > 0
-                        ? `$${stats.investmentMetrics.average_cost_per_scan.toFixed(2)}`
-                        : 'N/A'}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {stats.qrScans > 0 ? `${stats.qrScans} QR scans` : 'No scans yet'}
-                    </p>
-                  </div>
-                  <QrCode className="h-10 w-10 text-indigo-600" />
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200">
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      className="bg-indigo-600 h-2 rounded-full"
-                      style={{
-                        width: `${Math.min(calculateConversionRate(stats.qrScans, stats.totalRecipients) * 100, 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    {formatPercentage(calculateConversionRate(stats.qrScans, stats.totalRecipients), 1)} scan rate
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Cost per Conversion */}
-            <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-amber-900">Cost per Conversion</p>
-                    <p className="text-3xl font-bold text-amber-900 mt-2">
-                      {stats.totalConversions > 0
-                        ? `$${stats.investmentMetrics.average_cost_per_conversion.toFixed(2)}`
-                        : 'N/A'}
-                    </p>
-                    <p className="text-xs text-amber-700 mt-1 font-semibold">
-                      {stats.totalConversions > 0 ? `${stats.totalConversions} conversions` : 'No conversions yet'}
-                    </p>
-                  </div>
-                  <TrendingUp className="h-10 w-10 text-amber-600" />
-                </div>
-                <div className="mt-4 pt-3 border-t border-amber-200">
-                  <p className="text-[10px] text-amber-700 uppercase tracking-wide font-semibold mb-1">
-                    Key Metric
-                  </p>
-                  <p className="text-xs text-amber-900">
-                    {stats.totalConversions > 0
-                      ? `Lower is better - aiming for <$${(stats.investmentMetrics.average_cost_per_conversion * 0.5).toFixed(2)}`
-                      : 'Waiting for first conversion'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Budget Utilization Card - Full Width */}
-          {stats.investmentMetrics.total_budget > 0 && (
-            <Card className="border-slate-200 bg-gradient-to-r from-slate-50 to-gray-50 mt-4">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <PiggyBank className="h-5 w-5 text-slate-600" />
-                  Budget Utilization
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-2">Total Budget</p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      ${stats.investmentMetrics.total_budget.toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-600 mb-2">Spent</p>
-                    <p className="text-2xl font-bold text-emerald-900">
-                      ${stats.investmentMetrics.total_investment.toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-600 mb-2">Remaining</p>
-                    <p className="text-2xl font-bold text-blue-900">
-                      ${(stats.investmentMetrics.total_budget - stats.investmentMetrics.total_investment).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700">
-                      Budget Used: {stats.investmentMetrics.budget_utilization_percent.toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {stats.investmentMetrics.budget_utilization_percent < 80
-                        ? 'On track'
-                        : stats.investmentMetrics.budget_utilization_percent < 95
-                        ? 'Near limit'
-                        : 'Over budget'}
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-4">
-                    <div
-                      className={`h-4 rounded-full transition-all duration-500 ${
-                        stats.investmentMetrics.budget_utilization_percent < 80
-                          ? 'bg-green-500'
-                          : stats.investmentMetrics.budget_utilization_percent < 95
-                          ? 'bg-yellow-500'
-                          : 'bg-red-500'
-                      }`}
-                      style={{
-                        width: `${Math.min(stats.investmentMetrics.budget_utilization_percent, 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
 
       {/* Engagement Metrics */}
       {stats.engagementMetrics && (
