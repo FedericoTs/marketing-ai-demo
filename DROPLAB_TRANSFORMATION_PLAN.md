@@ -1941,6 +1941,79 @@ Allow users to mark canvas objects as variables (e.g., `{{recipient_name}}`).
   - **Fix**: Killed all Node processes, cleared `.next` cache, restarted single server
   - **Verification**: DEBUG logs now appear confirming code changes deployed
 
+**New Features (2025-11-14)**: 🎉 **UI IMPROVEMENTS + LANDING PAGE FIXES**
+
+**Three Major UI Enhancements** (Commit: `94c08da`):
+1. ✅ **PDF List Visualization**
+   - **API Endpoint**: `/api/campaigns/[id]/recipients` - Fetches recipients with PDF/landing page data
+   - **Component**: `CampaignRecipientsTable` - Beautiful table showing:
+     - Recipient name with initials avatar
+     - Contact info (email, phone)
+     - Full mailing address
+     - **Download PDF** button for each recipient
+     - **Open Landing Page** button for each recipient
+   - **Auto-loads** for completed campaigns
+   - **Refresh button** to reload recipient list
+
+2. ✅ **Real-time Progress Bar**
+   - **Polling mechanism**: Updates every 2 seconds during generation
+   - **Shows actual progress**: e.g., "3/5 (60%)" instead of stuck at 0%
+   - **Polls**: `/api/campaigns/[id]/stats` for current generation status
+   - **Auto-stops**: Polling automatically stops when generation completes
+   - **Efficient**: Only polls during active generation (not after completion)
+
+3. ✅ **Direct Landing Page Links**
+   - Each recipient row has **"Page" button**
+   - Opens personalized landing page in new tab
+   - **URL format**: `/lp/campaign/{id}?r={recipientId}&t={trackingCode}`
+   - Full recipient personalization with encrypted tracking
+
+**Files Created**:
+- `app/api/campaigns/[id]/recipients/route.ts` - API endpoint for recipient list
+- `components/campaigns/campaign-recipients-table.tsx` - Recipients table component (268 lines)
+
+**Files Modified**:
+- `components/campaigns/campaign-generation-panel.tsx` - Integrated polling + table display
+
+**Landing Page Database Migration** (Commit: `ec68954`):
+- ✅ **Critical Fix**: Landing pages were querying **SQLite** instead of **Supabase**
+  - **Root Cause**: Route used `getCampaign()` from SQLite, but campaigns stored in Supabase PostgreSQL
+  - **Symptom**: All landing page URLs returned 404 errors
+  - **Fix**:
+    1. Created `getCampaignPublic()` and `getRecipientPublic()` in Supabase queries (no org verification for public access)
+    2. Completely rewrote `app/lp/campaign/[campaignId]/page.tsx` to use Supabase
+    3. All database calls properly `await`ed
+    4. Graceful fallback if landing pages not configured
+  - **Result**: Landing pages now load successfully with correct campaign data ✅
+
+**React Hydration Fix** (Commit: `ad3d38f`):
+- ✅ **Fixed hydration mismatch** in `CampaignLandingPageClient`
+  - **Root Cause**: Form data initialized with `useEffect()` AFTER server rendering
+  - **Symptom**: "A tree hydrated but some attributes didn't match" error
+  - **Fix**: Use `useState()` lazy initializer function instead of `useEffect()`
+  - **Before**:
+    ```typescript
+    const [formData, setFormData] = useState({...empty...});
+    useEffect(() => { setFormData({...filled...}); }, []);
+    ```
+  - **After**:
+    ```typescript
+    const [formData, setFormData] = useState(() => {
+      if (mode === 'personalized' && recipientData) {
+        return {...filled...};
+      }
+      return {...empty...};
+    });
+    ```
+  - **Result**: Server and client HTML now match perfectly, no hydration warnings ✅
+
+**Summary of Today's Session**:
+- ✅ **4 commits** total (774dc90, 94c08da, ec68954, ad3d38f)
+- ✅ **QR Code Personalization** - Fixed and verified unique QR codes per recipient
+- ✅ **UI Polish** - Added recipient table, real-time progress, direct landing page access
+- ✅ **Database Migration** - Fixed 404 errors by migrating landing pages to Supabase
+- ✅ **React Best Practices** - Fixed hydration mismatch with proper state initialization
+
 **New Features (2025-11-05)**: 🎉 **PDF EXPORT ENGINE**
 
 **Implementation Summary**:
