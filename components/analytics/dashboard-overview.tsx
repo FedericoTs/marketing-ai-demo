@@ -134,24 +134,6 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      {/* Data Scope Banner */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="py-4">
-          <div className="flex items-start gap-3">
-            <BarChart3 className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-semibold text-blue-900 mb-1">
-                Platform-Wide Analytics (All Campaigns)
-              </h4>
-              <p className="text-xs text-blue-700">
-                This view shows metrics across <strong>all campaign types</strong> (Direct Mail, Retail Deployments, etc.).
-                For retail-specific insights, see <a href="/retail/performance" className="underline font-medium">Retail Performance</a> or <a href="/retail/insights" className="underline font-medium">AI Insights</a>.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Date Range Filter */}
       <Card>
         <CardContent className="pt-6">

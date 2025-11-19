@@ -44,16 +44,25 @@ export async function createClient() {
  * WARNING: Use only in trusted server-side code
  */
 export function createServiceClient() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    console.error('[createServiceClient] Missing env vars:', {
+      hasUrl: !!url,
+      hasKey: !!key,
+      keyPrefix: key?.substring(0, 20)
+    });
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL');
+  }
+
+  console.log('[createServiceClient] Creating client with service role');
+  return createSupabaseClient(url, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
     }
-  );
+  });
 }
 
 // Alias for backwards compatibility

@@ -8,19 +8,20 @@ import { successResponse, errorResponse } from '@/lib/utils/api-response';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id;
+    const { id } = await params;
 
-    console.log('📄 [Landing Pages API] Fetching landing pages for campaign:', campaignId);
+    console.log('📄 [Landing Pages API] Fetching landing pages for campaign:', id);
 
-    const landingPages = await getLandingPagesByCampaign(campaignId);
+    const landingPages = await getLandingPagesByCampaign(id);
 
     console.log(`✅ [Landing Pages API] Found ${landingPages.length} landing pages`);
 
+    // Return array directly (component expects result.data to be array)
     return NextResponse.json(
-      successResponse({ landingPages, total: landingPages.length })
+      successResponse(landingPages)
     );
   } catch (error) {
     console.error('❌ [Landing Pages API] Error fetching landing pages:', error);

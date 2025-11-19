@@ -125,7 +125,7 @@ export function ConversionFunnel({
                           index
                         )} text-white font-bold text-lg`}
                       >
-                        {stage.percentage}%
+                        {Math.round(stage.percentage)}%
                       </div>
                     </div>
                   </div>
@@ -159,7 +159,7 @@ export function ConversionFunnel({
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-600">Overall Conversion Rate:</span>
             <span className="text-xl font-bold text-green-600">
-              {data[data.length - 1]?.percentage || 0}%
+              {(data[data.length - 1]?.percentage || 0).toFixed(1)}%
             </span>
           </div>
         </div>

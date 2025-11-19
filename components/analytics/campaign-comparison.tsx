@@ -1,4 +1,5 @@
 "use client";
+// Updated: 2025-11-18 to fix undefined field access errors
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -68,12 +69,12 @@ export function CampaignComparison({
 
   // Transform data for chart
   const chartData = data.map((campaign) => ({
-    name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + "..." : campaign.name,
-    fullName: campaign.name,
-    recipients: campaign.totalRecipients,
-    visitors: campaign.uniqueVisitors,
-    conversions: campaign.totalConversions,
-    conversionRate: campaign.conversionRate,
+    name: campaign.name?.length > 20 ? campaign.name.substring(0, 20) + "..." : campaign.name || 'Unnamed',
+    fullName: campaign.name || 'Unnamed',
+    recipients: campaign.totalRecipients || 0,
+    visitors: campaign.uniqueVisitors || 0,
+    conversions: campaign.totalConversions || 0,
+    conversionRate: campaign.conversionRate || 0,
   }));
 
   const getMetricConfig = () => {
@@ -200,16 +201,16 @@ export function CampaignComparison({
                     {campaign.name}
                   </td>
                   <td className="text-right py-2 px-2 text-slate-700">
-                    {campaign.totalRecipients.toLocaleString()}
+                    {(campaign.totalRecipients || 0).toLocaleString()}
                   </td>
                   <td className="text-right py-2 px-2 text-slate-700">
-                    {campaign.uniqueVisitors.toLocaleString()}
+                    {(campaign.uniqueVisitors || 0).toLocaleString()}
                   </td>
                   <td className="text-right py-2 px-2 text-slate-700">
-                    {campaign.totalConversions.toLocaleString()}
+                    {(campaign.totalConversions || 0).toLocaleString()}
                   </td>
                   <td className="text-right py-2 px-2 font-semibold text-green-600">
-                    {campaign.conversionRate}%
+                    {(campaign.conversionRate || 0)}%
                   </td>
                 </tr>
               ))}

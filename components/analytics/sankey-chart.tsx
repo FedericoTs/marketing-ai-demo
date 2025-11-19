@@ -174,33 +174,33 @@ export function SankeyChart({ startDate, endDate }: SankeyChartProps) {
 
   // Calculate conversion rates for insights using standardized utilities
   const qrConversionRate = formatPercentage(
-    calculateConversionRate(data.metrics.qrScans, data.metrics.totalRecipients),
-    2
+    calculateConversionRate(data.metrics.qrScans || 0, data.metrics.totalRecipients || 0),
+    1
   );
 
   const landingConversionRate = formatPercentage(
-    calculateConversionRate(data.metrics.landingPageVisits, data.metrics.totalRecipients),
-    2
+    calculateConversionRate(data.metrics.landingPageVisits || 0, data.metrics.totalRecipients || 0),
+    1
   );
 
   const callEngagementRate = formatPercentage(
-    calculateConversionRate(data.metrics.totalCalls, data.metrics.totalRecipients),
-    2
+    calculateConversionRate(data.metrics.totalCalls || 0, data.metrics.totalRecipients || 0),
+    1
   );
 
   const callToApptRate = formatPercentage(
-    calculateConversionRate(data.metrics.callAppointments, data.metrics.totalCalls),
+    calculateConversionRate(data.metrics.callAppointments || 0, data.metrics.totalCalls || 0),
     1
   );
 
   const webToApptRate = formatPercentage(
-    calculateConversionRate(data.metrics.webAppointments, data.metrics.landingPageVisits),
+    calculateConversionRate(data.metrics.webAppointments || 0, data.metrics.landingPageVisits || 0),
     1
   );
 
   const overallConversionRate = formatPercentage(
-    calculateConversionRate(data.metrics.totalConverted, data.metrics.totalRecipients),
-    2
+    calculateConversionRate(data.metrics.totalConverted || 0, data.metrics.totalRecipients || 0),
+    1
   );
 
   return (
@@ -279,15 +279,15 @@ export function SankeyChart({ startDate, endDate }: SankeyChartProps) {
             <div className="space-y-1 text-xs text-purple-800">
               <div className="flex justify-between">
                 <span>QR Engagement:</span>
-                <span className="font-medium">{qrConversionRate}%</span>
+                <span className="font-medium">{qrConversionRate}</span>
               </div>
               <div className="flex justify-between">
                 <span>Landing Visits:</span>
-                <span className="font-medium">{landingConversionRate}%</span>
+                <span className="font-medium">{landingConversionRate}</span>
               </div>
               <div className="flex justify-between">
                 <span>Web → Conv:</span>
-                <span className="font-medium">{webToApptRate}%</span>
+                <span className="font-medium">{webToApptRate}</span>
               </div>
             </div>
           </div>
@@ -301,15 +301,15 @@ export function SankeyChart({ startDate, endDate }: SankeyChartProps) {
             <div className="space-y-1 text-xs text-orange-800">
               <div className="flex justify-between">
                 <span>Call Engagement:</span>
-                <span className="font-medium">{callEngagementRate}%</span>
+                <span className="font-medium">{callEngagementRate}</span>
               </div>
               <div className="flex justify-between">
                 <span>Calls → Appt:</span>
-                <span className="font-medium">{callToApptRate}%</span>
+                <span className="font-medium">{callToApptRate}</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Calls:</span>
-                <span className="font-medium">{data.metrics.totalCalls.toLocaleString()}</span>
+                <span className="font-medium">{data.metrics.totalCalls?.toLocaleString() || 0}</span>
               </div>
             </div>
           </div>
@@ -323,15 +323,15 @@ export function SankeyChart({ startDate, endDate }: SankeyChartProps) {
             <div className="space-y-1 text-xs text-green-800">
               <div className="flex justify-between">
                 <span>Conversion Rate:</span>
-                <span className="font-medium">{overallConversionRate}%</span>
+                <span className="font-medium">{overallConversionRate}</span>
               </div>
               <div className="flex justify-between">
                 <span>Converted:</span>
-                <span className="font-medium">{data.metrics.totalConverted.toLocaleString()}</span>
+                <span className="font-medium">{(data.metrics.totalConverted || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span>Recipients:</span>
-                <span className="font-medium">{data.metrics.totalRecipients.toLocaleString()}</span>
+                <span className="font-medium">{(data.metrics.totalRecipients || 0).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -346,20 +346,20 @@ export function SankeyChart({ startDate, endDate }: SankeyChartProps) {
               <ul className="space-y-1 list-disc list-inside">
                 {parseFloat(callToApptRate) > 50 && (
                   <li>
-                    <span className="font-medium text-green-700">Strong phone conversion:</span> {callToApptRate}% of calls result in appointments
+                    <span className="font-medium text-green-700">Strong phone conversion:</span> {callToApptRate} of calls result in appointments
                   </li>
                 )}
-                {data.metrics.qrScans === 0 && data.metrics.totalRecipients > 0 && (
+                {(data.metrics.qrScans || 0) === 0 && (data.metrics.totalRecipients || 0) > 0 && (
                   <li>
                     <span className="font-medium text-amber-700">Opportunity:</span> No QR code scans yet - consider testing different QR placements or incentives
                   </li>
                 )}
                 {parseFloat(callEngagementRate) > 1 && (
                   <li>
-                    <span className="font-medium text-blue-700">Phone is primary channel:</span> {callEngagementRate}% of recipients are calling directly
+                    <span className="font-medium text-blue-700">Phone is primary channel:</span> {callEngagementRate} of recipients are calling directly
                   </li>
                 )}
-                {data.metrics.landingPageVisits > 0 && data.metrics.webAppointments === 0 && (
+                {(data.metrics.landingPageVisits || 0) > 0 && (data.metrics.webAppointments || 0) === 0 && (
                   <li>
                     <span className="font-medium text-amber-700">Opportunity:</span> Landing page visits not converting - optimize web booking flow
                   </li>

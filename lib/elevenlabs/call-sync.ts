@@ -5,10 +5,10 @@
 
 import { fetchNewElevenLabsConversations, ElevenLabsConversation } from './call-tracking';
 import {
-  upsertElevenLabsCall,
-  attributeCallToCampaign,
-  getLastSyncTimestamp,
-} from '../database/call-tracking-queries';
+  upsertElevenLabsCallSupabase,
+  attributeCallToCampaignSupabase,
+  getLastSyncTimestampSupabase,
+} from '../database/call-tracking-supabase-queries';
 
 export interface SyncResult {
   success: boolean;
@@ -23,22 +23,24 @@ export interface SyncResult {
  * Fetches new conversations since last sync and stores them
  *
  * @param apiKey ElevenLabs API key
+ * @param organizationId Organization ID for multi-tenancy
  * @param agentId Optional agent ID to filter
  * @returns Sync result with statistics
  */
 export async function syncElevenLabsCalls(
   apiKey: string,
+  organizationId: string,
   agentId?: string
 ): Promise<SyncResult> {
   const errors: string[] = [];
   let newCalls = 0;
   let attributedCalls = 0;
 
-  console.log('[Call Sync] Starting ElevenLabs call sync...');
+  console.log('[Call Sync] Starting ElevenLabs call sync for org:', organizationId);
 
   try {
     // Get last sync timestamp
-    const lastSyncTimestamp = getLastSyncTimestamp();
+    const lastSyncTimestamp = await getLastSyncTimestampSupabase(organizationId);
 
     console.log('[Call Sync] Last sync timestamp:', lastSyncTimestamp ? new Date(lastSyncTimestamp * 1000).toISOString() : 'Never');
 
@@ -62,11 +64,14 @@ export async function syncElevenLabsCalls(
     for (const conversation of conversations) {
       try {
         // Convert conversation to call record
-        const callRecord = convertConversationToCall(conversation);
+        const callRecord = convertConversationToCall(conversation, organizationId);
 
         // Attempt automatic attribution
-        if (callRecord.caller_phone_number) {
-          const attribution = attributeCallToCampaign(callRecord.caller_phone_number);
+        if (callRecord.phone_number) {
+          const attribution = await attributeCallToCampaignSupabase(
+            callRecord.phone_number,
+            organizationId
+          );
 
           if (attribution) {
             callRecord.campaign_id = attribution.campaign_id;
@@ -76,12 +81,17 @@ export async function syncElevenLabsCalls(
         }
 
         // Determine conversion status
-        // Simple rule: call_successful === 'success' = conversion
-        callRecord.is_conversion = callRecord.call_status === 'success';
+        // Simple rule: call_successful === true = appointment_booked
+        callRecord.appointment_booked = callRecord.call_successful || false;
 
         // Store in database (upsert to handle duplicates)
-        upsertElevenLabsCall(callRecord);
-        newCalls++;
+        const result = await upsertElevenLabsCallSupabase(callRecord);
+
+        if (result.success) {
+          newCalls++;
+        } else {
+          errors.push(`Failed to upsert call ${callRecord.elevenlabs_call_id}: ${result.error}`);
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         errors.push(`Failed to process conversation ${conversation.conversation_id}: ${errorMessage}`);
@@ -120,13 +130,27 @@ export async function syncElevenLabsCalls(
 /**
  * Convert ElevenLabs conversation to call record format
  */
-function convertConversationToCall(conversation: ElevenLabsConversation): Omit<
-  Parameters<typeof upsertElevenLabsCall>[0],
-  'campaign_id' | 'recipient_id' | 'is_conversion'
-> & {
+function convertConversationToCall(
+  conversation: ElevenLabsConversation,
+  organizationId: string
+): {
+  organization_id: string;
+  elevenlabs_call_id: string;
+  agent_id?: string;
+  phone_number?: string;
   campaign_id?: string;
   recipient_id?: string;
-  is_conversion: boolean;
+  call_status?: string;
+  call_duration_seconds?: number;
+  start_time?: string;
+  end_time?: string;
+  call_successful?: boolean;
+  appointment_booked?: boolean;
+  transcript?: string;
+  summary?: string;
+  sentiment?: string;
+  intent_detected?: string;
+  raw_data?: Record<string, unknown>;
 } {
   // Extract actual field names from ElevenLabs API response
   const startTimeUnix = (conversation.start_time_unix_secs || conversation.start_time_unix) as number | undefined;
@@ -143,16 +167,24 @@ function convertConversationToCall(conversation: ElevenLabsConversation): Omit<
     endedAt = new Date((startTimeUnix + callDuration) * 1000).toISOString();
   }
 
+  // Determine call success
+  const callSuccessful = conversation.call_successful === 'success';
+
   return {
-    conversation_id: conversation.conversation_id,
+    organization_id: organizationId,
+    elevenlabs_call_id: conversation.conversation_id,
     agent_id: (conversation.agent_id || conversation.agent_name) as string | undefined,
-    elevenlabs_phone_number: conversation.phone_number,
-    caller_phone_number: conversation.caller_phone,
-    call_started_at: startedAt,
-    call_ended_at: endedAt,
+    phone_number: conversation.caller_phone,
+    start_time: startedAt,
+    end_time: endedAt,
     call_duration_seconds: callDuration,
-    call_status: conversation.call_successful || 'unknown',
-    raw_data: JSON.stringify(conversation),
-    is_conversion: false, // Will be determined by sync logic
+    call_status: conversation.call_successful as string || 'unknown',
+    call_successful: callSuccessful,
+    appointment_booked: false, // Will be updated if attribution succeeds
+    transcript: (conversation.transcript as string) || null,
+    summary: (conversation.summary as string) || null,
+    sentiment: (conversation.sentiment as string) || null,
+    intent_detected: (conversation.intent as string) || null,
+    raw_data: conversation as Record<string, unknown>,
   };
 }

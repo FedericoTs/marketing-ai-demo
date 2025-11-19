@@ -43,12 +43,42 @@ export async function GET(request: NextRequest) {
     const stats = await getDashboardStats(profile.organization_id, startDate, endDate);
     const engagementMetrics = await getOverallEngagementMetrics(profile.organization_id, startDate, endDate);
 
-    // Call metrics temporarily disabled (SQLite dependency)
+    // Get REAL call metrics from ElevenLabs calls (Supabase)
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabaseService = createServiceClient();
+
+    let callQuery = supabaseService
+      .from('elevenlabs_calls')
+      .select('call_successful, call_duration_seconds, appointment_booked')
+      .eq('organization_id', profile.organization_id);
+
+    if (startDate) {
+      callQuery = callQuery.gte('start_time', startDate);
+    }
+    if (endDate) {
+      callQuery = callQuery.lte('start_time', endDate);
+    }
+
+    const { data: calls } = await callQuery;
+
+    const totalCalls = calls?.length || 0;
+    const successfulCalls = calls?.filter(c => c.call_successful).length || 0;
+    const appointmentsBooked = calls?.filter(c => c.appointment_booked).length || 0;
+    const totalDuration = calls?.reduce((sum, c) => sum + (c.call_duration_seconds || 0), 0) || 0;
+    const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
+    const conversionRate = totalCalls > 0 ? Number(((appointmentsBooked / totalCalls) * 100).toFixed(1)) : 0;
+
     const callMetrics = {
-      totalCalls: 0,
-      successfulCalls: 0,
-      avgDuration: 0,
-      conversionRate: 0,
+      total_calls: totalCalls,
+      successful_calls: successfulCalls,
+      failed_calls: calls?.filter(c => !c.call_successful).length || 0,
+      unknown_calls: 0,
+      conversions: appointmentsBooked,
+      conversion_rate: conversionRate,
+      average_duration: avgDuration,
+      calls_today: 0, // TODO: Implement time-based filters
+      calls_this_week: 0,
+      calls_this_month: 0,
     };
 
     return NextResponse.json(

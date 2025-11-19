@@ -440,9 +440,12 @@ export interface SankeyData {
   links: SankeyLink[];
   metrics: {
     totalRecipients: number;
-    totalPageViews: number;
-    totalConversions: number;
-    conversionRate: number;
+    qrScans: number;
+    landingPageVisits: number;
+    totalCalls: number;
+    webAppointments: number;
+    callAppointments: number;
+    totalConverted: number; // All web conversions + call appointments
   };
 }
 
@@ -452,6 +455,10 @@ export async function getSankeyChartData(
   endDate?: string
 ): Promise<SankeyData> {
   const supabase = createServiceClient();
+
+  // Verify service role is being used
+  console.log('[Sankey] Using service client, URL:', process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30));
+  console.log('[Sankey] Service role key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   try {
     // Get all campaigns for this organization
@@ -466,9 +473,12 @@ export async function getSankeyChartData(
         links: [],
         metrics: {
           totalRecipients: 0,
-          totalPageViews: 0,
-          totalConversions: 0,
-          conversionRate: 0,
+          qrScans: 0,
+          landingPageVisits: 0,
+          totalCalls: 0,
+          webAppointments: 0,
+          callAppointments: 0,
+          totalConverted: 0,
         },
       };
     }
@@ -481,10 +491,10 @@ export async function getSankeyChartData(
       .select('*', { count: 'exact', head: true })
       .in('campaign_id', campaignIds);
 
-    // Build query for events with optional date filtering
+    // Get all events for these campaigns
     let eventsQuery = supabase
       .from('events')
-      .select('event_type')
+      .select('recipient_id, event_type')
       .in('campaign_id', campaignIds);
 
     if (startDate) {
@@ -496,15 +506,35 @@ export async function getSankeyChartData(
 
     const { data: events } = await eventsQuery;
 
-    // Count page views and QR scans
-    const pageViews = events?.filter(e => e.event_type === 'page_view').length || 0;
-    const qrScans = events?.filter(e => e.event_type === 'qr_scan').length || 0;
+    // Count UNIQUE QR scans and page views
+    const uniqueQrScanners = new Set<string>();
+    const uniquePageViewers = new Set<string>();
 
-    // Count conversions with optional date filtering
+    events?.forEach(event => {
+      if (event.recipient_id) {
+        if (event.event_type === 'qr_scan') {
+          uniqueQrScanners.add(event.recipient_id);
+        } else if (event.event_type === 'page_view') {
+          uniquePageViewers.add(event.recipient_id);
+        }
+      }
+    });
+
+    const qrScans = uniqueQrScanners.size;
+    const landingPageVisits = uniquePageViewers.size;
+
+    console.log('[Sankey] Events processed:', {
+      totalEvents: events?.length || 0,
+      uniqueQrScanners: qrScans,
+      uniquePageViewers: landingPageVisits
+    });
+
+    // Get all conversions for these campaigns
     let conversionsQuery = supabase
       .from('conversions')
-      .select('*', { count: 'exact', head: true })
-      .in('campaign_id', campaignIds);
+      .select('recipient_id, conversion_type')
+      .in('campaign_id', campaignIds)
+      .in('conversion_type', ['form_submit', 'appointment']);
 
     if (startDate) {
       conversionsQuery = conversionsQuery.gte('created_at', startDate);
@@ -513,59 +543,156 @@ export async function getSankeyChartData(
       conversionsQuery = conversionsQuery.lte('created_at', endDate);
     }
 
-    const { count: totalConversions } = await conversionsQuery;
+    const { data: conversions } = await conversionsQuery;
 
-    // Define nodes
+    // Count UNIQUE web conversions
+    const uniqueWebConverters = new Set<string>();
+    conversions?.forEach(conversion => {
+      if (conversion.recipient_id) {
+        uniqueWebConverters.add(conversion.recipient_id);
+      }
+    });
+
+    const webAppointments = uniqueWebConverters.size;
+
+    console.log('[Sankey] Conversions processed:', {
+      totalConversions: conversions?.length || 0,
+      uniqueConverters: webAppointments
+    });
+
+    // Get all ElevenLabs calls for this organization
+    // IMPORTANT: Include both attributed (campaign_id set) and unattributed (campaign_id null) calls
+    // This ensures real ElevenLabs data appears in organization-level analytics
+    let callsQuery = supabase
+      .from('elevenlabs_calls')
+      .select('id, elevenlabs_call_id, recipient_id, appointment_booked, campaign_id')
+      .eq('organization_id', organizationId);
+
+    if (startDate) {
+      callsQuery = callsQuery.gte('start_time', startDate);
+    }
+    if (endDate) {
+      callsQuery = callsQuery.lte('start_time', endDate);
+    }
+
+    const { data: calls, error: callsError } = await callsQuery;
+
+    if (callsError) {
+      console.error('[Sankey] Error fetching calls:', callsError);
+    }
+
+    // Count UNIQUE calls and appointments
+    // Use elevenlabs_call_id as unique identifier (handles both attributed and unattributed)
+    const uniqueCallers = new Set<string>();
+    const uniqueCallAppointments = new Set<string>();
+
+    calls?.forEach(call => {
+      // Use elevenlabs_call_id or database id as unique identifier
+      const callId = call.elevenlabs_call_id || call.id?.toString() || '';
+      if (callId) {
+        uniqueCallers.add(callId);
+        if (call.appointment_booked) {
+          uniqueCallAppointments.add(callId);
+        }
+      }
+    });
+
+    const totalCalls = uniqueCallers.size;
+    const callAppointments = uniqueCallAppointments.size;
+
+    console.log('[Sankey] Calls processed:', {
+      totalCalls: calls?.length || 0,
+      uniqueCallers: totalCalls,
+      uniqueCallAppointments: callAppointments,
+      attributedCalls: calls?.filter(c => c.campaign_id).length || 0,
+      unattributedCalls: calls?.filter(c => !c.campaign_id).length || 0
+    });
+
+    // Total conversions = web + call appointments
+    const totalConverted = (webAppointments || 0) + (callAppointments || 0);
+
+    // Calculate no-engagement recipients
+    const noEngagement = (totalRecipients || 0) - (qrScans || 0) - (totalCalls || 0);
+
+    // Define nodes for multi-channel funnel
     const nodes: SankeyNode[] = [
-      { name: 'Recipients' },      // 0
-      { name: 'QR Scans' },        // 1
-      { name: 'Page Views' },      // 2
-      { name: 'Conversions' },     // 3
+      { name: 'Recipients' },           // 0
+      { name: 'No Engagement' },        // 1
+      { name: 'QR Scans' },             // 2
+      { name: 'Landing Page Visits' },  // 3
+      { name: 'Calls Received' },       // 4
+      { name: 'Web Conversions' },      // 5
+      { name: 'Call Appointments' },    // 6
     ];
 
-    // Define links (customer journey flow)
+    // Define links (multi-channel customer journey)
     const links: SankeyLink[] = [];
 
-    // Recipients → QR Scans
-    if (qrScans > 0) {
+    // Recipients → No Engagement
+    if (noEngagement > 0) {
       links.push({
         source: 0,
         target: 1,
+        value: noEngagement,
+      });
+    }
+
+    // Recipients → QR Scans (digital path)
+    if (qrScans > 0) {
+      links.push({
+        source: 0,
+        target: 2,
         value: qrScans,
       });
     }
 
-    // QR Scans → Page Views (assuming most page views come from QR scans)
-    if (qrScans > 0 && pageViews > 0) {
+    // Recipients → Calls (phone path)
+    if ((totalCalls || 0) > 0) {
       links.push({
-        source: 1,
-        target: 2,
-        value: Math.min(qrScans, pageViews),
+        source: 0,
+        target: 4,
+        value: totalCalls || 0,
       });
     }
 
-    // Page Views → Conversions
-    if (pageViews > 0 && totalConversions && totalConversions > 0) {
+    // QR Scans → Landing Page Visits
+    if (qrScans > 0 && landingPageVisits > 0) {
       links.push({
         source: 2,
         target: 3,
-        value: totalConversions,
+        value: Math.min(qrScans, landingPageVisits),
       });
     }
 
-    const conversionRate =
-      (totalRecipients || 0) > 0
-        ? ((totalConversions || 0) / (totalRecipients || 1)) * 100
-        : 0;
+    // Landing Page Visits → Web Conversions
+    if (landingPageVisits > 0 && (webAppointments || 0) > 0) {
+      links.push({
+        source: 3,
+        target: 5,
+        value: webAppointments || 0,
+      });
+    }
+
+    // Calls → Call Appointments
+    if ((totalCalls || 0) > 0 && (callAppointments || 0) > 0) {
+      links.push({
+        source: 4,
+        target: 6,
+        value: callAppointments || 0,
+      });
+    }
 
     return {
       nodes,
       links,
       metrics: {
         totalRecipients: totalRecipients || 0,
-        totalPageViews: pageViews,
-        totalConversions: totalConversions || 0,
-        conversionRate,
+        qrScans: qrScans || 0,
+        landingPageVisits,
+        totalCalls: totalCalls || 0,
+        webAppointments: webAppointments || 0,
+        callAppointments: callAppointments || 0,
+        totalConverted,
       },
     };
   } catch (error) {
@@ -575,9 +702,12 @@ export async function getSankeyChartData(
       links: [],
       metrics: {
         totalRecipients: 0,
-        totalPageViews: 0,
-        totalConversions: 0,
-        conversionRate: 0,
+        qrScans: 0,
+        landingPageVisits: 0,
+        totalCalls: 0,
+        webAppointments: 0,
+        callAppointments: 0,
+        totalConverted: 0,
       },
     };
   }
@@ -776,7 +906,7 @@ export async function getOverallEngagementMetrics(
 
     const campaignIds = campaigns.map(c => c.id);
 
-    // Get recipients with their first events and conversions
+    // Get recipients with their sent timestamps (campaign_recipients.created_at = when mail was sent)
     let recipientQuery = supabase
       .from('campaign_recipients')
       .select('id, created_at, campaign_id')

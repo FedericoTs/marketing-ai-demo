@@ -26,14 +26,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get organization ID from authenticated user
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        errorResponse('Unauthorized', 'AUTH_ERROR'),
+        { status: 401 }
+      );
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.organization_id) {
+      return NextResponse.json(
+        errorResponse('Organization not found', 'ORG_ERROR'),
+        { status: 404 }
+      );
+    }
+
     // Optional: Get agent ID from request body
     const body = await request.json().catch(() => ({}));
     const agentId = body.agentId as string | undefined;
 
     // Run sync
-    console.log('[API] Starting call sync with agentId:', agentId || 'all');
+    console.log('[API] Starting call sync for org:', profile.organization_id, 'with agentId:', agentId || 'all');
 
-    const result = await syncElevenLabsCalls(apiKey, agentId);
+    const result = await syncElevenLabsCalls(apiKey, profile.organization_id, agentId);
 
     // Return result
     if (result.success) {

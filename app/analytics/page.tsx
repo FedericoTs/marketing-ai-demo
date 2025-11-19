@@ -4,12 +4,11 @@ import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Target, Activity, TrendingUp, Phone, Loader2 } from "lucide-react";
+import { BarChart3, Target, TrendingUp, Phone, Loader2 } from "lucide-react";
 import { DashboardOverview } from "@/components/analytics/dashboard-overview";
 import { CampaignList } from "@/components/analytics/campaign-list";
-import { RecentActivityFeed } from "@/components/analytics/recent-activity-feed";
 import { ChartsView } from "@/components/analytics/charts-view";
-import { CallsView } from "@/components/analytics/calls-view";
+import { CallsAnalytics } from "@/components/analytics/calls-analytics";
 import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 
 function AnalyticsContent() {
@@ -78,7 +77,7 @@ function AnalyticsContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full max-w-4xl grid-cols-5 h-auto p-1">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4 h-auto p-1">
           <TabsTrigger value="overview" className="gap-2 py-3">
             <BarChart3 className="h-4 w-4" />
             <span className="font-medium">Overview</span>
@@ -95,10 +94,6 @@ function AnalyticsContent() {
             <TrendingUp className="h-4 w-4" />
             <span className="font-medium">Charts</span>
           </TabsTrigger>
-          <TabsTrigger value="activity" className="gap-2 py-3">
-            <Activity className="h-4 w-4" />
-            <span className="font-medium">Activity</span>
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -110,15 +105,11 @@ function AnalyticsContent() {
         </TabsContent>
 
         <TabsContent value="calls" className="space-y-6">
-          <CallsView />
+          <CallsAnalytics />
         </TabsContent>
 
         <TabsContent value="charts" className="space-y-6">
           <ChartsView />
-        </TabsContent>
-
-        <TabsContent value="activity" className="space-y-6">
-          <RecentActivityFeed />
         </TabsContent>
       </Tabs>
     </div>

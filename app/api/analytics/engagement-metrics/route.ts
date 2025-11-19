@@ -1,29 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getOverallEngagementMetrics,
-  getEngagementMetricsForCampaign,
-} from "@/lib/database/tracking-queries";
+} from "@/lib/database/analytics-supabase-queries";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
+import { createServerClient } from "@/lib/supabase/server";
 
 /**
  * GET /api/analytics/engagement-metrics
  * Query params:
- * - campaignId (optional): Get metrics for specific campaign
+ * - startDate (optional): Filter by start date
+ * - endDate (optional): Filter by end date
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const campaignId = searchParams.get("campaignId");
+    const startDate = searchParams.get("startDate") || undefined;
+    const endDate = searchParams.get("endDate") || undefined;
 
-    let metrics;
+    // Get organization ID from session
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (campaignId) {
-      // Get metrics for specific campaign
-      metrics = getEngagementMetricsForCampaign(campaignId);
-    } else {
-      // Get overall metrics across all campaigns
-      metrics = getOverallEngagementMetrics();
+    if (!user) {
+      return NextResponse.json(
+        errorResponse("Not authenticated", "AUTH_ERROR"),
+        { status: 401 }
+      );
     }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.organization_id) {
+      return NextResponse.json(
+        errorResponse("Organization not found", "ORG_NOT_FOUND"),
+        { status: 404 }
+      );
+    }
+
+    // Get overall metrics for organization
+    const metrics = await getOverallEngagementMetrics(
+      profile.organization_id,
+      startDate,
+      endDate
+    );
 
     // Convert seconds to human-readable format
     const formatTime = (seconds: number | null) => {

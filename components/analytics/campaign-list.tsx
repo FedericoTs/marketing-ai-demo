@@ -27,6 +27,7 @@ interface Campaign {
   uniqueVisitors: number;
   totalConversions: number;
   conversionRate: number;
+  templateThumbnail?: string | null;
 }
 
 type StatusFilter = "all" | "active" | "paused" | "completed";
@@ -254,7 +255,7 @@ export function CampaignList() {
       if (result.success && result.data.length > 0) {
         // Open first landing page in preview mode (no tracking)
         const firstPage = result.data[0];
-        window.open(`/lp/${firstPage.tracking_id}?preview=true`, '_blank');
+        window.open(`/lp/${firstPage.tracking_code}?preview=true`, '_blank');
         toast.success(`Found ${result.data.length} landing page${result.data.length !== 1 ? 's' : ''} for this campaign`);
       } else {
         toast.info("No landing pages found for this campaign");
@@ -596,33 +597,53 @@ export function CampaignList() {
         const isSelected = selectedCampaigns.includes(campaign.id);
 
         return (
-        <Card key={campaign.id} className={`border-slate-200 hover:border-slate-300 transition-colors ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3 flex-1">
-                {/* Selection Checkbox */}
-                <button
-                  onClick={() => toggleCampaignSelection(campaign.id)}
-                  className="p-1 hover:bg-slate-100 rounded transition-colors"
-                >
-                  {isSelected ? (
-                    <CheckSquare className="h-5 w-5 text-blue-600" />
-                  ) : (
-                    <Square className="h-5 w-5 text-slate-400" />
-                  )}
-                </button>
-
-                <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <CardTitle className="text-xl">{campaign.name}</CardTitle>
-                  <span
-                    className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(
-                      campaign.status
-                    )}`}
-                  >
-                    {campaign.status}
-                  </span>
+        <Card key={campaign.id} className={`overflow-hidden border-slate-200 hover:border-slate-300 hover:shadow-md transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
+          <div className="flex flex-col md:flex-row">
+            {/* Left: Template Preview */}
+            <div className="relative md:w-64 lg:w-80 h-48 md:h-auto bg-gradient-to-br from-slate-100 to-slate-200 flex-shrink-0">
+              {campaign.templateThumbnail ? (
+                <>
+                  <img
+                    src={campaign.templateThumbnail}
+                    alt="Campaign template"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center text-slate-400">
+                    <Target className="h-12 w-12 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm font-medium">No Template</p>
+                  </div>
                 </div>
+              )}
+
+              {/* Selection Checkbox - Overlay on image */}
+              <button
+                onClick={() => toggleCampaignSelection(campaign.id)}
+                className="absolute top-3 left-3 p-1.5 bg-white/90 backdrop-blur-sm hover:bg-white rounded-lg shadow-sm transition-all"
+              >
+                {isSelected ? (
+                  <CheckSquare className="h-5 w-5 text-blue-600" />
+                ) : (
+                  <Square className="h-5 w-5 text-slate-600" />
+                )}
+              </button>
+
+              {/* Status Badge - Overlay on image */}
+              <div className="absolute top-3 right-3">
+                <span className={`px-3 py-1.5 text-xs font-semibold rounded-full shadow-sm backdrop-blur-sm ${getStatusColor(campaign.status)}`}>
+                  {campaign.status}
+                </span>
+              </div>
+            </div>
+
+            {/* Right: Content */}
+            <div className="flex-1 p-6 flex flex-col">
+              {/* Header */}
+              <div className="mb-4">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{campaign.name}</h3>
                 <div className="flex items-center gap-4 text-sm text-slate-600">
                   <span className="flex items-center gap-1.5">
                     <Calendar className="h-4 w-4" />
@@ -631,12 +652,10 @@ export function CampaignList() {
                   <span>•</span>
                   <span className="font-medium">{campaign.company_name}</span>
                 </div>
-                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+
+              {/* Stats Grid - 2x2 */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
               {/* Recipients */}
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 rounded-lg">
@@ -648,55 +667,54 @@ export function CampaignList() {
                 </div>
               </div>
 
-              {/* Visitors */}
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-50 rounded-lg">
-                  <Eye className="h-5 w-5 text-purple-600" />
+                {/* Visitors */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <Eye className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">{campaign.uniqueVisitors}</p>
+                    <p className="text-xs text-slate-600">Visitors</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{campaign.uniqueVisitors}</p>
-                  <p className="text-xs text-slate-600">Visitors</p>
-                </div>
-              </div>
 
-              {/* Conversions */}
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-50 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-orange-600" />
+                {/* Conversions */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-50 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">{campaign.totalConversions}</p>
+                    <p className="text-xs text-slate-600">Conversions</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{campaign.totalConversions}</p>
-                  <p className="text-xs text-slate-600">Conversions</p>
-                </div>
-              </div>
 
-              {/* Conversion Rate */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <p className="text-2xl font-bold text-green-600">{campaign.conversionRate}%</p>
-                  <p className="text-xs text-slate-600">Conversion Rate</p>
-                  <div className="w-full bg-slate-200 rounded-full h-2 mt-1">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: `${Math.min(campaign.conversionRate, 100)}%` }}
-                    />
+                {/* Conversion Rate */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-50 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-2xl font-bold text-green-600">{campaign.conversionRate}%</p>
+                    <p className="text-xs text-slate-600">Conv. Rate</p>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Campaign Message Preview */}
-            <div className="pt-4 border-t border-slate-200">
-              <p className="text-sm text-slate-600 line-clamp-2">{campaign.message}</p>
-            </div>
+              {/* Campaign Message Preview */}
+              {campaign.message && (
+                <div className="mb-4">
+                  <p className="text-sm text-slate-600 line-clamp-2">{campaign.message}</p>
+                </div>
+              )}
 
-            {/* PHASE 8C: Store Deployment Analytics */}
-            <div className="pt-4">
-              <CampaignStoreStats campaignId={campaign.id} />
-            </div>
+              {/* PHASE 8C: Store Deployment Analytics */}
+              <div className="mb-4">
+                <CampaignStoreStats campaignId={campaign.id} />
+              </div>
 
-            {/* Action Buttons */}
-            <div className="pt-4 flex flex-wrap items-center gap-2">
+              {/* Action Buttons */}
+              <div className="mt-auto flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100">
               {/* Status Change Buttons */}
               {campaign.status === "paused" && (
                 <Button
@@ -824,8 +842,9 @@ export function CampaignList() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </Link>
+              </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
         );
       })}
