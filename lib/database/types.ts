@@ -96,7 +96,13 @@ export interface UserProfile {
   department: string | null;
 
   // Role-Based Access Control
-  role: 'owner' | 'admin' | 'designer' | 'viewer';
+  role: 'owner' | 'admin' | 'designer' | 'viewer' | 'member';
+
+  // Approval Workflow (Migration 025)
+  approval_status: 'pending' | 'approved' | 'rejected'; // Default: 'pending'
+  approval_requested_at: string | null; // TIMESTAMPTZ
+  approved_at: string | null; // TIMESTAMPTZ
+  approved_by: string | null; // UUID - References user_profiles(id)
 
   // Granular Permissions
   can_create_designs: boolean; // Default: true

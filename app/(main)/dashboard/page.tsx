@@ -17,6 +17,7 @@ import {
   Shield
 } from 'lucide-react';
 import type { UserProfile, Organization } from '@/lib/database/types';
+import { TeamWidget } from '@/components/dashboard/team-widget-enhanced';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -359,6 +360,13 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Team Management Widget (for owners only) */}
+        {profile && profile.role === 'owner' && (
+          <div className="mb-8">
+            <TeamWidget userRole={profile.role} currentUserId={user?.id} />
+          </div>
+        )}
 
         {/* Coming Soon Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

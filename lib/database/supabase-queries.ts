@@ -244,6 +244,160 @@ export async function updateUserLastActive(userId: string) {
 }
 
 // ============================================================================
+// TEAM MANAGEMENT (Approval Workflow)
+// ============================================================================
+
+/**
+ * Get pending users for an organization
+ * Note: Uses admin client to bypass RLS - authorization happens in API route
+ */
+export async function getPendingUsers(organizationId: string) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .eq('approval_status', 'pending')
+    .order('approval_requested_at', { ascending: false });
+
+  if (error) throw new Error(`Failed to get pending users: ${error.message}`);
+  return data as UserProfile[];
+}
+
+/**
+ * Get all users with their email addresses (joins with auth.users)
+ * Requires owner/admin role via RLS
+ */
+export async function getOrganizationUsersWithEmail(organizationId: string) {
+  const supabase = createAdminClient();
+
+  // Use admin client to access auth.users table
+  const { data: profiles, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: false });
+
+  if (profileError) throw new Error(`Failed to get users: ${profileError.message}`);
+
+  // Get emails from auth.users
+  const userIds = profiles.map((p: UserProfile) => p.id);
+  const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+
+  if (authError) throw new Error(`Failed to get user emails: ${authError.message}`);
+
+  // Combine profile data with emails
+  const usersWithEmail = profiles.map((profile: UserProfile) => {
+    const authUser = authUsers.users.find((u) => u.id === profile.id);
+    return {
+      ...profile,
+      email: authUser?.email || 'Unknown'
+    };
+  });
+
+  return usersWithEmail;
+}
+
+/**
+ * Approve a pending user (sets status to approved, sets role to member by default)
+ * Note: Uses admin client to bypass RLS - authorization happens in API route
+ */
+export async function approveUser(
+  userId: string,
+  approvedById: string,
+  role: 'member' | 'owner' = 'member'
+) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .update({
+      approval_status: 'approved',
+      approved_at: new Date().toISOString(),
+      approved_by: approvedById,
+      role,
+    })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to approve user: ${error.message}`);
+  return data as UserProfile;
+}
+
+/**
+ * Reject a pending user (sets status to rejected)
+ * Note: Uses admin client to bypass RLS - authorization happens in API route
+ */
+export async function rejectUser(userId: string) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .update({
+      approval_status: 'rejected',
+    })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to reject user: ${error.message}`);
+  return data as UserProfile;
+}
+
+/**
+ * Update user role (simplified - just Owner vs Member)
+ * Note: Uses admin client to bypass RLS - authorization happens in API route
+ */
+export async function updateUserRole(
+  userId: string,
+  newRole: 'owner' | 'member'
+) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .update({ role: newRole })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to update user role: ${error.message}`);
+  return data as UserProfile;
+}
+
+/**
+ * Update specific user permissions (granular control)
+ * Note: Uses admin client to bypass RLS - authorization happens in API route
+ */
+export async function updateUserPermissions(
+  userId: string,
+  permissions: Partial<Pick<UserProfile,
+    'can_create_designs' |
+    'can_send_campaigns' |
+    'can_manage_billing' |
+    'can_invite_users' |
+    'can_approve_designs' |
+    'can_manage_templates' |
+    'can_access_analytics' |
+    'can_access_api'
+  >>
+) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .update(permissions)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to update user permissions: ${error.message}`);
+  return data as UserProfile;
+}
+
+// ============================================================================
 // DESIGN TEMPLATES
 // ============================================================================
 

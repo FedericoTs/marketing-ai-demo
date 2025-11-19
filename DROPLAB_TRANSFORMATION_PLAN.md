@@ -7,9 +7,9 @@
 
 **Strategic Vision**: Build the first "Figma meets Mailchimp for Physical Mail" platform
 
-**Last Updated**: 2025-11-19 (Phase 5.7 Analytics - 100% Supabase Migration Complete!)
+**Last Updated**: 2025-11-19 (Phase 1 Enhancement - Team Management System Complete!)
 
-**Version**: 5.0 (🎉 ANALYTICS COMPLETE: ElevenLabs Call Tracking + Investment Metrics!)
+**Version**: 5.2 (🎉 NEW: Team Management with Optimistic UI Updates!)
 
 ---
 
@@ -1481,6 +1481,215 @@ Deferred because Phase 2 uses Fabric.js canvas JSON (no file uploads yet).
 **Known Issues**:
 - Tailwind CSS v4 lightningcss WSL2 compatibility (non-blocking, use dev server)
 - Storage buckets deferred to Phase 3 (when asset uploads are needed)
+
+---
+
+### **Phase 1 Enhancement: Auto-Signup Flow** 🎉
+
+**Date**: November 19, 2025
+**Status**: ✅ **COMPLETE** (Critical P0 Blocker Fixed!)
+**Impact**: PRODUCTION BLOCKER RESOLVED - New users can now sign up and use the platform immediately
+
+#### Problem Solved:
+Previously, signup only created `auth.users` records, leaving the platform completely non-functional for new users (no organization or user_profile). **This was blocking production launch.**
+
+#### Solution: Database Trigger Approach
+Implemented automatic organization and user profile creation via PostgreSQL trigger on `auth.users` table.
+
+**Task 1.4: Auto-Create Organization & User Profile on Signup** ✅ **COMPLETE**
+
+**Files Created**:
+- `supabase/migrations/022_auto_create_org_profile_on_signup.sql` (341 lines)
+- `SIGNUP_FLOW_IMPLEMENTATION_PLAN.md` (70-page technical specification)
+
+**Key Components**:
+
+1. **Added email_domain column to organizations table**
+   - Tracks company domain for duplicate org detection
+   - NULL for public domains (Gmail, Yahoo, etc.)
+   - Indexed for fast workspace detection (Phase 2 feature)
+
+2. **generate_org_slug_from_email() function**
+   - Converts email to URL-safe slug (john.doe@test.com → johndoe)
+   - Handles collisions with counter (-1, -2, etc.)
+   - 1000-attempt safety limit
+
+3. **handle_new_user_signup() trigger function**
+   - Fires AFTER INSERT on auth.users
+   - Creates organization with smart naming:
+     - Public domains: "{Name}'s Workspace"
+     - Company domains: "Acme Corp" (from acme.com)
+   - Creates user_profile with role='owner' and full permissions
+   - Grants 10,000 free credits ($100 worth)
+   - Compatible with existing Federico admin trigger
+
+4. **on_auth_user_created trigger**
+   - Activated on auth.users table
+   - Runs for ALL signup methods (email, OAuth future, phone future)
+   - Atomic transaction (org + profile created together)
+
+**Migrations Applied**:
+- Migration 022: Auto-signup flow (✅ Applied Nov 19, 2025)
+
+**Testing Status**:
+- ✅ email_domain column exists in organizations table
+- ✅ Trigger on_auth_user_created is active (enabled='O')
+- ✅ Both functions exist and are properly defined
+- ✅ No errors during migration application
+
+**Why Trigger Over API Route**:
+- ✅ Works for ALL signup methods (email, OAuth, phone)
+- ✅ Atomic transaction (guaranteed consistency)
+- ✅ Zero client code changes needed
+- ✅ Automatic execution (can't be forgotten or bypassed)
+
+**Future Enhancement (Phase 2 - Workspace Detection)**:
+- Detect existing organizations by email domain
+- Offer "Join existing workspace" vs "Create new workspace"
+- Prevent duplicate organizations for same company
+- Smart workspace suggestions
+
+**Checklist**:
+- [x] Research existing auth architecture and triggers
+- [x] Analyze dependencies on organizations and user_profiles tables
+- [x] Create comprehensive implementation plan
+- [x] Create Migration 022 with email_domain tracking
+- [x] Implement generate_org_slug_from_email() function
+- [x] Implement handle_new_user_signup() trigger function
+- [x] Create trigger on auth.users table
+- [x] Apply migration to Supabase database
+- [x] Verify trigger is active and functions exist
+- [x] Test compatibility with existing Federico admin trigger
+- [x] Document rollback procedure
+
+**Documentation Created**:
+- `SIGNUP_FLOW_IMPLEMENTATION_PLAN.md` - Complete technical specification
+- Migration 022 includes comprehensive inline documentation and rollback instructions
+
+---
+
+### **Phase 1 Enhancement: Team Management System** 🎉
+
+**Date**: November 19, 2025
+**Status**: ✅ **COMPLETE** (Production-Ready Multi-User Management!)
+**Impact**: CRITICAL - Enables multi-user organizations with role-based access control
+
+#### Problem Solved:
+Platform had authentication but no team management. Organizations couldn't:
+- Approve new team members joining via signup
+- Manage user roles within the organization
+- Control access to owner-level functions (billing, team approval)
+
+#### Solution Implemented:
+
+**1. Approval Workflow** ✅
+- New signups default to `pending` approval status (Migration 025)
+- Owners see pending approvals on dashboard (impossible to miss)
+- Approve/Reject with instant UI updates (optimistic rendering)
+- Existing users auto-approved to prevent breaking changes
+
+**2. Simplified Role System** ✅
+- **Owner**: Full admin access (approve members, manage billing, change roles)
+- **Member**: Standard access (create designs, launch campaigns, view analytics)
+- No complex permission matrix - just 2 essential roles
+- Everyone can launch campaigns (democratic approach)
+
+**3. Team Management Dashboard Widget** ✅
+- Real-time team list (first 5 members displayed)
+- Pending approvals in prominent amber alert section
+- Role dropdown for instant role changes (Owner ↔ Member)
+- "Roles Guide" button with clear permission explanation
+- Optimistic UI updates - **zero loading spinners, instant feedback**
+
+**4. Optimistic UI Pattern** ✅ **MAJOR UX WIN!**
+- Role changes update UI **instantly** before API call
+- Approve/reject updates happen **immediately** without reload
+- Auto-revert if API fails (bulletproof error handling)
+- Feels like native desktop app - **buttery smooth**
+
+#### Technical Implementation:
+
+**Database** (Migration 025):
+```sql
+ALTER TABLE user_profiles ADD COLUMN approval_status TEXT DEFAULT 'pending';
+ALTER TABLE user_profiles ADD COLUMN approval_requested_at TIMESTAMPTZ;
+ALTER TABLE user_profiles ADD COLUMN approved_at TIMESTAMPTZ;
+ALTER TABLE user_profiles ADD COLUMN approved_by UUID REFERENCES user_profiles(id);
+```
+
+**API Routes Created**:
+- `POST /api/team/approve` - Approve pending user (set role)
+- `POST /api/team/reject` - Reject pending user
+- `POST /api/team/update-role` - Change user role (Owner/Member)
+- `GET /api/team/pending` - Get pending approvals
+- `GET /api/team/members` - Get approved team members
+
+**Components Created**:
+- `components/dashboard/team-widget-enhanced.tsx` - Main management widget
+  - Optimistic state updates (no reload on changes)
+  - Role dropdown with instant feedback
+  - Pending approvals section
+  - Roles guide dialog
+- `app/(main)/layout.tsx` - Pending approval banner for new users
+
+**Query Functions** (`lib/database/supabase-queries.ts`):
+- `getPendingUsers()` - Fetch users awaiting approval
+- `getOrganizationUsersWithEmail()` - Get team with email addresses
+- `approveUser()` - Approve and set role
+- `rejectUser()` - Reject pending user
+- `updateUserRole()` - Change role (simplified - no permission columns)
+
+#### Key Architectural Decisions:
+
+**1. Optimistic Updates Over Loading States**
+- Update UI immediately, API call in background
+- Revert on error instead of blocking user
+- Result: **Instant** role changes, approvals feel native
+
+**2. Simplified 2-Role System**
+- Owner vs Member (not Owner/Admin/Designer/Member/Viewer)
+- Everyone gets campaign access
+- Only owners approve members and manage billing
+- Easier to understand, maintain, and use
+
+**3. Admin Client for Team Queries**
+- RLS bypass in query functions (authorization in API routes)
+- Prevents "permission denied" errors from session context issues
+- Security enforced at API layer (owner-only checks)
+
+**4. Self-Modification Prevention**
+- Users cannot change own role (security)
+- UI hides controls for current user
+- API validates userId !== currentUserId
+
+#### User Experience Highlights:
+
+✅ **Instant Role Changes** - No spinner, no reload, just works
+✅ **Clear Roles Guide** - Click button to see what Owner vs Member can do
+✅ **Pending Approval Banner** - New users see "Awaiting approval" message
+✅ **Owner Dashboard** - See pending approvals immediately (amber alert)
+✅ **Auto-Approval for Existing Users** - Migration sets all existing to 'approved'
+
+#### Files Modified:
+- `lib/database/supabase-queries.ts` - Team management functions
+- `components/dashboard/team-widget-enhanced.tsx` - Main widget (390 lines)
+- `app/(main)/dashboard/page.tsx` - Widget integration
+- `app/(main)/layout.tsx` - Pending approval banner
+- `app/api/team/*` - 5 new API routes
+- `supabase/migrations/025_user_approval_workflow.sql` - Approval columns
+
+#### Testing Checklist:
+- [x] New signup creates pending user
+- [x] Owner sees pending approvals on dashboard
+- [x] Approve user - instantly appears in team list
+- [x] Reject user - instantly disappears
+- [x] Change role - dropdown updates immediately
+- [x] Roles guide displays correct permissions
+- [x] Cannot change own role
+- [x] Existing users auto-approved
+- [x] Optimistic updates revert on error
+
+**Next Step**: Billing & Subscription Management (Stripe integration)
 
 ---
 
