@@ -23,42 +23,42 @@ function AnalyticsContent() {
     }
   }, [searchParams]);
 
-  // TEMPORARILY DISABLED - ElevenLabs sync (SQLite dependency)
-  // TODO: Migrate ElevenLabs call tracking to Supabase
-  // useEffect(() => {
-  //   const syncFromElevenLabs = async () => {
-  //     try {
-  //       const response = await fetch("/api/jobs/sync-elevenlabs-calls", {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({}),
-  //       });
-
-  //       if (!response.ok) {
-  //         console.error('[Analytics] GLOBAL sync failed: HTTP', response.status);
-  //         return;
-  //       }
-
-  //       const result = await response.json();
-
-  //       if (!result.success) {
-  //         console.error('[Analytics] GLOBAL sync failed:', result.error || 'Unknown error');
-  //       }
-  //     } catch (error) {
-  //       console.error('[Analytics] GLOBAL sync error:', error instanceof Error ? error.message : 'Unknown error');
-  //     }
-  //   };
-
-  //   // Initial sync on mount
-  //   syncFromElevenLabs();
-
-  //   // Auto-sync every 2 minutes
-  //   const syncInterval = setInterval(() => {
-  //     syncFromElevenLabs();
-  //   }, 120000); // 2 minutes
-
-  //   return () => clearInterval(syncInterval);
-  // }, []);
+  // ElevenLabs auto-sync (Supabase) - Passive webhook tracking only
+  // Note: Self-serve call initiate removed - users contact company directly
+  useEffect(() => {
+      const syncFromElevenLabs = async () => {
+      try {
+        const response = await fetch("/api/jobs/sync-elevenlabs-calls", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+  
+        if (!response.ok) {
+          console.error('[Analytics] GLOBAL sync failed: HTTP', response.status);
+          return;
+        }
+  
+        const result = await response.json();
+  
+        if (!result.success) {
+          console.error('[Analytics] GLOBAL sync failed:', result.error || 'Unknown error');
+        }
+      } catch (error) {
+        console.error('[Analytics] GLOBAL sync error:', error instanceof Error ? error.message : 'Unknown error');
+      }
+    };
+  
+    // Initial sync on mount
+    syncFromElevenLabs();
+  
+    // Auto-sync every 2 minutes
+    const syncInterval = setInterval(() => {
+      syncFromElevenLabs();
+    }, 120000); // 2 minutes
+  
+  return () => clearInterval(syncInterval);
+}, []);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);

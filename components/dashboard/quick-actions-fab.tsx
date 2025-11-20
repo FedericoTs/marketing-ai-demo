@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Plus,
-  Rocket,
   FileText,
   Store,
   Users,
@@ -74,16 +73,6 @@ export function QuickActionsFAB() {
       },
       color: 'text-yellow-600',
       highlight: true, // Featured action
-    },
-    {
-      icon: Rocket,
-      label: 'New Campaign',
-      description: 'Create marketing campaign',
-      onClick: () => {
-        setOpen(false);
-        router.push('/copywriting');
-      },
-      color: 'text-blue-600',
     },
     {
       icon: ShoppingCart,

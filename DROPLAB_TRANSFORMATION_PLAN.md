@@ -91,6 +91,33 @@ A complete direct mail platform requires these 5 core capabilities:
 - **Sidebar UI Cleanup** ✅ - Removed "NEW" badges for production-ready feel
 - **Chart Formatting** ✅ - 1 decimal precision for all percentages
 
+**🎉 MAJOR SIMPLIFICATION (Nov 20, 2025) - PLANNING COMPLETE**:
+- **Credits-Based Business Model Finalized** ✅
+  - $499/month subscription for platform access
+  - Month 1: $499 in DropLab Credits as bonus
+  - Month 2+: $99 in monthly credits
+  - Target margin: 30% (range: 15-43% based on usage patterns)
+  - Credits for Data Axle contacts + PostGrid printing only
+  - 12-month credit expiration
+- **Architecture Cleanup Planned** ✅
+  - 50+ files to modify/delete
+  - Remove copywriting feature (SQLite parallel project)
+  - Remove all SQLite database layer
+  - Replace OpenAI with NanoBanana ($0.05/image)
+  - Simplify ElevenLabs (passive webhooks only, no self-serve)
+  - 11 hours estimated implementation time
+- **Pricing Model Validated** ✅
+  - Data Axle: Volume-based (70% avg margin)
+  - PostGrid: $1.00/postcard (18% margin)
+  - NanoBanana: $0.05/image (0% margin, future markup possible)
+  - Accept margin variability, optimize through onboarding
+- **Documentation Complete** ✅
+  - `CLEANUP_DEPENDENCY_ANALYSIS.md` - Full dependency map (50+ files)
+  - `PRICING_CALCULATION.md` - Margin scenarios and validation
+  - `MIGRATION_PLAN_CLEANUP.md` - 7-phase execution plan
+  - All analyses and scenarios documented
+- **⚠️ BLOCKER**: User decision needed on ElevenLabs integration (see migration plan)
+
 ---
 
 ### Updated Roadmap Priority
@@ -111,6 +138,13 @@ A complete direct mail platform requires these 5 core capabilities:
   - **Campaign Comparison** ✅ (Side-by-side metrics)
   - **Geographic Analytics** ✅ (State/city/ZIP performance)
   - **CSV Export** ✅ (Campaign data export)
+- **Phase 5.8: Cleanup & Business Model** - **PLANNING COMPLETE** ✅ (Nov 20, 2025)
+  - **Credits-Based Subscription Model** ✅ ($499/mo → $499 credits M1, $99 M2+)
+  - **Dependency Analysis** ✅ (50+ files mapped for cleanup)
+  - **Pricing Calculation** ✅ (30% margin target validated)
+  - **Migration Plan** ✅ (7 phases, 11 hours estimated)
+  - ⏸️ **PENDING**: User decision on ElevenLabs (Option 1, 2, or 3)
+  - ⏸️ **PENDING**: Execution of cleanup (awaits decision)
 - **Phase 9.1: PostGrid Integration** - **COMPLETE** ✅ (Nov 11, 2025)
 
 **🎯 IMMEDIATE NEXT PRIORITY** (November 14, 2025):
