@@ -8,7 +8,7 @@ import { successResponse, errorResponse } from "@/lib/utils/api-response";
  */
 export async function POST() {
   try {
-    const db = getDatabase();
+    const db = createServiceClient();
 
     console.log("📦 Creating batch job tables...");
 

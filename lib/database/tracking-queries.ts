@@ -63,7 +63,7 @@ export function createCampaign(data: {
   validateString(data.message, 'message', operation, { minLength: 1 });
   validateString(data.companyName, 'companyName', operation, { minLength: 1, maxLength: 255 });
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
 
@@ -101,7 +101,7 @@ export function getCampaignById(id: string): Campaign | null {
   // Validate input
   validateId(id, 'id', operation);
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("SELECT * FROM campaigns WHERE id = ?");
 
   try {
@@ -122,7 +122,7 @@ export function getCampaignById(id: string): Campaign | null {
  * Get all campaigns
  */
 export function getAllCampaigns(): Campaign[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("SELECT * FROM campaigns ORDER BY created_at DESC");
   return stmt.all() as Campaign[];
 }
@@ -139,7 +139,7 @@ export function updateCampaign(
     status?: Campaign['status'];
   }
 ): Campaign | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const updateFields: string[] = [];
   const params: any[] = [];
@@ -186,7 +186,7 @@ export function updateCampaignStatus(
   id: string,
   status: "active" | "paused" | "completed"
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("UPDATE campaigns SET status = ? WHERE id = ?");
   const result = stmt.run(status, id);
   return result.changes > 0;
@@ -196,7 +196,7 @@ export function updateCampaignStatus(
  * Delete campaign and all associated data
  */
 export function deleteCampaign(id: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     // Delete in correct order to maintain referential integrity
@@ -233,7 +233,7 @@ export function deleteCampaign(id: string): boolean {
  * Duplicate campaign (creates a copy with new ID)
  */
 export function duplicateCampaign(id: string): Campaign | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const original = getCampaignById(id);
 
   if (!original) return null;
@@ -286,7 +286,7 @@ export function createRecipient(data: {
   validateString(data.name, 'name', operation, { minLength: 1, maxLength: 255 });
   validateString(data.lastname, 'lastname', operation, { minLength: 1, maxLength: 255 });
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const tracking_id = nanoid(12);
   const created_at = new Date().toISOString();
@@ -344,7 +344,7 @@ export function createRecipient(data: {
  * Get recipient by tracking ID
  */
 export function getRecipientByTrackingId(trackingId: string): Recipient | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("SELECT * FROM recipients WHERE tracking_id = ?");
   return stmt.get(trackingId) as Recipient | null;
 }
@@ -353,7 +353,7 @@ export function getRecipientByTrackingId(trackingId: string): Recipient | null {
  * Get all recipients for a campaign
  */
 export function getRecipientsByCampaign(campaignId: string): Recipient[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(
     "SELECT * FROM recipients WHERE campaign_id = ? ORDER BY created_at DESC"
   );
@@ -382,7 +382,7 @@ export function saveLandingPage(data: {
   pageData: Record<string, unknown>;
   landingPageUrl: string;
 }): LandingPage {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
   const page_data = JSON.stringify(data.pageData);
@@ -420,7 +420,7 @@ export function saveLandingPage(data: {
  * Get landing page by tracking ID
  */
 export function getLandingPageByTrackingId(trackingId: string): LandingPage | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("SELECT * FROM landing_pages WHERE tracking_id = ?");
   return stmt.get(trackingId) as LandingPage | null;
 }
@@ -429,7 +429,7 @@ export function getLandingPageByTrackingId(trackingId: string): LandingPage | nu
  * Get all landing pages for a campaign
  */
 export function getLandingPagesByCampaign(campaignId: string): LandingPage[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT lp.*, r.name, r.lastname, r.email, r.phone
     FROM landing_pages lp
@@ -460,7 +460,7 @@ export function trackEvent(data: {
     'page_view', 'qr_scan', 'button_click', 'form_view', 'external_link'
   ] as const);
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
 
@@ -507,7 +507,7 @@ export function trackEvent(data: {
  * Get all events for a tracking ID
  */
 export function getEventsByTrackingId(trackingId: string): Event[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(
     "SELECT * FROM events WHERE tracking_id = ? ORDER BY created_at DESC"
   );
@@ -521,7 +521,7 @@ export function getEventCountByType(
   trackingId: string,
   eventType: Event["event_type"]
 ): number {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(
     "SELECT COUNT(*) as count FROM events WHERE tracking_id = ? AND event_type = ?"
   );
@@ -547,7 +547,7 @@ export function trackConversion(data: {
     'form_submission', 'appointment_booked', 'call_initiated', 'download'
   ] as const);
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
 
@@ -592,7 +592,7 @@ export function trackConversion(data: {
  * Get all conversions for a tracking ID
  */
 export function getConversionsByTrackingId(trackingId: string): Conversion[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(
     "SELECT * FROM conversions WHERE tracking_id = ? ORDER BY created_at DESC"
   );
@@ -603,7 +603,7 @@ export function getConversionsByTrackingId(trackingId: string): Conversion[] {
  * Check if tracking ID has converted
  */
 export function hasConverted(trackingId: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(
     "SELECT COUNT(*) as count FROM conversions WHERE tracking_id = ?"
   );
@@ -626,7 +626,7 @@ export interface CampaignAnalytics {
 }
 
 export function getCampaignAnalytics(campaignId: string): CampaignAnalytics | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const campaign = getCampaignById(campaignId);
 
   if (!campaign) return null;
@@ -750,7 +750,7 @@ export function saveBrandProfile(data: {
   industry?: string;
   sourceContent?: string;
 }): BrandProfile {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Check if profile exists
   const existing = db.prepare(
@@ -835,7 +835,7 @@ export function saveBrandProfile(data: {
  * Get active brand profile by company name
  */
 export function getBrandProfile(companyName: string): BrandProfile | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(
     "SELECT * FROM brand_profiles WHERE company_name = ? AND is_active = 1"
   );
@@ -846,7 +846,7 @@ export function getBrandProfile(companyName: string): BrandProfile | null {
  * Get all brand profiles
  */
 export function getAllBrandProfiles(): BrandProfile[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(
     "SELECT * FROM brand_profiles WHERE is_active = 1 ORDER BY extracted_at DESC"
   );
@@ -871,7 +871,7 @@ export function updateBrandKit(data: {
   landingPageTemplate?: string;
   websiteUrl?: string;
 }): BrandProfile | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Get existing profile or create one
   let profile = getBrandProfile(data.companyName);
@@ -923,7 +923,7 @@ export function updateBrandKit(data: {
  * Deactivate brand profile
  */
 export function deactivateBrandProfile(id: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("UPDATE brand_profiles SET is_active = 0 WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
@@ -946,7 +946,7 @@ export interface DashboardStats {
 }
 
 export function getDashboardStats(startDate?: string, endDate?: string): DashboardStats {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Build date filter clause
   const hasDateFilter = startDate && endDate;
@@ -1067,7 +1067,7 @@ export interface RecentActivity {
 }
 
 export function getRecentActivity(limit: number = 20): RecentActivity[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Get recent events with recipient and campaign info
   const eventsStmt = db.prepare(`
@@ -1148,7 +1148,7 @@ export interface CampaignExportData {
  * Get detailed export data for a single campaign
  */
 export function getCampaignExportData(campaignId: string): CampaignExportData | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const campaign = getCampaignById(campaignId);
 
   if (!campaign) return null;
@@ -1261,7 +1261,7 @@ export function getTimeSeriesAnalytics(
   startDate?: string,
   endDate?: string
 ): TimeSeriesData[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Default to last 30 days if no dates provided
   const end = endDate || new Date().toISOString().split("T")[0];
@@ -1382,7 +1382,7 @@ export function getCampaignTimeSeriesAnalytics(
   startDate?: string,
   endDate?: string
 ): TimeSeriesData[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Default to last 30 days if no dates provided
   const end = endDate || new Date().toISOString().split("T")[0];
@@ -1506,7 +1506,7 @@ export function getCampaignTimeSeriesAnalytics(
  * Get funnel data for all campaigns or specific campaign
  */
 export function getFunnelData(campaignId?: string): FunnelData[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   let totalRecipients: number;
   let totalVisitors: number;
@@ -1586,7 +1586,7 @@ export function getFunnelData(campaignId?: string): FunnelData[] {
  * Get comparison data for multiple campaigns
  */
 export function getCampaignsComparisonData(campaignIds: string[]) {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   return campaignIds.map((id) => {
     const campaign = getCampaignById(id);
@@ -1651,7 +1651,7 @@ export function getCampaignsComparisonData(campaignIds: string[]) {
  * Returns average times in seconds
  */
 export function getEngagementMetricsForCampaign(campaignId: string) {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Calculate average time to first page view (in seconds)
   const timeToFirstViewStmt = db.prepare(`
@@ -1718,7 +1718,7 @@ export function getEngagementMetricsForCampaign(campaignId: string) {
  * Get engagement metrics for a specific recipient
  */
 export function getEngagementMetricsForRecipient(trackingId: string) {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     SELECT
@@ -1762,7 +1762,7 @@ export function getEngagementMetricsForRecipient(trackingId: string) {
  * Get engagement metrics for all campaigns (for analytics overview)
  */
 export function getOverallEngagementMetrics(startDate?: string, endDate?: string) {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const hasDateFilter = startDate && endDate;
   const recipientFilter = hasDateFilter ? "WHERE DATE(r.created_at) BETWEEN ? AND ?" : "";
@@ -1859,7 +1859,7 @@ export interface SankeyData {
  * @param endDate Optional end date filter (ISO string)
  */
 export function getSankeyChartData(startDate?: string, endDate?: string): SankeyData {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const hasDateFilter = !!(startDate && endDate);
 

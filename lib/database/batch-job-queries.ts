@@ -83,7 +83,7 @@ export function createBatchJob(data: {
     validateEmail(data.userEmail, 'userEmail', operation);
   }
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
 
@@ -139,7 +139,7 @@ export function getBatchJob(id: string): BatchJob | null {
   // Validate input
   validateId(id, 'id', operation);
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("SELECT * FROM batch_jobs WHERE id = ?");
 
   try {
@@ -160,7 +160,7 @@ export function getBatchJob(id: string): BatchJob | null {
  * Get all batch jobs (ordered by creation date)
  */
 export function getAllBatchJobs(limit = 100): BatchJob[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM batch_jobs
     ORDER BY created_at DESC
@@ -173,7 +173,7 @@ export function getAllBatchJobs(limit = 100): BatchJob[] {
  * Get batch jobs by status
  */
 export function getBatchJobsByStatus(status: BatchJobStatus): BatchJob[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM batch_jobs
     WHERE status = ?
@@ -200,7 +200,7 @@ export function updateBatchJobStatus(
   validateId(id, 'id', operation);
   validateEnum(status, 'status', operation, ['pending', 'processing', 'completed', 'failed', 'cancelled'] as const);
 
-  const db = getDatabase();
+  const db = createServiceClient();
 
   dbLogger.info(operation, 'batch_jobs', id, { status, hasError: !!options?.errorMessage });
 
@@ -253,7 +253,7 @@ export function updateBatchJobProgress(
     failedCount?: number;
   }
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const updates: string[] = [];
   const params: any[] = [];
@@ -287,7 +287,7 @@ export function updateBatchJobProgress(
  * Set output ZIP path for completed batch job
  */
 export function setBatchJobOutputZip(id: string, zipPath: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("UPDATE batch_jobs SET output_zip_path = ? WHERE id = ?");
   const result = stmt.run(zipPath, id);
   return result.changes > 0;
@@ -297,7 +297,7 @@ export function setBatchJobOutputZip(id: string, zipPath: string): boolean {
  * Delete batch job and all related data
  */
 export function deleteBatchJob(id: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     // Delete in correct order
@@ -322,7 +322,7 @@ export function createBatchJobRecipient(data: {
   batchJobId: string;
   recipientId: string;
 }): BatchJobRecipient {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
 
   const stmt = db.prepare(`
@@ -344,7 +344,7 @@ export function createBatchJobRecipient(data: {
  * Get all recipients for a batch job
  */
 export function getBatchJobRecipients(batchJobId: string): BatchJobRecipient[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM batch_job_recipients
     WHERE batch_job_id = ?
@@ -357,7 +357,7 @@ export function getBatchJobRecipients(batchJobId: string): BatchJobRecipient[] {
  * Get failed recipients for a batch job
  */
 export function getFailedBatchRecipients(batchJobId: string): BatchJobRecipient[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM batch_job_recipients
     WHERE batch_job_id = ? AND status = 'failed'
@@ -377,7 +377,7 @@ export function updateBatchJobRecipientStatus(
     errorMessage?: string;
   }
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const processed_at = new Date().toISOString();
 
   let sql = "UPDATE batch_job_recipients SET status = ?, processed_at = ?";
@@ -411,7 +411,7 @@ export function addBatchJobProgress(data: {
   progressPercent: number;
   message?: string;
 }): BatchJobProgress {
-  const db = getDatabase();
+  const db = createServiceClient();
   const created_at = new Date().toISOString();
 
   const stmt = db.prepare(`
@@ -439,7 +439,7 @@ export function addBatchJobProgress(data: {
  * Get latest progress for a batch job
  */
 export function getLatestBatchJobProgress(batchJobId: string): BatchJobProgress | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM batch_job_progress
     WHERE batch_job_id = ?
@@ -453,7 +453,7 @@ export function getLatestBatchJobProgress(batchJobId: string): BatchJobProgress 
  * Get progress history for a batch job
  */
 export function getBatchJobProgressHistory(batchJobId: string, limit = 50): BatchJobProgress[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM batch_job_progress
     WHERE batch_job_id = ?
@@ -475,7 +475,7 @@ export function createUserNotification(data: {
   subject: string;
   message: string;
 }): UserNotification {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
 
@@ -512,7 +512,7 @@ export function createUserNotification(data: {
  * Mark notification as sent
  */
 export function markNotificationAsSent(id: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const sent_at = new Date().toISOString();
   const stmt = db.prepare("UPDATE user_notifications SET sent_at = ? WHERE id = ?");
   const result = stmt.run(sent_at, id);
@@ -523,7 +523,7 @@ export function markNotificationAsSent(id: string): boolean {
  * Mark notification as read
  */
 export function markNotificationAsRead(id: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const read_at = new Date().toISOString();
   const stmt = db.prepare("UPDATE user_notifications SET read_at = ? WHERE id = ?");
   const result = stmt.run(read_at, id);
@@ -534,7 +534,7 @@ export function markNotificationAsRead(id: string): boolean {
  * Get unread notifications for user
  */
 export function getUnreadNotifications(userEmail: string): UserNotification[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM user_notifications
     WHERE user_email = ? AND read_at IS NULL
@@ -547,7 +547,7 @@ export function getUnreadNotifications(userEmail: string): UserNotification[] {
  * Get all notifications for user
  */
 export function getUserNotifications(userEmail: string, limit = 50): UserNotification[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM user_notifications
     WHERE user_email = ?
@@ -572,7 +572,7 @@ export function getBatchJobStats(): {
   totalRecipients: number;
   totalProcessed: number;
 } {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     SELECT

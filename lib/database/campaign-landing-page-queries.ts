@@ -52,7 +52,7 @@ export interface RecipientData {
  * @returns Landing page config or null if not found
  */
 export function getCampaignLandingPage(campaignId: string): CampaignLandingPage | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const result = db.prepare(`
@@ -95,7 +95,7 @@ export function getCampaignLandingPageConfig(campaignId: string): CampaignLandin
  * @returns Recipient data or null
  */
 export function getRecipientById(recipientId: string): RecipientData | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const result = db.prepare(`
@@ -117,7 +117,7 @@ export function getRecipientById(recipientId: string): RecipientData | null {
  * @returns Recipient data or null
  */
 export function getRecipientByTrackingId(trackingId: string): RecipientData | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const result = db.prepare(`
@@ -145,7 +145,7 @@ export function upsertCampaignLandingPage(
   config: CampaignLandingPageConfig,
   templateId?: string
 ): CampaignLandingPage {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const id = `clp_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   const configJson = JSON.stringify(config);
@@ -201,7 +201,7 @@ export function upsertCampaignLandingPage(
  * @returns Campaign data or null
  */
 export function getCampaign(campaignId: string): { id: string; name: string; message: string; company_name: string } | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const result = db.prepare(`

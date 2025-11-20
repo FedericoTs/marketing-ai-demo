@@ -68,7 +68,7 @@ export interface GeographicPattern {
 export function getAllStorePerformanceMetrics(
   daysBack: number = 90
 ): StorePerformanceMetrics[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
@@ -142,7 +142,7 @@ export function getAllStorePerformanceMetrics(
 export function getAllCampaignCreativePerformance(
   daysBack: number = 90
 ): CampaignCreativePerformance[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
@@ -205,7 +205,7 @@ export function getAllCampaignCreativePerformance(
 function getRegionalPerformance(
   campaignId: string
 ): { region: string; conversion_rate: number }[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const query = `
     SELECT
@@ -238,7 +238,7 @@ function getRegionalPerformance(
 function getStatePerformance(
   campaignId: string
 ): { state: string; conversion_rate: number }[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const query = `
     SELECT
@@ -269,7 +269,7 @@ function getStatePerformance(
  * Get geographic performance patterns
  */
 export function getGeographicPatterns(daysBack: number = 90): GeographicPattern[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
@@ -314,7 +314,7 @@ export function findSimilarStores(
   storeId: string,
   limit: number = 10
 ): StorePerformanceMetrics[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // First get the target store's characteristics
   const targetQuery = `

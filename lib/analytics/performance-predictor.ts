@@ -22,7 +22,7 @@ import {
   type ResponseCurveResult,
   type ResponseCurveConfig,
 } from './response-curve';
-import { getDatabase } from '@/lib/database/connection';
+import { getDatabase } from '@/lib/supabase/server';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -440,7 +440,7 @@ function getStoreHistoricalConversionRate(storeId: string): number {
  */
 function getStoreHistoricalCampaigns(storeId: string): Array<{ quantity: number; conversions: number }> {
   try {
-    const db = getDatabase();
+    const db = createServiceClient();
 
     // Get all past deployments for this store with their actual performance
     const campaigns = db

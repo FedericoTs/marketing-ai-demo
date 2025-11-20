@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/database/connection';
+import { getDatabase } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 [Bulk Stores API] GET request', { region, state, city, isActive });
 
-    const db = getDatabase();
+    const db = createServiceClient();
 
     // Build WHERE clause dynamically
     const whereClauses: string[] = [];

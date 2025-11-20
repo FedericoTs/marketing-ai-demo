@@ -25,7 +25,7 @@ export async function GET(
       );
     }
 
-    const db = getDatabase();
+    const db = createServiceClient();
 
     // REAL ANALYTICS: Get actual campaigns that used this template
     // Join: campaign_templates -> dm_templates -> campaigns -> recipients -> conversions

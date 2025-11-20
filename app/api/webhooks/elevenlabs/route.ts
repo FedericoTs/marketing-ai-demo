@@ -5,9 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  upsertElevenLabsCall,
-  attributeCallToCampaign,
-} from '@/lib/database/call-tracking-queries';
+  upsertElevenLabsCallSupabase,
+  attributeCallToCampaignSupabase,
+} from '@/lib/database/call-tracking-supabase-queries';
 import {
   validateWebhookRequest,
   logWebhookAttempt,
@@ -114,28 +114,22 @@ export async function POST(request: NextRequest) {
     // Convert webhook payload to call record
     const callRecord = convertWebhookToCall(payload);
 
-    // Attempt automatic attribution
-    if (callRecord.caller_phone_number) {
-      const attribution = attributeCallToCampaign(callRecord.caller_phone_number);
-
-      if (attribution) {
-        callRecord.campaign_id = attribution.campaign_id;
-        callRecord.recipient_id = attribution.recipient_id;
-        console.log('[Webhook] Call attributed to campaign:', attribution.campaign_id);
-      } else {
-        console.log('[Webhook] No attribution found for phone:', callRecord.caller_phone_number);
-      }
-    }
-
-    // Determine conversion status
-    callRecord.is_conversion = callRecord.call_status === 'success';
+    // Note: Attribution skipped in webhook (no organization context)
+    // The sync job will handle attribution with proper organization context
+    console.log('[Webhook] Attribution deferred to sync job (no org context in webhook)');
 
     // Store in database (upsert to handle duplicates)
-    const callId = upsertElevenLabsCall(callRecord);
+    // organization_id will be NULL - sync job will fill it in later
+    const result = await upsertElevenLabsCallSupabase(callRecord);
+
+    if (!result.success) {
+      console.error('[Webhook] Failed to store call:', result.error);
+      throw new Error(result.error || 'Failed to upsert call');
+    }
 
     const duration = Date.now() - startTime;
     console.log('[Webhook] Call stored successfully:', {
-      callId,
+      elevenlabs_call_id: callRecord.elevenlabs_call_id,
       conversation_id: payload.conversation_id,
       duration_ms: duration,
     });
@@ -147,9 +141,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       successResponse(
         {
-          callId,
+          elevenlabs_call_id: callRecord.elevenlabs_call_id,
           conversation_id: payload.conversation_id,
-          attributed: !!callRecord.campaign_id,
+          attributed: false, // Attribution deferred to sync job
         },
         'Webhook processed successfully'
       )
@@ -176,13 +170,19 @@ export async function POST(request: NextRequest) {
 /**
  * Convert webhook payload to call record format
  */
-function convertWebhookToCall(payload: ElevenLabsWebhookPayload): Omit<
-  Parameters<typeof upsertElevenLabsCall>[0],
-  'campaign_id' | 'recipient_id' | 'is_conversion'
-> & {
+function convertWebhookToCall(payload: ElevenLabsWebhookPayload): {
+  elevenlabs_call_id: string;
+  agent_id?: string;
+  phone_number?: string;
+  call_status?: string;
+  call_duration_seconds?: number;
+  start_time?: string;
+  end_time?: string;
+  call_successful?: boolean;
+  raw_data?: Record<string, unknown>;
+  organization_id?: string; // Will be NULL for webhooks
   campaign_id?: string;
   recipient_id?: string;
-  is_conversion: boolean;
 } {
   // Extract actual field names (handle variants)
   const startTimeUnix =
@@ -202,16 +202,18 @@ function convertWebhookToCall(payload: ElevenLabsWebhookPayload): Omit<
   }
 
   return {
-    conversation_id: payload.conversation_id,
+    elevenlabs_call_id: payload.conversation_id,
     agent_id: (payload.agent_id || payload.agent_name) as string | undefined,
-    elevenlabs_phone_number: payload.phone_number,
-    caller_phone_number: payload.caller_phone,
-    call_started_at: startedAt,
-    call_ended_at: endedAt,
-    call_duration_seconds: callDuration,
+    phone_number: payload.caller_phone, // Caller's phone number
     call_status: payload.call_successful || 'unknown',
-    raw_data: JSON.stringify(payload),
-    is_conversion: false, // Will be determined by main logic
+    call_duration_seconds: callDuration,
+    start_time: startedAt,
+    end_time: endedAt,
+    call_successful: payload.call_successful === 'success',
+    raw_data: payload,
+    organization_id: undefined, // No org context in webhook - sync job will fill this
+    campaign_id: undefined,
+    recipient_id: undefined,
   };
 }
 

@@ -7,7 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ElevenLabsCallRecord {
-  organization_id: string;
+  organization_id?: string; // Optional - webhooks don't have org context initially
   elevenlabs_call_id: string;
   agent_id?: string;
   phone_number?: string;
@@ -38,7 +38,7 @@ export async function upsertElevenLabsCallSupabase(
     const supabase = createServiceClient();
 
     console.log('[Supabase] Upserting ElevenLabs call:', {
-      organization_id: call.organization_id,
+      organization_id: call.organization_id || 'NULL (webhook - no org context)',
       elevenlabs_call_id: call.elevenlabs_call_id,
       agent_id: call.agent_id,
       phone_number: call.phone_number,
@@ -48,7 +48,7 @@ export async function upsertElevenLabsCallSupabase(
       .from('elevenlabs_calls')
       .upsert(
         {
-          organization_id: call.organization_id,
+          organization_id: call.organization_id || null,
           elevenlabs_call_id: call.elevenlabs_call_id,
           agent_id: call.agent_id || null,
           phone_number: call.phone_number || null,

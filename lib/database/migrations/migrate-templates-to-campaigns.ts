@@ -10,7 +10,7 @@
 import { getDatabase } from '../connection';
 
 export function migrateTemplatesToCampaigns() {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   console.log('[Migration] Creating campaigns from dm_templates...');
 

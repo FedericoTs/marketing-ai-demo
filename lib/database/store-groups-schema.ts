@@ -5,7 +5,7 @@ import { getDatabase } from './connection';
  * This allows users to save frequently-used store selections for reuse
  */
 export function initStoreGroupsTables() {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Store groups table
   db.exec(`

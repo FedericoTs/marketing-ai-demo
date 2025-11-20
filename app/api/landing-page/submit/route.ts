@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/database/connection';
+import { getDatabase } from '@/lib/supabase/server';
 import { getConversionTypeForTemplate } from '@/lib/template-conversion-mapper';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDatabase();
+    const db = createServiceClient();
     const submissionId = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
     const now = new Date().toISOString();
 

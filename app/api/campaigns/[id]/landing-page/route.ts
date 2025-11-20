@@ -41,7 +41,7 @@ export async function GET(
 
       // Fallback: Check if there are recipient-specific landing pages for this campaign
       const { getDatabase } = require('@/lib/database/connection');
-      const db = getDatabase();
+      const db = createServiceClient();
 
       const recipientLandingPage = db.prepare(`
         SELECT id, tracking_id, campaign_id, recipient_id, page_data, landing_page_url, created_at

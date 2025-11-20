@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCampaignCalls } from '@/lib/database/call-tracking-queries';
+import { getCampaignCalls } from '@/lib/database/call-tracking-supabase-queries';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 export async function GET(

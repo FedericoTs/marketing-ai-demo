@@ -61,7 +61,7 @@ export interface CreateOrderParams {
  * Example: ORD-2025-10-001
  */
 export function generateOrderNumber(): string {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -84,7 +84,7 @@ export function generateOrderNumber(): string {
  * Create a new campaign order with items
  */
 export function createOrder(params: CreateOrderParams): CampaignOrder {
-  const db = getDatabase();
+  const db = createServiceClient();
   const orderId = nanoid();
   const orderNumber = generateOrderNumber();
   const now = new Date().toISOString();
@@ -157,7 +157,7 @@ export function createOrder(params: CreateOrderParams): CampaignOrder {
  * Perfect for recurring monthly campaigns
  */
 export function duplicateOrder(originalOrderId: string): CampaignOrder {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Get original order
   const originalOrder = getOrderById(originalOrderId);
@@ -243,7 +243,7 @@ export function duplicateOrder(originalOrderId: string): CampaignOrder {
  * Get order by ID
  */
 export function getOrderById(orderId: string): CampaignOrder | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const order = db.prepare(`
     SELECT * FROM campaign_orders WHERE id = ?
@@ -256,7 +256,7 @@ export function getOrderById(orderId: string): CampaignOrder | null {
  * Get order by order number
  */
 export function getOrderByNumber(orderNumber: string): CampaignOrder | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const order = db.prepare(`
     SELECT * FROM campaign_orders WHERE order_number = ?
@@ -274,7 +274,7 @@ export function getAllOrders(options?: {
   status?: string;
   searchQuery?: string;
 }): CampaignOrder[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const { limit = 50, offset = 0, status, searchQuery } = options || {};
 
   let query = 'SELECT * FROM campaign_orders';
@@ -305,7 +305,7 @@ export function getAllOrders(options?: {
  * Get total count of orders (for pagination)
  */
 export function getOrdersCount(status?: string): number {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   let query = 'SELECT COUNT(*) as count FROM campaign_orders';
   const params: any[] = [];
@@ -323,7 +323,7 @@ export function getOrdersCount(status?: string): number {
  * Get order items for a specific order
  */
 export function getOrderItems(orderId: string): OrderItemWithDetails[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const items = db.prepare(`
     SELECT
@@ -357,7 +357,7 @@ export function updateOrderStatus(
     deliveredAt?: string;
   }
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   const updates: string[] = ['status = ?', 'updated_at = ?'];
@@ -397,7 +397,7 @@ export function updateOrderFiles(
   pdfUrl?: string,
   csvUrl?: string
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   const updates: string[] = ['updated_at = ?'];
@@ -434,7 +434,7 @@ export function updateOrderDetails(
     supplierEmail?: string;
   }
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   const updates: string[] = ['updated_at = ?'];
@@ -474,7 +474,7 @@ export function addOrderItem(
     notes?: string;
   }
 ): CampaignOrderItem {
-  const db = getDatabase();
+  const db = createServiceClient();
   const itemId = nanoid();
   const now = new Date().toISOString();
   const totalCost = item.approvedQuantity * 0.25;
@@ -519,7 +519,7 @@ export function updateOrderItem(
     notes?: string;
   }
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const updateFields: string[] = [];
   const params: any[] = [];
@@ -562,7 +562,7 @@ export function updateOrderItem(
  * Recalculate order totals based on current items
  */
 export function recalculateOrderTotals(orderId: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   // Calculate totals from items
@@ -605,7 +605,7 @@ export function recalculateOrderTotals(orderId: string): boolean {
  * Delete an order (and all its items via CASCADE)
  */
 export function deleteOrder(orderId: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const result = db.prepare(`
     DELETE FROM campaign_orders WHERE id = ?
@@ -618,7 +618,7 @@ export function deleteOrder(orderId: string): boolean {
  * Delete an order item
  */
 export function deleteOrderItem(itemId: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Get the order ID before deleting
   const item = db.prepare(`
@@ -654,7 +654,7 @@ export function getOrderStatistics(): {
   totalCost: number;
   ordersByStatus: Record<string, number>;
 } {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const totals = db.prepare(`
     SELECT

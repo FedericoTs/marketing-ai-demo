@@ -64,7 +64,7 @@ export function saveAsset(params: {
 }): CampaignAsset {
   ensureAssetsDirectory();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
 
@@ -155,7 +155,7 @@ export function saveAsset(params: {
  * Get assets for a campaign
  */
 export function getCampaignAssets(campaignId: string): CampaignAsset[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM campaign_assets WHERE campaign_id = ? ORDER BY created_at DESC');
   return stmt.all(campaignId) as CampaignAsset[];
 }
@@ -164,7 +164,7 @@ export function getCampaignAssets(campaignId: string): CampaignAsset[] {
  * Get assets for a template
  */
 export function getTemplateAssets(templateId: string): CampaignAsset[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM campaign_assets WHERE template_id = ? ORDER BY created_at DESC');
   return stmt.all(templateId) as CampaignAsset[];
 }
@@ -173,7 +173,7 @@ export function getTemplateAssets(templateId: string): CampaignAsset[] {
  * Get specific asset by ID
  */
 export function getAssetById(id: string): CampaignAsset | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM campaign_assets WHERE id = ?');
   return (stmt.get(id) as CampaignAsset) || null;
 }
@@ -213,7 +213,7 @@ export function deleteAsset(id: string): boolean {
   const asset = getAssetById(id);
   if (!asset) return false;
 
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Delete file from filesystem
   const absolutePath = path.join(process.cwd(), 'public', asset.file_path);
@@ -290,7 +290,7 @@ export function getStorageStats(): {
   totalSize: number;
   byType: Record<string, { count: number; size: number }>;
 } {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const totalStmt = db.prepare(`
     SELECT
@@ -331,7 +331,7 @@ export function getStorageStats(): {
  * Clean up orphaned assets (no campaign or template reference)
  */
 export function cleanupOrphanedAssets(): number {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Find orphaned assets
   const stmt = db.prepare(`

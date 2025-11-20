@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS elevenlabs_calls (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
   elevenlabs_call_id TEXT NOT NULL UNIQUE,
   agent_id TEXT,
   phone_number TEXT,
@@ -39,6 +39,7 @@ CREATE INDEX idx_elevenlabs_calls_status ON elevenlabs_calls(call_status);
 ALTER TABLE elevenlabs_calls ENABLE ROW LEVEL SECURITY;
 
 -- Users can view calls from their organization
+-- Note: NULL organization_id calls (from webhooks before attribution) won't be visible to users
 CREATE POLICY "Users can view own organization calls"
   ON elevenlabs_calls FOR SELECT
   TO authenticated

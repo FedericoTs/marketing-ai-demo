@@ -11,7 +11,7 @@
 import { getDatabase } from "./connection";
 
 export function initBatchJobTables(): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   console.log("📦 Initializing batch job tables...");
 

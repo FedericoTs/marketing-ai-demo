@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     console.log("💾 Creating full template (campaign + DM design)...");
 
     // Use transaction for atomic save
-    const db = getDatabase();
+    const db = createServiceClient();
 
     try {
       db.exec("BEGIN TRANSACTION");

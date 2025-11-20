@@ -6,7 +6,7 @@ import {
   getOrderItems
 } from '@/lib/database/order-queries';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
-import { getDatabase } from '@/lib/database/connection';
+import { getDatabase } from '@/lib/supabase/server';
 
 /**
  * PATCH /api/campaigns/orders/[id]/items/[itemId]
@@ -46,7 +46,7 @@ export async function PATCH(
     }
 
     // Verify item belongs to this order
-    const db = getDatabase();
+    const db = createServiceClient();
     const item = db.prepare(`
       SELECT * FROM campaign_order_items WHERE id = ? AND order_id = ?
     `).get(itemId, orderId) as any;
@@ -144,7 +144,7 @@ export async function DELETE(
     }
 
     // Verify item belongs to this order
-    const db = getDatabase();
+    const db = createServiceClient();
     const item = db.prepare(`
       SELECT * FROM campaign_order_items WHERE id = ? AND order_id = ?
     `).get(itemId, orderId) as any;

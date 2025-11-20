@@ -10,7 +10,7 @@ import { PREBUILT_TEMPLATES } from './prebuilt-templates';
 export function seedTemplates(): void {
   console.log('🌱 Seeding landing page templates...');
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   let inserted = 0;

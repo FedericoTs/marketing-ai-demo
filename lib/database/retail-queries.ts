@@ -87,7 +87,7 @@ export function createRetailStore(data: {
 
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
   const updated_at = created_at;
@@ -157,7 +157,7 @@ export function createRetailStore(data: {
 export function getRetailStoreById(id: string): RetailStore | null {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("SELECT * FROM retail_stores WHERE id = ?");
   return stmt.get(id) as RetailStore | null;
 }
@@ -168,7 +168,7 @@ export function getRetailStoreById(id: string): RetailStore | null {
 export function getRetailStoreByNumber(storeNumber: string): RetailStore | null {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("SELECT * FROM retail_stores WHERE store_number = ?");
   return stmt.get(storeNumber) as RetailStore | null;
 }
@@ -180,7 +180,7 @@ export function getRetailStoreByNumber(storeNumber: string): RetailStore | null 
 export function getRetailStores(options: StoreQueryOptions = {}): PaginatedStores {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const {
     page = 1,
     pageSize = 50, // Default 50 stores per page
@@ -294,7 +294,7 @@ export function updateRetailStore(
 
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const updated_at = new Date().toISOString();
 
   const updates: string[] = [];
@@ -394,7 +394,7 @@ export function updateRetailStore(
 export function deleteRetailStore(id: string): boolean {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Cascade deletion will handle related records (deployments, etc.)
   const stmt = db.prepare("DELETE FROM retail_stores WHERE id = ?");
@@ -425,7 +425,7 @@ export function bulkCreateRetailStores(
 ): { created: number; errors: Array<{ row: number; error: string }> } {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   let created = 0;
   const errors: Array<{ row: number; error: string }> = [];
 
@@ -484,7 +484,7 @@ export function bulkCreateRetailStores(
 export function getRetailRegions(): string[] {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT DISTINCT region
     FROM retail_stores
@@ -502,7 +502,7 @@ export function getRetailRegions(): string[] {
 export function getRetailStates(): string[] {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT DISTINCT state
     FROM retail_stores
@@ -520,7 +520,7 @@ export function getRetailStates(): string[] {
 export function getRetailStoreCount(): number {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare("SELECT COUNT(*) as count FROM retail_stores WHERE is_active = 1");
   const result = stmt.get() as { count: number };
   return result.count;
@@ -539,7 +539,7 @@ export function createCampaignDeployment(data: {
 }): { id: string } {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
   const updated_at = created_at;
@@ -570,7 +570,7 @@ export function createCampaignDeployment(data: {
 export function linkRecipientToDeployment(deploymentId: string, recipientId: string): void {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
 
   const stmt = db.prepare(`
@@ -587,7 +587,7 @@ export function linkRecipientToDeployment(deploymentId: string, recipientId: str
 export function updateDeploymentRecipientCount(deploymentId: string, count: number): void {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const updated_at = new Date().toISOString();
 
   const stmt = db.prepare(`
@@ -605,7 +605,7 @@ export function updateDeploymentRecipientCount(deploymentId: string, count: numb
 export function getCampaignDeployments(campaignId: string) {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT
       d.*,
@@ -628,7 +628,7 @@ export function getCampaignDeployments(campaignId: string) {
 export function getDeploymentStats(campaignId: string) {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT
       d.id as deployment_id,
@@ -661,7 +661,7 @@ export function getDeploymentStats(campaignId: string) {
 export function aggregateStorePerformance(storeId: string, timePeriod: string = 'all_time'): void {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Calculate metrics from raw data
   const metricsStmt = db.prepare(`
@@ -752,7 +752,7 @@ export function aggregateStorePerformance(storeId: string, timePeriod: string = 
 export function aggregateAllStoresPerformance(timePeriod: string = 'all_time'): void {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Get all stores
   const stores = db.prepare('SELECT id FROM retail_stores WHERE is_active = 1').all() as Array<{ id: string }>;
@@ -777,7 +777,7 @@ export function aggregateAllStoresPerformance(timePeriod: string = 'all_time'): 
 export function getStorePerformanceAggregate(storeId: string, timePeriod: string = 'all_time') {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM retail_store_performance_aggregates
     WHERE store_id = ? AND time_period = ?
@@ -795,7 +795,7 @@ export function getTopPerformingStores(
 ): any[] {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Runtime validation to prevent SQL injection in ORDER BY clause
   const validSortColumns = ['conversion_rate', 'conversions_count', 'recipients_count'] as const;
@@ -835,7 +835,7 @@ export function getTopPerformingStores(
 export function getRegionalPerformance(): any[] {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     SELECT
@@ -868,7 +868,7 @@ export function getRegionalPerformance(): any[] {
 export function getOverallRetailStats() {
   ensureRetailModuleEnabled();
 
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Total stores
   const storesStmt = db.prepare('SELECT COUNT(*) as count FROM retail_stores WHERE is_active = 1');
@@ -924,7 +924,7 @@ export function getOverallRetailStats() {
  */
 export function getStoreEngagementMetrics(storeId: string) {
   ensureRetailModuleEnabled();
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Calculate average time to first page view for this store's recipients
   const timeToFirstViewStmt = db.prepare(`
@@ -998,7 +998,7 @@ export function getStoreEngagementMetrics(storeId: string) {
  */
 export function getAllStoresEngagementMetrics() {
   ensureRetailModuleEnabled();
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     SELECT

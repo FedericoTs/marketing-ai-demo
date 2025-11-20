@@ -13,7 +13,7 @@ import type { LandingPageTemplate, TemplateConfig, TrackingSnippet } from '@/typ
  * Get all landing page templates
  */
 export function getAllTemplates(): LandingPageTemplate[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const templates = db.prepare(`
@@ -32,7 +32,7 @@ export function getAllTemplates(): LandingPageTemplate[] {
  * Get template by ID
  */
 export function getTemplateById(id: string): LandingPageTemplate | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const template = db.prepare(`
@@ -69,7 +69,7 @@ export function getTemplateConfig(id: string): TemplateConfig | null {
  * Get pre-built system templates
  */
 export function getSystemTemplates(): LandingPageTemplate[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const templates = db.prepare(`
@@ -89,7 +89,7 @@ export function getSystemTemplates(): LandingPageTemplate[] {
  * Create or update template
  */
 export function upsertTemplate(template: Omit<LandingPageTemplate, 'created_at' | 'updated_at'>): LandingPageTemplate {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   try {
@@ -151,7 +151,7 @@ export function upsertTemplate(template: Omit<LandingPageTemplate, 'created_at' 
  * Increment template use count
  */
 export function incrementTemplateUseCount(id: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     db.prepare(`
@@ -173,7 +173,7 @@ export function incrementTemplateUseCount(id: string): void {
  * Get all active tracking snippets
  */
 export function getActiveTrackingSnippets(): TrackingSnippet[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const snippets = db.prepare(`
@@ -193,7 +193,7 @@ export function getActiveTrackingSnippets(): TrackingSnippet[] {
  * Get all tracking snippets (active and inactive)
  */
 export function getAllTrackingSnippets(): TrackingSnippet[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const snippets = db.prepare(`
@@ -217,7 +217,7 @@ export function createTrackingSnippet(
   code: string,
   position: 'head' | 'body'
 ): TrackingSnippet {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = `snippet_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const now = new Date().toISOString();
 
@@ -248,7 +248,7 @@ export function updateTrackingSnippet(
     position?: 'head' | 'body';
   }
 ): TrackingSnippet {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   try {
@@ -289,7 +289,7 @@ export function updateTrackingSnippet(
  * Toggle snippet active status
  */
 export function toggleSnippetActive(id: string): TrackingSnippet {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   try {
@@ -312,7 +312,7 @@ export function toggleSnippetActive(id: string): TrackingSnippet {
  * Delete tracking snippet
  */
 export function deleteTrackingSnippet(id: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     db.prepare('DELETE FROM landing_page_tracking_snippets WHERE id = ?').run(id);
@@ -346,7 +346,7 @@ export interface DMTemplate {
  * Transforms snake_case database fields to camelCase for frontend
  */
 export function getDMTemplate(templateId: string): DMTemplate | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const row = db.prepare('SELECT * FROM dm_templates WHERE id = ?').get(templateId) as any;
@@ -379,7 +379,7 @@ export function getDMTemplate(templateId: string): DMTemplate | null {
  * Transforms snake_case database fields to camelCase for frontend
  */
 export function getDMTemplateByCampaignTemplate(campaignTemplateId: string): DMTemplate | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const row = db.prepare('SELECT * FROM dm_templates WHERE campaign_template_id = ?').get(campaignTemplateId) as any;
@@ -412,7 +412,7 @@ export function getDMTemplateByCampaignTemplate(campaignTemplateId: string): DMT
  * Accepts camelCase data from frontend, transforms to snake_case for database
  */
 export function createDMTemplate(data: Omit<DMTemplate, 'id' | 'createdAt'>): string {
-  const db = getDatabase();
+  const db = createServiceClient();
   const templateId = `dm_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   try {
@@ -451,7 +451,7 @@ export function updateDMTemplate(
   templateId: string,
   updates: Partial<Omit<DMTemplate, 'id' | 'campaignId' | 'createdAt'>>
 ): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   try {
     const current = getDMTemplate(templateId);

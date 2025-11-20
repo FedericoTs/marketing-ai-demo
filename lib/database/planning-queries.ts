@@ -38,7 +38,7 @@ import type {
  * @returns Created plan with ID
  */
 export function createPlan(input: CreatePlanInput): CampaignPlan {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = input.id || `plan_${nanoid(12)}`; // Use provided ID or generate new one
   const now = new Date().toISOString();
 
@@ -86,7 +86,7 @@ export function createPlan(input: CreatePlanInput): CampaignPlan {
  * @returns Plan or null if not found
  */
 export function getPlanById(id: string): CampaignPlan | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT * FROM campaign_plans WHERE id = ?
   `);
@@ -108,7 +108,7 @@ export function getPlanById(id: string): CampaignPlan | null {
  * @returns Array of plans
  */
 export function getAllPlans(filters?: { status?: PlanStatus }): CampaignPlan[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   let query = 'SELECT * FROM campaign_plans';
   const params: any[] = [];
@@ -139,7 +139,7 @@ export function getAllPlans(filters?: { status?: PlanStatus }): CampaignPlan[] {
  * @returns Updated plan
  */
 export function updatePlan(id: string, input: UpdatePlanInput): CampaignPlan {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   const updates: string[] = [];
@@ -188,7 +188,7 @@ export function updatePlan(id: string, input: UpdatePlanInput): CampaignPlan {
  * @param id Plan ID
  */
 export function deletePlan(id: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('DELETE FROM campaign_plans WHERE id = ?');
   stmt.run(id);
 }
@@ -199,7 +199,7 @@ export function deletePlan(id: string): void {
  * @returns Updated plan
  */
 export function approvePlan(id: string): CampaignPlan {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
@@ -227,7 +227,7 @@ export function approvePlan(id: string): CampaignPlan {
  * @returns Updated plan
  */
 export function executePlan(id: string): CampaignPlan {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
@@ -259,7 +259,7 @@ export function executePlan(id: string): CampaignPlan {
  * @returns Created item with ID
  */
 export function createPlanItem(input: CreatePlanItemInput): PlanItem {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = `item_${nanoid(12)}`;
   const now = new Date().toISOString();
 
@@ -354,7 +354,7 @@ export function createPlanItem(input: CreatePlanItemInput): PlanItem {
  * @returns Item or null
  */
 export function getPlanItemById(id: string): PlanItem | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM plan_items WHERE id = ?');
   const item = stmt.get(id) as PlanItem | undefined;
 
@@ -377,7 +377,7 @@ export function getPlanItemById(id: string): PlanItem | null {
  * @returns Array of items
  */
 export function getPlanItems(planId: string): PlanItem[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM plan_items WHERE plan_id = ? ORDER BY store_number');
   const items = stmt.all(planId) as PlanItem[];
 
@@ -400,7 +400,7 @@ export function getPlanItems(planId: string): PlanItem[] {
  * @returns Updated item
  */
 export function updatePlanItem(id: string, input: UpdatePlanItemInput): PlanItem {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   const updates: string[] = [];
@@ -470,7 +470,7 @@ export function updatePlanItem(id: string, input: UpdatePlanItemInput): PlanItem
  * @param id Item ID
  */
 export function deletePlanItem(id: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Get plan_id before deleting
   const item = getPlanItemById(id);
@@ -498,7 +498,7 @@ export function deletePlanItem(id: string): void {
  * @returns Array of created items
  */
 export function bulkCreatePlanItems(items: CreatePlanItemInput[]): PlanItem[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Use transaction for performance
   const insertMany = db.transaction((itemsToInsert: CreatePlanItemInput[]) => {
@@ -529,7 +529,7 @@ export function bulkCreatePlanItems(items: CreatePlanItemInput[]): PlanItem[] {
  * @returns Created wave with ID
  */
 export function createWave(input: CreateWaveInput): PlanWave {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = `wave_${nanoid(12)}`;
   const now = new Date().toISOString();
 
@@ -568,7 +568,7 @@ export function createWave(input: CreateWaveInput): PlanWave {
  * @returns Wave or null
  */
 export function getWaveById(id: string): PlanWave | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM plan_waves WHERE id = ?');
   return stmt.get(id) as PlanWave | undefined || null;
 }
@@ -579,7 +579,7 @@ export function getWaveById(id: string): PlanWave | null {
  * @returns Array of waves
  */
 export function getWaves(planId: string): PlanWave[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM plan_waves WHERE plan_id = ? ORDER BY display_order');
   return stmt.all(planId) as PlanWave[];
 }
@@ -591,7 +591,7 @@ export function getWaves(planId: string): PlanWave[] {
  * @returns Updated wave
  */
 export function updateWave(id: string, input: UpdateWaveInput): PlanWave {
-  const db = getDatabase();
+  const db = createServiceClient();
   const now = new Date().toISOString();
 
   const updates: string[] = [];
@@ -642,7 +642,7 @@ export function updateWave(id: string, input: UpdateWaveInput): PlanWave {
  * @param id Wave ID
  */
 export function deleteWave(id: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('DELETE FROM plan_waves WHERE id = ?');
   stmt.run(id);
 }
@@ -664,7 +664,7 @@ export function logActivity(input: {
   user_id?: string;
   notes?: string;
 }): void {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = `log_${nanoid(12)}`;
   const now = new Date().toISOString();
 
@@ -694,7 +694,7 @@ export function logActivity(input: {
  * @returns Array of activity entries
  */
 export function getActivityLog(planId: string): PlanActivityLog[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM plan_activity_log WHERE plan_id = ? ORDER BY created_at DESC');
   return stmt.all(planId) as PlanActivityLog[];
 }
@@ -709,7 +709,7 @@ export function getActivityLog(planId: string): PlanActivityLog[] {
  * @returns Plan summary with stats
  */
 export function getPlanSummary(planId: string): PlanSummary | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM plan_summary WHERE id = ?');
   const summary = stmt.get(planId) as PlanSummary | undefined;
 
@@ -729,7 +729,7 @@ export function getPlanSummary(planId: string): PlanSummary | null {
  * @returns Array of plan summaries
  */
 export function getAllPlanSummaries(filters?: { status?: PlanStatus }): PlanSummary[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   let query = 'SELECT * FROM plan_summary';
   const params: any[] = [];
@@ -759,7 +759,7 @@ export function getAllPlanSummaries(filters?: { status?: PlanStatus }): PlanSumm
  * @returns Array of items with store context
  */
 export function getPlanItemsWithStoreDetails(planId: string): PlanItemWithStoreDetails[] {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM plan_item_with_store_details WHERE plan_id = ? ORDER BY store_number');
   const items = stmt.all(planId) as PlanItemWithStoreDetails[];
 
@@ -781,7 +781,7 @@ export function getPlanItemsWithStoreDetails(planId: string): PlanItemWithStoreD
  * @param planId Plan ID
  */
 export function updatePlanAggregates(planId: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Aggregate plan_items data
   const stats = db.prepare(`
@@ -849,7 +849,7 @@ export function updatePlanAggregates(planId: string): void {
  * @param waveId Wave ID
  */
 export function updateWaveAggregates(waveId: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const wave = getWaveById(waveId);
   if (!wave) return;

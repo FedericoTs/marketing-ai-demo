@@ -20,7 +20,7 @@ async function testDatabase() {
   try {
     // Test 1: Initialize database
     console.log("Test 1: Database initialization");
-    const db = getDatabase();
+    const db = createServiceClient();
     console.log("✅ Database initialized successfully\n");
 
     // Test 2: Create campaign

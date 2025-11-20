@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/database/connection';
+import { getDatabase } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 [Bulk Lookup API] Looking up', storeNumbers.length, 'stores');
 
-    const db = getDatabase();
+    const db = createServiceClient();
 
     // Build IN clause with placeholders
     const placeholders = storeNumbers.map(() => '?').join(',');

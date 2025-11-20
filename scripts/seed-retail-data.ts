@@ -11,7 +11,7 @@ import { getDatabase } from '../lib/database/connection';
 import { nanoid } from 'nanoid';
 
 function seedRetailData() {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   console.log('🌱 Seeding retail performance data...\n');
 

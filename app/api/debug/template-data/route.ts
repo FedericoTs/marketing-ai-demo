@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/database/connection';
+import { getDatabase } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       'WPiJZYn26A-0OJEH'
     ];
 
-    const db = getDatabase();
+    const db = createServiceClient();
     const results: any = {};
 
     for (const templateId of templateIds) {

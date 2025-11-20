@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/database/connection';
+import { getDatabase } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 [Bulk Stores Filters API] POST request', { region, state });
 
-    const db = getDatabase();
+    const db = createServiceClient();
 
     // Build WHERE clause for cascading filters
     const whereClauses: string[] = ['is_active = 1'];

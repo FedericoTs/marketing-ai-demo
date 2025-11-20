@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       // Test 2: Can we connect to database?
       console.log('[DEBUG] Test 2: Connecting to database...');
       try {
-        const db = getDatabase();
+        const db = createServiceClient();
         diagnostics.checks.databaseConnection = '✅ SUCCESS';
         diagnostics.dbPath = process.cwd() + '/dm-tracking.db';
         console.log('[DEBUG] ✅ Database connected');

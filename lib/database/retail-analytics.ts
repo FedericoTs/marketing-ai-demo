@@ -26,7 +26,7 @@ export interface StorePerformanceCluster {
  * Cluster stores into performance tiers based on conversion rates
  */
 export function getStorePerformanceClusters(): StorePerformanceCluster[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Get all stores with their performance metrics
   const storeStats = db
@@ -136,7 +136,7 @@ export interface AttributePerformance {
 export function getPerformanceByAttribute(
   attribute: 'size_category' | 'region' | 'district'
 ): AttributePerformance[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Runtime validation to prevent SQL injection in column names
   const validAttributes = ['size_category', 'region', 'district'] as const;
@@ -196,7 +196,7 @@ export interface TimePattern {
 export function getTimeBasedPatterns(
   groupBy: 'dayofweek' | 'week' | 'month'
 ): TimePattern[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   let dateFormat: string;
   let periodName: string;
@@ -298,7 +298,7 @@ export interface TopPerformer {
  * Get top performing stores
  */
 export function getTopPerformers(limit: number = 10, metric: 'conversion_rate' | 'conversions' = 'conversion_rate'): TopPerformer[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const orderBy = metric === 'conversion_rate' ? 'conversion_rate DESC' : 'total_conversions DESC';
 
@@ -356,7 +356,7 @@ export function getTopPerformers(limit: number = 10, metric: 'conversion_rate' |
 export function getUnderperformers(
   threshold: number = 5.0
 ): TopPerformer[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const results = db
     .prepare(
@@ -421,7 +421,7 @@ export interface RegionalPerformance {
  * Get performance aggregated by region
  */
 export function getRegionalPerformance(): RegionalPerformance[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const results = db
     .prepare(
@@ -558,7 +558,7 @@ export interface RetailAnalyticsSummary {
  * Get comprehensive analytics summary
  */
 export function getRetailAnalyticsSummary(): RetailAnalyticsSummary {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const summary = db
     .prepare(

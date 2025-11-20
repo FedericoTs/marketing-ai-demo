@@ -39,7 +39,7 @@ export function createStoreGroup(data: {
   name: string;
   description?: string;
 }): StoreGroup {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
   const updated_at = created_at;
@@ -65,7 +65,7 @@ export function createStoreGroup(data: {
  * Get all store groups
  */
 export function getAllStoreGroups(): StoreGroup[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     SELECT * FROM store_groups
@@ -79,7 +79,7 @@ export function getAllStoreGroups(): StoreGroup[] {
  * Get store group by ID
  */
 export function getStoreGroupById(id: string): StoreGroup | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     SELECT * FROM store_groups
@@ -93,7 +93,7 @@ export function getStoreGroupById(id: string): StoreGroup | null {
  * Get store group with all its stores
  */
 export function getStoreGroupWithStores(id: string): StoreGroupWithStores | null {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Get group
   const group = getStoreGroupById(id);
@@ -139,7 +139,7 @@ export function updateStoreGroup(
     description?: string;
   }
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const updated_at = new Date().toISOString();
 
   const updates: string[] = [];
@@ -174,7 +174,7 @@ export function updateStoreGroup(
  * Delete store group
  */
 export function deleteStoreGroup(id: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     DELETE FROM store_groups
@@ -194,7 +194,7 @@ export function addStoresToGroup(groupId: string, storeIds: string[]): {
   added: number;
   skipped: number;
 } {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   let added = 0;
   let skipped = 0;
@@ -232,7 +232,7 @@ export function addStoresToGroup(groupId: string, storeIds: string[]): {
  * Remove store from group
  */
 export function removeStoreFromGroup(groupId: string, storeId: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     DELETE FROM store_group_members
@@ -253,7 +253,7 @@ export function removeStoreFromGroup(groupId: string, storeId: string): boolean 
  * Remove all stores from group
  */
 export function removeAllStoresFromGroup(groupId: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     DELETE FROM store_group_members
@@ -274,7 +274,7 @@ export function removeAllStoresFromGroup(groupId: string): boolean {
  * Get stores in a group
  */
 export function getStoresInGroup(groupId: string) {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     SELECT
@@ -299,7 +299,7 @@ export function getStoresInGroup(groupId: string) {
  * Update store count for a group
  */
 function updateStoreGroupCount(groupId: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     UPDATE store_groups
@@ -317,7 +317,7 @@ function updateStoreGroupCount(groupId: string): void {
  * Check if store is in group
  */
 export function isStoreInGroup(groupId: string, storeId: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   const stmt = db.prepare(`
     SELECT COUNT(*) as count

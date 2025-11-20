@@ -36,7 +36,7 @@ export function createCampaignTemplate(data: {
   templateData: TemplateData;
   isSystemTemplate?: boolean;
 }): CampaignTemplate {
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
   const updated_at = created_at;
@@ -77,7 +77,7 @@ export function createCampaignTemplate(data: {
  * Get all campaign templates
  */
 export function getAllTemplates(category?: string): CampaignTemplate[] {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   console.log('📊 [getAllTemplates] Querying database for templates, category:', category || 'all');
 
@@ -125,7 +125,7 @@ export function getAllTemplates(category?: string): CampaignTemplate[] {
  * Get template by ID
  */
 export function getTemplateById(id: string): CampaignTemplate | null {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('SELECT * FROM campaign_templates WHERE id = ?');
   return (stmt.get(id) as CampaignTemplate) || null;
 }
@@ -134,7 +134,7 @@ export function getTemplateById(id: string): CampaignTemplate | null {
  * Increment template use count
  */
 export function incrementTemplateUseCount(id: string): void {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     UPDATE campaign_templates
     SET use_count = use_count + 1,
@@ -148,7 +148,7 @@ export function incrementTemplateUseCount(id: string): void {
  * Delete template
  */
 export function deleteTemplate(id: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Don't allow deleting system templates
   const template = getTemplateById(id);
@@ -170,7 +170,7 @@ export function updateTemplate(id: string, data: {
   category?: string;
   templateData?: TemplateData;
 }): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const template = getTemplateById(id);
 
   if (!template || template.is_system_template) {
@@ -222,7 +222,7 @@ export function duplicateCampaign(campaignId: string): Campaign | null {
   const original = getCampaignById(campaignId);
   if (!original) return null;
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const id = nanoid(16);
   const created_at = new Date().toISOString();
   const name = `${original.name} (Copy)`;
@@ -262,7 +262,7 @@ export function updateCampaignStatus(
   campaignId: string,
   status: 'active' | 'paused' | 'completed' | 'archived'
 ): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare('UPDATE campaigns SET status = ? WHERE id = ?');
   const result = stmt.run(status, campaignId);
   return result.changes > 0;
@@ -277,7 +277,7 @@ export function bulkUpdateCampaignStatus(
 ): number {
   if (campaignIds.length === 0) return 0;
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const placeholders = campaignIds.map(() => '?').join(',');
   const stmt = db.prepare(`
     UPDATE campaigns
@@ -301,7 +301,7 @@ export function bulkArchiveCampaigns(campaignIds: string[]): number {
  * WARNING: This is irreversible!
  */
 export function permanentlyDeleteCampaign(campaignId: string): boolean {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Delete campaign (CASCADE will delete recipients, events, conversions)
   const stmt = db.prepare('DELETE FROM campaigns WHERE id = ?');
@@ -317,7 +317,7 @@ export function permanentlyDeleteCampaign(campaignId: string): boolean {
 export function bulkPermanentlyDeleteCampaigns(campaignIds: string[]): number {
   if (campaignIds.length === 0) return 0;
 
-  const db = getDatabase();
+  const db = createServiceClient();
   const placeholders = campaignIds.map(() => '?').join(',');
   const stmt = db.prepare(`DELETE FROM campaigns WHERE id IN (${placeholders})`);
 
@@ -329,7 +329,7 @@ export function bulkPermanentlyDeleteCampaigns(campaignIds: string[]): number {
  * Get campaign count by status
  */
 export function getCampaignCountByStatus(): Record<string, number> {
-  const db = getDatabase();
+  const db = createServiceClient();
   const stmt = db.prepare(`
     SELECT status, COUNT(*) as count
     FROM campaigns
@@ -351,7 +351,7 @@ export function getCampaignCountByStatus(): Record<string, number> {
  * Called on first run to populate template library
  */
 export function initializeSystemTemplates(): void {
-  const db = getDatabase();
+  const db = createServiceClient();
 
   // Check if system templates already exist
   const checkStmt = db.prepare('SELECT COUNT(*) as count FROM campaign_templates WHERE is_system_template = 1');
