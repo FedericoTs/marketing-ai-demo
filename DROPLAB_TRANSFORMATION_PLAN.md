@@ -4901,6 +4901,80 @@ Use Supabase Realtime for canvas synchronization.
   - **Dependencies**: None (API infrastructure complete)
   - **Priority**: Medium (nice-to-have for v1.0, not critical)
 
+- 📋 **Public Marketing Landing Page with Interactive Demo** (Phase 9.2.15) - **PLANNED**
+  - **Status**: Fully designed and documented in `LANDING_PAGE_STRATEGY.md`
+  - **Purpose**: Transform homepage into modern, premium landing page that converts visitors into qualified leads
+  - **Strategic Goals**:
+    - Instantly communicate value proposition ("Direct mail that actually converts")
+    - Capture qualified leads through interactive demo experience
+    - Demonstrate product utility via email-based postcard simulation
+    - Convert demo users into paying customers
+  - **Target Audience**:
+    - Primary: Marketing managers at local businesses (healthcare, dental, real estate)
+    - Secondary: Small business owners (50-500 employees)
+    - Tertiary: Marketing agencies managing direct mail campaigns
+  - **Competitive Positioning** (vs PostGrid/Lob):
+    - AI-Powered Design (not just sending, creating high-converting mail)
+    - Built-in Analytics (track every scan, view, conversion)
+    - Template Marketplace (proven templates with performance data)
+    - No Minimum Order (start with 1 postcard vs 500+)
+    - End-to-End Platform (Design → Print → Track → Analyze)
+  - **Demo Experience Flow**:
+    1. User enters email on landing page → "Try Interactive Demo"
+    2. System generates personalized demo postcard with QR code
+    3. Postcard delivered via email (simulated direct mail piece)
+    4. User scans QR → lands on `/demo/[uniqueCode]` personalized page
+    5. Demo page tracks interactions (clicks, form submits, time)
+    6. Public analytics dashboard (`/demo/analytics`) shows aggregate performance
+    7. Final CTA: "Start Your First Real Campaign"
+  - **Landing Page Sections**:
+    - Hero: Bold headline + email capture CTA
+    - Social Proof: Customer logos + testimonials
+    - Value Props: 4 key differentiators with icons
+    - How It Works: 3-step visual flow
+    - Interactive Demo Preview: Live demo form
+    - Analytics Showcase: Real-time metrics display
+    - Pricing Preview: Transparent 3-tier pricing
+    - Final CTA: Conversion-focused footer
+  - **Design System** (Inspired by Stripe + Linear + Notion):
+    - Color Palette: Purple/blue gradient, orange accents, clean backgrounds
+    - Typography: Inter/Geist for headlines, system fonts for body
+    - Layout: Max-width 1200px, 8px grid system, mobile-first
+    - Components: shadcn/ui cards, Lucide icons, Framer Motion animations
+  - **Technical Implementation**:
+    - **Phase 1** (4-6h): Landing page structure with 8 components
+    - **Phase 2** (6-8h): Demo system backend (API routes, email service)
+    - **Phase 3** (4h): Demo landing page + public analytics dashboard
+    - **Phase 4** (6h): Server-side postcard generation (Canvas/Puppeteer)
+    - **Phase 5** (4h): Polish, testing, SEO optimization
+  - **Database Schema**:
+    - `demo_submissions` table (email, name, demo_code, tracking)
+    - `demo_events` table (qr_scan, page_view, cta_click, form_submit)
+  - **API Routes to Create**:
+    - `POST /api/demo/submit` - Email capture, postcard generation, email send
+    - `GET /api/demo/[code]` - Fetch demo landing page data
+    - `POST /api/demo/[code]/track` - Track user interactions
+    - `GET /api/demo/analytics` - Public aggregate analytics
+  - **Email Service**:
+    - Resend for delivery (developer-friendly, reliable)
+    - React Email for responsive templates
+    - Postcard image embedded as attachment
+    - Tracking pixel for open rates
+  - **Success Metrics**:
+    - Demo submission rate: >5% of visitors
+    - Email open rate: >40%
+    - QR scan rate: >30% of opens
+    - Landing page engagement: >60%
+    - Sign-up conversion: >10% of demo users → trial
+  - **A/B Testing Plan**:
+    - Hero headlines (3 variants)
+    - CTA button text (3 variants)
+    - Demo incentives (3 variants)
+    - Form length (1-3 fields)
+  - **Total Estimate**: 24-30 hours
+  - **Priority**: High (critical for lead generation and product adoption)
+  - **Complete Documentation**: See `LANDING_PAGE_STRATEGY.md` for full spec
+
 **API Routes Created**:
 - `POST /api/stripe/create-customer` - Create Stripe customer
 - `POST /api/stripe/create-checkout-session` - Payment collection
