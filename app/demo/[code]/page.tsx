@@ -26,12 +26,25 @@ export default function DemoLandingPage() {
   const [error, setError] = useState('');
   const [timeOnPage, setTimeOnPage] = useState(0);
   const [eventCount, setEventCount] = useState(0);
+  const [source, setSource] = useState<string>('');
 
   useEffect(() => {
     if (!code) return;
 
-    // Track page view
-    trackEvent('page_view');
+    // Detect source from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const sourceParam = urlParams.get('source') || 'qr'; // Default to QR if no source
+    setSource(sourceParam);
+
+    // Track appropriate entry event based on source
+    if (sourceParam === 'email') {
+      trackEvent('email_click', { source: 'email_button' });
+    } else {
+      trackEvent('qr_scan', { source: 'postcard_qr' });
+    }
+
+    // Also track page view
+    trackEvent('page_view', { source: sourceParam });
 
     // Load demo data
     loadDemoData();
@@ -172,8 +185,12 @@ export default function DemoLandingPage() {
             <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
               <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <div className="font-semibold text-slate-900">QR Code Scanned</div>
-                <div className="text-sm text-slate-600">Source: Postcard #{demoData?.demo_code.toUpperCase().slice(0, 6)}</div>
+                <div className="font-semibold text-slate-900">
+                  {source === 'email' ? 'Email Link Clicked' : 'QR Code Scanned'}
+                </div>
+                <div className="text-sm text-slate-600">
+                  Source: {source === 'email' ? 'Email button' : `Postcard #${demoData?.demo_code.toUpperCase().slice(0, 6)}`}
+                </div>
               </div>
               <div className="text-xs text-slate-500">Just now</div>
             </div>

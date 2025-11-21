@@ -156,11 +156,15 @@ function generateEmailHTML(options: SendDemoEmailOptions): string {
       display: inline-block;
       padding: 16px 32px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      color: #ffffff !important;
       text-decoration: none;
       border-radius: 8px;
       font-weight: 600;
       font-size: 16px;
+    }
+    .cta-button:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #65398b 100%);
+      color: #ffffff !important;
     }
     .instructions {
       background: white;
@@ -208,7 +212,7 @@ function generateEmailHTML(options: SendDemoEmailOptions): string {
     </div>
 
     <div class="cta-section">
-      <a href="${demo_url}" class="cta-button">
+      <a href="${demo_url}?source=email" class="cta-button" style="color: #ffffff !important; text-decoration: none;">
         View Demo
       </a>
     </div>
