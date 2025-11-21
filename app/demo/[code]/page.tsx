@@ -24,6 +24,8 @@ export default function DemoLandingPage() {
   const [demoData, setDemoData] = useState<{ name: string; demo_code: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [timeOnPage, setTimeOnPage] = useState(0);
+  const [eventCount, setEventCount] = useState(0);
 
   useEffect(() => {
     if (!code) return;
@@ -33,6 +35,13 @@ export default function DemoLandingPage() {
 
     // Load demo data
     loadDemoData();
+
+    // Timer for time on page
+    const timer = setInterval(() => {
+      setTimeOnPage(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, [code]);
 
   const loadDemoData = async () => {
@@ -60,6 +69,7 @@ export default function DemoLandingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event_type, event_data }),
       });
+      setEventCount(prev => prev + 1);
     } catch (err) {
       console.error('Failed to track event:', err);
     }
@@ -129,37 +139,95 @@ export default function DemoLandingPage() {
           </div>
         </div>
 
-        {/* What's Being Tracked */}
+        {/* Live Attribution Dashboard */}
+        <Card className="p-8 mb-8 bg-gradient-to-br from-slate-50 to-white border-2">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-slate-900">Live Attribution Dashboard</h2>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+              <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse"></div>
+              Live
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg p-4 border border-slate-200">
+              <div className="text-3xl font-bold text-indigo-600">{eventCount + 1}</div>
+              <div className="text-sm text-slate-600 mt-1">Events Tracked</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-slate-200">
+              <div className="text-3xl font-bold text-purple-600">{timeOnPage}s</div>
+              <div className="text-sm text-slate-600 mt-1">Time on Page</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-slate-200">
+              <div className="text-3xl font-bold text-green-600">100%</div>
+              <div className="text-sm text-slate-600 mt-1">Attribution</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-slate-200">
+              <div className="text-3xl font-bold text-orange-600">${((eventCount + 1) * 0.15).toFixed(2)}</div>
+              <div className="text-sm text-slate-600 mt-1">Value Tracked</div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+              <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="font-semibold text-slate-900">QR Code Scanned</div>
+                <div className="text-sm text-slate-600">Source: Postcard #{demoData?.demo_code.toUpperCase().slice(0, 6)}</div>
+              </div>
+              <div className="text-xs text-slate-500">Just now</div>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <Check className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="font-semibold text-slate-900">Page Viewed</div>
+                <div className="text-sm text-slate-600">Demo landing page loaded</div>
+              </div>
+              <div className="text-xs text-slate-500">{timeOnPage}s ago</div>
+            </div>
+            {timeOnPage > 5 && (
+              <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                <Check className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-semibold text-slate-900">Engaged Visitor</div>
+                  <div className="text-sm text-slate-600">Spent {timeOnPage}s reading content</div>
+                </div>
+                <div className="text-xs text-slate-500">Live</div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* What Makes This Powerful */}
         <Card className="p-8 mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">What We're Tracking Right Now</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-slate-900">QR Code Scan</div>
-                <div className="text-sm text-slate-600">Tracked when you scanned the QR code</div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">Why This Changes Everything</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
+                <span className="text-2xl">📊</span>
               </div>
+              <h3 className="font-bold text-slate-900 mb-2">Perfect Attribution</h3>
+              <p className="text-sm text-slate-600">
+                Know exactly which postcard drove each conversion. No guessing, no surveys, no promo codes.
+              </p>
             </div>
-            <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-slate-900">Page View</div>
-                <div className="text-sm text-slate-600">This visit is being recorded</div>
+            <div>
+              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-4">
+                <span className="text-2xl">⚡</span>
               </div>
+              <h3 className="font-bold text-slate-900 mb-2">Real-Time Data</h3>
+              <p className="text-sm text-slate-600">
+                See engagement as it happens. Track scans, clicks, and conversions in real-time.
+              </p>
             </div>
-            <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-slate-900">Time on Page</div>
-                <div className="text-sm text-slate-600">We know how long you stay</div>
+            <div>
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <span className="text-2xl">💰</span>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-slate-900">Button Clicks</div>
-                <div className="text-sm text-slate-600">Every CTA click is tracked</div>
-              </div>
+              <h3 className="font-bold text-slate-900 mb-2">ROI Proof</h3>
+              <p className="text-sm text-slate-600">
+                Finally prove direct mail ROI with pixel-perfect tracking. Justify every dollar spent.
+              </p>
             </div>
           </div>
         </Card>

@@ -33,8 +33,13 @@ export async function sendDemoEmail(options: SendDemoEmailOptions): Promise<{ su
     const emailParams: any = {
       from: 'DropLab Demo <onboarding@resend.dev>', // Use Resend's free domain for testing
       to: options.to,
-      subject: `Your DropLab Demo Postcard Has Arrived! 📬`,
+      subject: `${options.name}, your personalized demo is ready`,
       html: generateEmailHTML(options),
+      text: generateEmailText(options), // Plain text version improves deliverability
+      headers: {
+        'List-Unsubscribe': `<mailto:unsubscribe@droplab.app?subject=unsubscribe>`,
+        'X-Entity-Ref-ID': options.demo_code,
+      },
     };
 
     // Add inline attachment if PNG buffer provided (using CID for inline display)
@@ -61,6 +66,40 @@ export async function sendDemoEmail(options: SendDemoEmailOptions): Promise<{ su
     console.error('[sendDemoEmail] Exception:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
+}
+
+/**
+ * Generate plain text version of email for better deliverability
+ */
+function generateEmailText(options: SendDemoEmailOptions): string {
+  const { name, demo_url } = options;
+
+  return `
+Hi ${name},
+
+Your personalized DropLab demo is ready to view.
+
+We've created a custom postcard for you (attached as an image). Scan the QR code with your phone or click the link below to see the demo in action:
+
+${demo_url}
+
+You'll see how we track every interaction in real-time - from QR scans to page views to conversions. This is the same attribution you'll get for your own offline marketing campaigns.
+
+Next steps:
+1. View your demo landing page
+2. Check the real-time analytics
+3. See how attribution works
+
+Questions? Just reply to this email.
+
+Best,
+The DropLab Team
+
+---
+This is a simulation showing what your customers will receive. Real postcards arrive within 3 business days.
+
+To stop receiving demo emails, reply with "unsubscribe"
+  `.trim();
 }
 
 /**
@@ -160,8 +199,8 @@ function generateEmailHTML(options: SendDemoEmailOptions): string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Hey ${escapeHtml(name)}! 👋</h1>
-      <p>Your demo postcard just landed in your inbox</p>
+      <h1>Hi ${escapeHtml(name)},</h1>
+      <p>Your personalized DropLab demo is ready to view</p>
     </div>
 
     <div class="postcard-container">
@@ -170,31 +209,31 @@ function generateEmailHTML(options: SendDemoEmailOptions): string {
 
     <div class="cta-section">
       <a href="${demo_url}" class="cta-button">
-        View Your Demo Landing Page →
+        View Demo
       </a>
     </div>
 
     <div class="instructions">
-      <h2>What happens next?</h2>
+      <h2>See Attribution in Action</h2>
       <ol>
-        <li><strong>Click the button above</strong> or scan the QR code with your phone</li>
-        <li><strong>Experience the demo landing page</strong> - see how we track every interaction</li>
-        <li><strong>Check the analytics</strong> - view real-time attribution data</li>
-        <li><strong>Create your first campaign</strong> - start tracking offline marketing</li>
+        <li>Click the button above or scan the QR code on the postcard</li>
+        <li>Watch how we track every interaction in real-time</li>
+        <li>View the analytics dashboard to see attribution data</li>
+        <li>Experience what your customers will see</li>
       </ol>
     </div>
 
     <div class="footer">
       <p>
-        This is a simulation of what your customers will receive.<br>
-        Real postcards arrive in mailboxes within 3 business days.
+        This demo shows how DropLab tracks offline marketing campaigns.<br>
+        Real postcards arrive within 3 business days.
       </p>
       <p style="margin-top: 16px;">
-        <a href="${demo_url}">View in browser</a> |
-        <a href="https://droplab.app">About DropLab</a>
+        <a href="${demo_url}">View demo</a> |
+        <a href="mailto:unsubscribe@droplab.app?subject=unsubscribe">Unsubscribe</a>
       </p>
-      <p style="margin-top: 16px;">
-        © 2025 DropLab. All rights reserved.
+      <p style="margin-top: 12px; color: #94a3b8; font-size: 12px;">
+        DropLab Demo System
       </p>
     </div>
   </div>
