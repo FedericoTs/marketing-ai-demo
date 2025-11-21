@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AgentManager } from "@/components/settings/agent-manager";
 import { BrandProfileManager } from "@/components/settings/brand-profile-manager";
 import { BrandKitManager, BrandKitManagerRef } from "@/components/settings/brand-kit-manager";
 import { WebsiteAnalyzer } from "@/components/settings/website-analyzer";
@@ -16,7 +15,6 @@ import TrackingSnippets from "@/components/settings/tracking-snippets";
 import { BillingManager } from "@/components/settings/billing-manager";
 import { toast } from "sonner";
 import { Save, Building2, Key, Check, Sparkles, Palette, Loader2, Code, DollarSign } from "lucide-react";
-import { ElevenLabsAgent } from "@/types/settings";
 
 interface ExtractedProfile {
   brandVoice: string;
@@ -545,68 +543,9 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100">
-                  <div className="space-y-2">
-                    <Label htmlFor="elevenlabsApiKey" className="text-sm font-medium">
-                      ElevenLabs API Key
-                    </Label>
-                    <Input
-                      id="elevenlabsApiKey"
-                      name="elevenlabsApiKey"
-                      type="password"
-                      value={formData.elevenlabsApiKey}
-                      onChange={handleChange}
-                      placeholder="Enter ElevenLabs API key"
-                      className="h-11 font-mono"
-                    />
-                    <p className="text-xs text-slate-500">
-                      Used for voice AI and phone call operations
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="elevenlabsAgentId" className="text-sm font-medium">
-                    ElevenLabs Agent ID <span className="text-slate-400">(Optional)</span>
-                  </Label>
-                  <Input
-                    id="elevenlabsAgentId"
-                    name="elevenlabsAgentId"
-                    value={formData.elevenlabsAgentId || ""}
-                    onChange={handleChange}
-                    placeholder="Agent ID for phone calls"
-                    className="h-11 font-mono"
-                  />
-                  <p className="text-xs text-slate-500">
-                    Pre-configured agent for call center operations
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="elevenlabsPhoneNumberId" className="text-sm font-medium">
-                    ElevenLabs Phone Number ID <span className="text-slate-400">(Optional)</span>
-                  </Label>
-                  <Input
-                    id="elevenlabsPhoneNumberId"
-                    name="elevenlabsPhoneNumberId"
-                    value={formData.elevenlabsPhoneNumberId || ""}
-                    onChange={handleChange}
-                    placeholder="Phone Number ID from ElevenLabs"
-                    className="h-11 font-mono"
-                  />
-                  <p className="text-xs text-slate-500">
-                    Required for making outbound phone calls
-                  </p>
                 </div>
               </CardContent>
             </Card>
-
-            <AgentManager
-              agents={formData.elevenlabsAgents || []}
-              onUpdate={(agents: ElevenLabsAgent[]) =>
-                setFormData((prev) => ({ ...prev, elevenlabsAgents: agents }))
-              }
-            />
 
             <div className="flex justify-end pt-2">
               <Button type="submit" size="lg" className="gap-2 px-8">
