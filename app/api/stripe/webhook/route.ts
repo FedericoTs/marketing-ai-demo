@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripeClient } from '@/lib/stripe/client';
+import { createServiceClient } from '@/lib/supabase/server';
 import {
   addCreditsToOrganization,
   getOrganizationFromCustomer,
@@ -77,8 +78,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
       return;
     }
 
-    // Import service client for admin access
-    const { createServiceClient } = await import('@/lib/supabase/server');
+    // Get service client for admin access
     const supabase = createServiceClient();
 
     // Update billing_status to 'past_due'
@@ -216,8 +216,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       return;
     }
 
-    // Import service client for admin access
-    const { createServiceClient } = await import('@/lib/supabase/server');
+    // Get service client for admin access
     const supabase = createServiceClient();
 
     // Update billing_status in database
@@ -271,8 +270,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       return;
     }
 
-    // Import service client for admin access
-    const { createServiceClient } = await import('@/lib/supabase/server');
+    // Get service client for admin access
     const supabase = createServiceClient();
 
     // Update billing_status to 'cancelled'
