@@ -4,11 +4,12 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   try {
     const supabase = await createServerClient();
+    const serviceSupabase = createServiceClient();
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -34,8 +35,8 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get all organizations with feature flags
-    const { data: organizations, error: orgsError } = await supabase
+    // Get all organizations with feature flags (use service client to bypass RLS)
+    const { data: organizations, error: orgsError } = await serviceSupabase
       .from('organizations')
       .select('id, name, feature_flags, created_at')
       .order('created_at', { ascending: false });

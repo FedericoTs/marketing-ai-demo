@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     const organizationId = searchParams.get('organizationId');
 
     const supabase = await createServerClient();
+    const serviceSupabase = createServiceClient();
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -38,8 +39,8 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get feature flags
-    const { data: org, error: orgError } = await supabase
+    // Get feature flags (use service client to bypass RLS for admin access)
+    const { data: org, error: orgError } = await serviceSupabase
       .from('organizations')
       .select('id, name, feature_flags')
       .eq('id', organizationId || userProfile.organization_id)
@@ -140,8 +141,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Get updated organization
-    const { data: org } = await supabase
+    // Get updated organization (use service client to bypass RLS for admin access)
+    const { data: org } = await serviceSupabase
       .from('organizations')
       .select('id, name, feature_flags')
       .eq('id', organizationId)
