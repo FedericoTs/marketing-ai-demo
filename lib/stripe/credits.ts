@@ -147,17 +147,52 @@ export async function getOrganizationFromCustomer(customerId: string): Promise<s
 }
 
 /**
- * Get billing cycle count from subscription
+ * Get billing cycle count from Stripe invoice
  *
- * Note: This is a simplified implementation. In production, you would:
- * 1. Track billing cycle count in database
- * 2. Or use Stripe metadata to store cycle count
- * 3. Or count invoice.payment_succeeded events for this subscription
+ * Uses Stripe's billing_reason to accurately determine if this is the first payment
+ * or a recurring payment, regardless of current credit balance.
  *
- * For now, we'll use a simple approach:
- * - Check if this is the first invoice (subscription just created)
- * - If subscription_id exists and no prior credits granted, it's Month 1
- * - Otherwise, it's Month 2+
+ * Billing reasons:
+ * - 'subscription_create' → First payment (Month 1)
+ * - 'subscription_cycle' → Recurring payment (Month 2+)
+ * - 'subscription_update' → Plan change (treat as recurring)
+ *
+ * @param invoice - Stripe invoice object
+ * @returns Billing cycle count (1 = first month, 2+ = recurring)
+ */
+export async function getBillingCycleFromInvoice(invoice: any): Promise<number> {
+  try {
+    const billingReason = invoice.billing_reason;
+
+    if (billingReason === 'subscription_create') {
+      // First payment for new subscription
+      console.log('[Credits] First payment detected (subscription_create)');
+      return 1;
+    } else if (
+      billingReason === 'subscription_cycle' ||
+      billingReason === 'subscription_update'
+    ) {
+      // Recurring payment or plan change
+      console.log(`[Credits] Recurring payment detected (${billingReason})`);
+      return 2;
+    } else {
+      // Unknown billing reason - log and default to recurring (safer to give less credits)
+      console.warn(`[Credits] Unknown billing_reason: ${billingReason}, defaulting to recurring`);
+      return 2;
+    }
+  } catch (error) {
+    console.error('[Credits] Error determining billing cycle from invoice:', error);
+    return 2; // Default to recurring on error (safer to give less credits)
+  }
+}
+
+/**
+ * Get billing cycle count from subscription (DEPRECATED)
+ *
+ * @deprecated Use getBillingCycleFromInvoice() instead for accurate cycle detection
+ *
+ * This function is kept for backward compatibility but should not be used.
+ * It uses a flawed heuristic based on credit balance which can give incorrect results.
  *
  * @param subscriptionId - Stripe subscription ID
  * @param organizationId - Organization ID
@@ -167,6 +202,10 @@ export async function getBillingCycleCount(
   subscriptionId: string,
   organizationId: string
 ): Promise<number> {
+  console.warn(
+    '[Credits] getBillingCycleCount() is deprecated. Use getBillingCycleFromInvoice() instead.'
+  );
+
   try {
     const supabase = createServiceClient();
 
@@ -182,12 +221,12 @@ export async function getBillingCycleCount(
       return 1; // Default to first month if org not found
     }
 
-    // Simple heuristic: If credits are still at default ($100 free credits),
+    // Simple heuristic: If credits are still at default ($0-$100 range),
     // this is likely the first payment
     const currentCredits = parseFloat(org.credits || '0');
 
     if (currentCredits <= 100) {
-      // Still at or below free credits → First payment
+      // Still at or below initial credits → First payment
       return 1;
     } else {
       // Has received credits before → Recurring payment

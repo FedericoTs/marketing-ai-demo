@@ -16,7 +16,7 @@ import { getStripeClient } from '@/lib/stripe/client';
 import {
   addCreditsToOrganization,
   getOrganizationFromCustomer,
-  getBillingCycleCount,
+  getBillingCycleFromInvoice,
 } from '@/lib/stripe/credits';
 
 /**
@@ -46,6 +46,64 @@ async function verifyWebhookSignature(
   } catch (error) {
     console.error('[Webhook] Signature verification failed:', error);
     return null;
+  }
+}
+
+/**
+ * Handle invoice.payment_failed event
+ *
+ * When a payment fails:
+ * - Update billing_status to 'past_due'
+ * - Subscription will be retried by Stripe automatically
+ * - Features may be restricted based on billing rules
+ */
+async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  try {
+    console.log(`[Webhook] Payment failed: ${invoice.id}`);
+
+    // Get customer ID from invoice
+    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
+
+    if (!customerId) {
+      console.error('[Webhook] No customer ID in invoice');
+      return;
+    }
+
+    // Get organization from customer
+    const organizationId = await getOrganizationFromCustomer(customerId);
+
+    if (!organizationId) {
+      console.error('[Webhook] No organization found for customer:', customerId);
+      return;
+    }
+
+    // Import service client for admin access
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = createServiceClient();
+
+    // Update billing_status to 'past_due'
+    const { error: updateError } = await supabase
+      .from('organizations')
+      .update({
+        billing_status: 'past_due',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', organizationId);
+
+    if (updateError) {
+      console.error('[Webhook] Failed to update billing_status to past_due:', updateError);
+      return;
+    }
+
+    console.log(
+      `[Webhook] ⚠️  Payment failed for organization ${organizationId} - status updated to past_due`
+    );
+
+    // TODO: Send notification email to organization owner
+    // TODO: Log payment failure event for analytics
+    // Note: Stripe will automatically retry the payment
+  } catch (error) {
+    console.error('[Webhook] Error handling payment failed:', error);
   }
 }
 
@@ -91,10 +149,10 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
       `[Webhook] Payment: $${(amountPaid / 100).toFixed(2)} from customer ${customerId}`
     );
 
-    // Determine billing cycle (1 = first month, 2+ = recurring)
-    const billingCycleCount = await getBillingCycleCount(subscriptionId, organizationId);
+    // Determine billing cycle using invoice billing_reason (accurate method)
+    const billingCycleCount = await getBillingCycleFromInvoice(invoice);
 
-    console.log(`[Webhook] Billing cycle: Month ${billingCycleCount}`);
+    console.log(`[Webhook] Billing cycle: Month ${billingCycleCount} (reason: ${invoice.billing_reason})`);
 
     // Add credits to organization
     const result = await addCreditsToOrganization(organizationId, amountPaid, billingCycleCount);
@@ -129,14 +187,56 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 
 /**
  * Handle customer.subscription.updated event
+ *
+ * Updates the organization's billing_status when subscription state changes:
+ * - active → User has paid, features unlocked
+ * - past_due → Payment failed, some features may be restricted
+ * - canceled → Subscription ended, features locked
+ * - trialing → Free trial period, features unlocked
  */
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   try {
     console.log(`[Webhook] Subscription updated: ${subscription.id}`);
     console.log(`[Webhook] Status: ${subscription.status}`);
 
-    // TODO: Update billing_status in organizations table
-    // This would be useful for tracking if subscription is past_due, canceled, etc.
+    // Get customer ID
+    const customerId =
+      typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
+
+    if (!customerId) {
+      console.error('[Webhook] No customer ID in subscription');
+      return;
+    }
+
+    // Get organization from customer
+    const organizationId = await getOrganizationFromCustomer(customerId);
+
+    if (!organizationId) {
+      console.error('[Webhook] No organization found for customer:', customerId);
+      return;
+    }
+
+    // Import service client for admin access
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = createServiceClient();
+
+    // Update billing_status in database
+    const { error: updateError } = await supabase
+      .from('organizations')
+      .update({
+        billing_status: subscription.status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', organizationId);
+
+    if (updateError) {
+      console.error('[Webhook] Failed to update billing_status:', updateError);
+      return;
+    }
+
+    console.log(
+      `[Webhook] ✅ Updated billing_status to '${subscription.status}' for organization ${organizationId}`
+    );
   } catch (error) {
     console.error('[Webhook] Error handling subscription updated:', error);
   }
@@ -144,15 +244,57 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
 /**
  * Handle customer.subscription.deleted event
+ *
+ * When a subscription is canceled or deleted:
+ * - Update billing_status to 'cancelled'
+ * - Features will be locked by feature gating system
+ * - Organization retains their existing credits but can't use them
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   try {
     console.log(`[Webhook] Subscription deleted: ${subscription.id}`);
 
-    // TODO: Handle subscription cancellation
-    // - Update billing_status to 'canceled'
-    // - Send notification to organization
-    // - Optionally disable features
+    // Get customer ID
+    const customerId =
+      typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
+
+    if (!customerId) {
+      console.error('[Webhook] No customer ID in subscription');
+      return;
+    }
+
+    // Get organization from customer
+    const organizationId = await getOrganizationFromCustomer(customerId);
+
+    if (!organizationId) {
+      console.error('[Webhook] No organization found for customer:', customerId);
+      return;
+    }
+
+    // Import service client for admin access
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const supabase = createServiceClient();
+
+    // Update billing_status to 'cancelled'
+    const { error: updateError } = await supabase
+      .from('organizations')
+      .update({
+        billing_status: 'cancelled',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', organizationId);
+
+    if (updateError) {
+      console.error('[Webhook] Failed to update billing_status to cancelled:', updateError);
+      return;
+    }
+
+    console.log(
+      `[Webhook] ✅ Subscription cancelled for organization ${organizationId} - features locked`
+    );
+
+    // TODO: Send notification email to organization owner
+    // TODO: Log subscription cancellation event for analytics
   } catch (error) {
     console.error('[Webhook] Error handling subscription deleted:', error);
   }
@@ -205,10 +347,7 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'invoice.payment_failed':
-        console.log('[Webhook] ⚠️  Payment failed:', event.data.object);
-        // TODO: Handle payment failure
-        // - Notify organization
-        // - Update billing_status to 'past_due'
+        await handlePaymentFailed(event.data.object as Stripe.Invoice);
         break;
 
       default:
