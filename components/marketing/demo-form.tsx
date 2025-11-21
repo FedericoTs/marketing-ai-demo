@@ -27,21 +27,23 @@ export function DemoForm() {
     setError('');
 
     try {
-      // TODO: Implement demo submission API call
-      // const response = await fetch('/api/demo/submit', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ name, email }),
-      // });
+      const response = await fetch('/api/demo/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email }),
+      });
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit demo request');
+      }
 
       setSuccess(true);
       setName('');
       setEmail('');
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
