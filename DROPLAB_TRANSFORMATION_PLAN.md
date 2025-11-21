@@ -4817,45 +4817,89 @@ Use Supabase Realtime for canvas synchronization.
     - Existing organizations keep their current values (migration is non-destructive)
     - Brand Intelligence AI analyzer still auto-fills when used
 
-- ✅ **Landing Page Manager** (Phase 9.2.13) - Nov 21, 2025
-  - **Problem**: No centralized way to view, manage, or edit landing pages after campaign creation
-  - **Solution**: Complete landing page management system with analytics integration
-  - **Features**:
+- ✅ **Landing Page Manager - List View MVP** (Phase 9.2.13) - Nov 21, 2025
+  - **Problem**: No centralized way to view and monitor landing page performance after campaign creation
+  - **Solution**: Landing page list view with integrated analytics dashboard
+  - **Scope**: MVP without editor (editor deferred to Phase 9.2.14)
+  - **Features Implemented**:
     - **List View** (`/landing-pages`):
       - Table showing all landing pages with inline analytics
-      - Columns: Campaign, Template, Views, Scans, Conversions, Conv. Rate, Created, Status
-      - Search by campaign name
-      - Filter by template type
-      - Quick actions: View, Edit, Analytics
-      - Stats cards: Total pages, views, conversions, avg conversion rate
-    - **Edit View** (`/landing-pages/[id]/edit`):
-      - Live preview iframe showing actual landing page
-      - Edit form: Headline, subheadline, CTA text, CTA URL, colors
-      - Real-time validation
-      - Save changes without breaking tracking codes
+      - Columns: Status, Campaign, Template, Views, Scans, Conversions, Conv. Rate, Created, Actions
+      - Search by campaign name, template type, or tracking code
+      - Quick actions: Visit (opens landing page in new tab)
+      - Summary stats dashboard: Total pages, total views, total conversions, avg conversion rate
+      - Color-coded conversion rates (green ≥5%, yellow ≥2%, gray <2%)
+      - Active/Inactive status indicators
+      - Responsive design with professional UI
     - **Analytics Integration**:
-      - Views count (page_view + qr_scan events)
+      - Views count (page_view + qr_scan events combined)
       - QR scan count (qr_scan events only)
       - Conversion count (conversions table)
-      - Conversion rate calculation
+      - Conversion rate calculation: (conversions / views) × 100
+      - Real-time aggregation from events and conversions tables
   - **API Routes Created**:
-    - `GET /api/landing-pages` - List with analytics (org-scoped)
-    - `PATCH /api/landing-pages/[id]` - Update page_config (ownership verified)
+    - `GET /api/landing-pages` - List with analytics (org-scoped, RLS enforced)
+    - `GET /api/landing-pages/manage/[id]` - Get single landing page (for future editor)
+    - `PATCH /api/landing-pages/manage/[id]` - Update page_config (for future editor)
   - **Components Created**:
-    - `components/landing-pages/landing-page-table.tsx` - Main table with filters
-    - `components/landing-pages/landing-page-editor.tsx` - Edit form + live preview
+    - `components/landing-pages/landing-page-manager-table.tsx` - Main table with analytics (307 lines)
+    - `app/landing-pages/page.tsx` - List page with search and stats (193 lines)
   - **Database Queries**:
-    - `lib/database/landing-page-analytics-queries.ts` - Analytics aggregation
-    - Parallel queries for views, scans, conversions per landing page
+    - `lib/database/landing-page-analytics-queries.ts` - Analytics aggregation (189 lines)
+    - Parallel queries using Promise.all() for optimal performance
+    - Two exported functions: `getLandingPagesWithAnalytics()`, `getLandingPageAnalytics()`
+  - **Navigation**:
+    - Added "Landing Pages" link to sidebar (Globe icon)
+    - Positioned between "Campaigns" and "Analytics"
   - **Architecture**:
     - Zero breaking changes - all new routes and components
-    - Maintains compatibility with existing `/lp/[trackingId]` system
-    - Updates landing_pages.page_config JSONB column only
+    - Maintains compatibility with existing `/lp/[trackingId]` public system
+    - Separate management API (`/manage/`) vs public API routes
+    - Future-ready: PATCH endpoint created but editor UI deferred
     - Preserves tracking_code (critical for QR code links)
   - **Security**:
     - RLS enforcement via campaign → organization ownership check
     - Authenticated users only
     - No cross-organization data leakage
+  - **Files Changed**: 8 files, 994 insertions
+  - **Commit**: `e39df66` - "feat(landing-pages): Phase 9.2.13 - Landing Page Manager MVP ✅"
+
+- 📋 **Landing Page Editor** (Phase 9.2.14) - **FUTURE DEVELOPMENT**
+  - **Status**: Planned but not yet implemented (deferred from Phase 9.2.13 MVP)
+  - **Purpose**: Allow users to edit landing page content without recreating campaigns
+  - **Proposed Features**:
+    - **Edit View** (`/landing-pages/[id]/edit`):
+      - Live preview iframe showing actual landing page
+      - Edit form with fields:
+        - Headline text
+        - Subheadline text
+        - CTA button text
+        - CTA button URL
+        - Primary color
+        - Secondary color
+        - Background image upload (optional)
+      - Real-time validation
+      - Save changes without breaking tracking codes
+      - Preview changes before saving
+      - Revert to original version
+    - **WYSIWYG Enhancements**:
+      - Visual color picker
+      - Live text editing with character limits
+      - Image cropper for background uploads
+      - Mobile preview mode
+    - **Version History** (optional):
+      - Track all edits with timestamps
+      - Revert to previous versions
+      - Show who made changes (for team accounts)
+  - **Components to Create**:
+    - `components/landing-pages/landing-page-editor.tsx` - Edit form + live preview
+    - `app/landing-pages/[id]/edit/page.tsx` - Edit page route
+  - **API Already Ready**:
+    - ✅ `PATCH /api/landing-pages/manage/[id]` - Update endpoint (already created)
+    - ✅ `GET /api/landing-pages/manage/[id]` - Get endpoint (already created)
+  - **Implementation Estimate**: 4-6 hours
+  - **Dependencies**: None (API infrastructure complete)
+  - **Priority**: Medium (nice-to-have for v1.0, not critical)
 
 **API Routes Created**:
 - `POST /api/stripe/create-customer` - Create Stripe customer

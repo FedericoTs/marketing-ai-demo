@@ -246,7 +246,88 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
 - **Database Integration**: SQLite with comprehensive tracking tables
 - **Call Tracking Integration**: ElevenLabs call metrics displayed in dashboard
 
-### 4a. ElevenLabs Call Tracking (NEW - Phase 1 Complete)
+### 4b. Landing Page Manager (NEW - Phase 9.2.13 - Nov 21, 2025)
+
+**Purpose**: Centralized management interface for viewing and monitoring all landing pages with integrated performance analytics.
+
+**Access**: `/landing-pages` (Globe icon in sidebar, between Campaigns and Analytics)
+
+**Key Features**:
+
+1. **Landing Pages List View**
+   - **Summary Dashboard** (4 metric cards):
+     - Total Pages: Count with active/inactive breakdown
+     - Total Views: Aggregate views across all pages
+     - Total Conversions: Sum of all conversions
+     - Avg Conversion Rate: Average performance across all pages
+
+   - **Data Table** with columns:
+     - **Status**: Active (green pulsing dot) or Inactive (gray)
+     - **Campaign**: Campaign name the landing page belongs to
+     - **Template**: Template type badge (e.g., "hearing-health", "default")
+     - **Views**: Page view count (page_view + qr_scan events)
+     - **Scans**: QR code scan count (qr_scan events only)
+     - **Conversions**: Conversion count from conversions table
+     - **Rate**: Conversion rate with color coding:
+       - Green: ≥5% (high performance)
+       - Yellow: 2-4.9% (moderate performance)
+       - Gray: <2% (needs optimization)
+     - **Created**: Creation date formatted as "Nov 21, 2025"
+     - **Actions**: Visit button (opens landing page in new tab)
+
+   - **Search & Filter**:
+     - Real-time search by campaign name, template type, or tracking code
+     - Clear button when search active
+     - "No results" message with helpful text
+
+2. **Analytics Integration**
+   - **Views Calculation**: Counts both `page_view` and `qr_scan` events
+   - **Scans Tracking**: Separate count for QR code scans only
+   - **Conversion Attribution**: Links to conversions table by tracking_code
+   - **Rate Calculation**: `(conversions / views) × 100`
+   - **Real-time Aggregation**: Parallel queries for optimal performance
+
+3. **User Actions**
+   - **Visit**: Opens landing page in new tab (`/lp/[trackingCode]`)
+   - **Edit**: Shows "Editor coming soon" alert (deferred to Phase 9.2.14)
+   - **Row Click**: Currently triggers edit action (will navigate to editor when implemented)
+
+**API Endpoints**:
+- `GET /api/landing-pages` - List all landing pages with analytics (authenticated, org-scoped)
+- `GET /api/landing-pages/manage/[id]` - Get single landing page details (for future editor)
+- `PATCH /api/landing-pages/manage/[id]` - Update page_config (for future editor)
+
+**Components**:
+- `app/landing-pages/page.tsx` - Main list page with search and summary stats (193 lines)
+- `components/landing-pages/landing-page-manager-table.tsx` - Table component with analytics display (307 lines)
+- `lib/database/landing-page-analytics-queries.ts` - Analytics aggregation logic (189 lines)
+
+**Database Queries**:
+- `getLandingPagesWithAnalytics(organizationId)` - Returns all landing pages with analytics
+- `getLandingPageAnalytics(trackingCode)` - Returns analytics for single landing page
+- Uses parallel queries with `Promise.all()` for optimal performance
+- Joins: `landing_pages` → `campaigns` → `organization_id` for RLS enforcement
+
+**Architecture**:
+- **Zero Breaking Changes**: All new routes, no modifications to existing landing page system
+- **Route Separation**: Management routes (`/manage/[id]`) vs public routes (`/[trackingId]`)
+- **Future-Ready**: PATCH endpoint created, awaiting editor UI (Phase 9.2.14)
+- **Preserves Tracking**: Never modifies `tracking_code` (critical for QR functionality)
+
+**Security**:
+- RLS enforcement via campaign → organization ownership chain
+- Authenticated users only (middleware protection)
+- No cross-organization data leakage
+
+**Future Development** (Phase 9.2.14 - Landing Page Editor):
+- Live preview iframe with real-time updates
+- Edit form for headline, subheadline, CTA text, CTA URL, colors
+- Background image upload with cropper
+- Mobile preview mode
+- Version history tracking
+- Implementation estimate: 4-6 hours
+
+### 4c. ElevenLabs Call Tracking (Phase 1 Complete)
 - **API Integration**: Syncs call history from ElevenLabs Conversational AI
 - **Database**: `elevenlabs_calls` table with full call metadata
 - **Metrics Tracked**:
