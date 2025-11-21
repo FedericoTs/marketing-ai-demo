@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  Settings, Home, Menu, X, Library, Target, Shield, LogOut, Send, ChevronRight, ChevronDown, BarChart3
+  Settings, Home, Menu, X, Library, Target, Shield, LogOut, Send, ChevronRight, ChevronDown, BarChart3, Users
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,6 +16,7 @@ const navigation = [
   { name: "Audiences", href: "/audiences", icon: Target, section: "main" },
   { name: "Campaigns", href: "/campaigns", icon: Send, section: "main" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, section: "main" },
+  { name: "Team", href: "/team", icon: Users, section: "main" },
   { name: "Admin", href: "/admin", icon: Shield, section: "main", adminOnly: true },
   { name: "Settings", href: "/settings", icon: Settings, section: "main" },
 ];

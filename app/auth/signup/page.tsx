@@ -67,6 +67,33 @@ export default function SignupPage() {
 
         setSuccess(true);
 
+        // PHASE 9.2.2: Create Stripe customer asynchronously (non-blocking)
+        // This runs in the background and doesn't block the signup flow
+        if (data.session) {
+          // Fire-and-forget: Create Stripe customer in background
+          fetch('/api/stripe/create-customer', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${data.session.access_token}`,
+            },
+          })
+            .then((res) => res.json())
+            .then((result) => {
+              if (result.success) {
+                console.log('[Signup] Stripe customer created:', result.customerId);
+              } else if (result.skipped) {
+                console.log('[Signup] Stripe customer creation skipped (not configured)');
+              } else {
+                console.warn('[Signup] Stripe customer creation failed:', result.error);
+              }
+            })
+            .catch((err) => {
+              // Silent failure - don't block signup
+              console.warn('[Signup] Failed to create Stripe customer:', err);
+            });
+        }
+
         // If email confirmation is disabled in Supabase, redirect to dashboard
         // Otherwise, show success message
         if (data.session) {

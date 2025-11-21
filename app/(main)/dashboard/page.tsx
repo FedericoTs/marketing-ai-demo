@@ -14,10 +14,12 @@ import {
   Building2,
   CreditCard,
   Users,
-  Shield
+  Shield,
+  AlertCircle
 } from 'lucide-react';
 import type { UserProfile, Organization } from '@/lib/database/types';
 import { TeamWidget } from '@/components/dashboard/team-widget-enhanced';
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function DashboardPage() {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [teamCount, setTeamCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -97,6 +100,32 @@ export default function DashboardPage() {
     await supabase.auth.signOut();
     router.push('/');
     router.refresh();
+  };
+
+  const handleCompletePayment = async () => {
+    setCheckoutLoading(true);
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error) {
+      console.error('[Dashboard] Checkout error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to start checkout');
+      setCheckoutLoading(false);
+    }
   };
 
   if (loading) {
@@ -275,6 +304,50 @@ export default function DashboardPage() {
             Sign Out
           </Button>
         </div>
+
+        {/* Payment Required Banner - Show for incomplete subscriptions */}
+        {organization?.billing_status === 'incomplete' && (
+          <Card className="mb-8 border-orange-200 bg-gradient-to-r from-orange-50 to-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-8 w-8 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-orange-900 mb-2">
+                    🔒 Complete Your Payment to Access All Features
+                  </h3>
+                  <p className="text-sm text-orange-800 mb-4">
+                    Your account is set up, but you need to complete payment to unlock print and campaign features.
+                    You'll receive <strong className="font-semibold">${'499.00'}</strong> in credits after payment.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={handleCompletePayment}
+                      disabled={checkoutLoading}
+                      className="bg-orange-600 hover:bg-orange-700"
+                    >
+                      {checkoutLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Redirecting...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Complete Payment ($499/month)
+                        </>
+                      )}
+                    </Button>
+                    <span className="text-xs text-orange-700">
+                      Secure payment via Stripe
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Organization Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

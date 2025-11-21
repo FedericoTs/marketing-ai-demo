@@ -9,9 +9,35 @@
 import { NextResponse } from 'next/server';
 import { createAudience, updateAudience } from '@/lib/database/audience-queries';
 import type { AudienceFilters } from '@/lib/audience';
+import { createServerClient } from '@/lib/supabase/server';
+import { validateBillingAccess } from '@/lib/server/billing-middleware';
 
 export async function POST(request: Request) {
   try {
+    // 🔐 BILLING CHECK: Authenticate user and validate billing access
+    const supabase = await createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Validate billing access for audience creation/update
+    const billingCheck = await validateBillingAccess(supabase, user.id, 'audiences');
+    if (!billingCheck.hasAccess) {
+      return NextResponse.json(
+        {
+          error: billingCheck.error,
+          code: 'PAYMENT_REQUIRED',
+          billingStatus: billingCheck.billingStatus,
+        },
+        { status: 402 } // 402 Payment Required
+      );
+    }
+
     // Parse request body
     const body = await request.json();
     const {

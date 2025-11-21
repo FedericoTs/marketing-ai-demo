@@ -15,7 +15,7 @@ export interface Organization {
 
   // Subscription & Billing
   plan_tier: 'free' | 'starter' | 'professional' | 'enterprise';
-  billing_status: 'active' | 'past_due' | 'cancelled' | 'trialing';
+  billing_status: 'active' | 'past_due' | 'cancelled' | 'trialing' | 'incomplete';
   trial_ends_at: string | null; // TIMESTAMPTZ
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
@@ -46,7 +46,7 @@ export interface OrganizationInsert {
   name: string;
   slug: string;
   plan_tier?: 'free' | 'starter' | 'professional' | 'enterprise';
-  billing_status?: 'active' | 'past_due' | 'cancelled' | 'trialing';
+  billing_status?: 'active' | 'past_due' | 'cancelled' | 'trialing' | 'incomplete';
   trial_ends_at?: string | null;
   brand_primary_color?: string;
   brand_secondary_color?: string;
@@ -64,7 +64,7 @@ export interface OrganizationUpdate {
   name?: string;
   slug?: string;
   plan_tier?: 'free' | 'starter' | 'professional' | 'enterprise';
-  billing_status?: 'active' | 'past_due' | 'cancelled' | 'trialing';
+  billing_status?: 'active' | 'past_due' | 'cancelled' | 'trialing' | 'incomplete';
   trial_ends_at?: string | null;
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;

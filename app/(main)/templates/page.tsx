@@ -17,8 +17,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useBillingStatus } from '@/lib/hooks/use-billing-status';
+import { FeatureLocked } from '@/components/billing/feature-locked';
+import { Loader2, Lock } from 'lucide-react';
 
 export default function TemplatesPage() {
+  const { isFeatureLocked, isLoading: billingLoading } = useBillingStatus();
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [currentFormat, setCurrentFormat] = useState<PrintFormat>(DEFAULT_FORMAT);
@@ -28,6 +41,7 @@ export default function TemplatesPage() {
     format?: PrintFormat;
   } | undefined>(undefined);
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0); // Force canvas re-mount on load
   const [organizationId, setOrganizationId] = useState<string>('');
   const router = useRouter();
@@ -55,8 +69,6 @@ export default function TemplatesPage() {
   }, []);
 
   const handleLoadTemplate = async (template: DesignTemplate) => {
-    console.log('📂 Loading template:', template.name);
-
     try {
       // Find the corresponding print format
       let format: PrintFormat;
@@ -95,8 +107,6 @@ export default function TemplatesPage() {
       setCanvasKey(prev => prev + 1);
 
       toast.success(`Loaded template: ${template.name}`);
-
-      console.log('✅ Template loaded successfully');
     } catch (error) {
       console.error('❌ Failed to load template:', error);
       toast.error('Failed to load template', {
@@ -112,6 +122,12 @@ export default function TemplatesPage() {
     format: PrintFormat;
     surfaces?: any[]; // NEW: Multi-surface support (front + back)
   }) => {
+    // Block saving for unpaid users - show prominent modal
+    if (isFeatureLocked('templates')) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     if (!templateName.trim()) {
       toast.error('Please enter a template name in the layers panel');
       return;
@@ -147,26 +163,6 @@ export default function TemplatesPage() {
         return;
       }
 
-      console.log('💾 Saving template:', {
-        name: templateName,
-        format: data.format.name,
-        organization: profile.organization_id,
-        hasSurfaces: !!data.surfaces,
-        surfaceCount: data.surfaces?.length || 0,
-      });
-
-      // 🔍 ULTRA-DEBUG: Log surfaces structure
-      if (data.surfaces && data.surfaces.length > 0) {
-        console.log('🔍 [SAVE DEBUG] Surfaces:', data.surfaces.map((s: any) => ({
-          side: s.side,
-          objectCount: s.canvas_json?.objects?.length || 0,
-          hasMappings: !!s.variable_mappings,
-          hasAddressBlock: !!s.address_block_zone,
-        })));
-      } else {
-        console.log('🔍 [SAVE DEBUG] No surfaces - using legacy single canvas');
-      }
-
       // Try database first, fallback to localStorage
       let savedToDatabase = false;
       let templateId = '';
@@ -200,7 +196,6 @@ export default function TemplatesPage() {
         if (response.ok && result.success) {
           savedToDatabase = true;
           templateId = result.template.id;
-          console.log('✅ Template saved to database:', templateId);
         } else {
           throw new Error(result.error || 'Database save failed');
         }
@@ -230,8 +225,6 @@ export default function TemplatesPage() {
 
         templates.push(localTemplate);
         localStorage.setItem('design_templates', JSON.stringify(templates));
-
-        console.log('✅ Template saved to localStorage:', templateId);
       }
 
       if (savedToDatabase) {
@@ -257,6 +250,8 @@ export default function TemplatesPage() {
     }
   };
 
+  // Templates are accessible to all users - they can browse and design
+  // Saving is blocked in the handleSave function below
   return (
     <div className="fixed inset-0">
       <CanvasEditor
@@ -298,6 +293,55 @@ export default function TemplatesPage() {
         }
         onOpenTemplateLibrary={() => setShowTemplateLibrary(true)}
       />
+
+      {/* Upgrade Modal - Shown when unpaid user tries to save */}
+      <AlertDialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
+                <Lock className="h-8 w-8 text-orange-600" />
+              </div>
+            </div>
+            <AlertDialogTitle className="text-center text-2xl">
+              Subscription Required
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base">
+              You need an active subscription to save templates and use them in campaigns.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+              <p className="text-sm text-slate-600">
+                ✓ Save unlimited templates
+              </p>
+              <p className="text-sm text-slate-600">
+                ✓ Use templates in campaigns
+              </p>
+              <p className="text-sm text-slate-600">
+                ✓ Access all platform features
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter className="sm:flex-col sm:space-x-0 gap-2">
+            <AlertDialogAction
+              onClick={() => {
+                setShowUpgradeModal(false);
+                router.push('/dashboard');
+              }}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3"
+            >
+              Complete Payment Now
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => setShowUpgradeModal(false)}
+              className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-3"
+            >
+              Continue Designing
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

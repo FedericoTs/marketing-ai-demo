@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,8 @@ import {
 import { AudienceFilterBuilder } from "@/components/audiences/audience-filter-builder";
 import { SavedAudienceLibrary } from "@/components/audiences/saved-audience-library";
 import { AudienceAnalytics } from "@/components/audiences/audience-analytics";
+import { useBillingStatus } from "@/lib/hooks/use-billing-status";
+import { toast } from "sonner";
 
 /**
  * Standalone Audience Explorer
@@ -29,6 +32,8 @@ import { AudienceAnalytics } from "@/components/audiences/audience-analytics";
  * - Zero cognitive load design
  */
 export default function AudiencesPage() {
+  const router = useRouter();
+  const { isFeatureLocked } = useBillingStatus();
   const [activeTab, setActiveTab] = useState<string>("create");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -60,6 +65,17 @@ export default function AudiencesPage() {
                 size="lg"
                 className="bg-purple-600 hover:bg-purple-700"
                 onClick={() => {
+                  // Block audience creation for unpaid users
+                  if (isFeatureLocked('audiences')) {
+                    toast.error('Upgrade to create audiences', {
+                      description: 'Complete payment to build and save custom audiences',
+                      action: {
+                        label: 'Upgrade',
+                        onClick: () => router.push('/dashboard'),
+                      },
+                    });
+                    return;
+                  }
                   setActiveTab("create");
                   setShowCreate(true);
                 }}
@@ -74,7 +90,23 @@ export default function AudiencesPage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={(tab) => {
+            // Block switching to "create" tab for unpaid users
+            if (tab === "create" && isFeatureLocked('audiences')) {
+              toast.error('Upgrade to create audiences', {
+                description: 'Complete payment to build and save custom audiences',
+                action: {
+                  label: 'Upgrade',
+                  onClick: () => router.push('/dashboard'),
+                },
+              });
+              return;
+            }
+            setActiveTab(tab);
+          }}
+          className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="library" className="flex items-center gap-2">
               <Library className="h-4 w-4" />
@@ -98,6 +130,17 @@ export default function AudiencesPage() {
                 setActiveTab("create");
               }}
               onCreateNew={() => {
+                // Block audience creation for unpaid users
+                if (isFeatureLocked('audiences')) {
+                  toast.error('Upgrade to create audiences', {
+                    description: 'Complete payment to build and save custom audiences',
+                    action: {
+                      label: 'Upgrade',
+                      onClick: () => router.push('/dashboard'),
+                    },
+                  });
+                  return;
+                }
                 setActiveTab("create");
                 setShowCreate(true);
               }}
@@ -136,6 +179,17 @@ export default function AudiencesPage() {
                   organizationId={DEMO_ORG_ID}
                   userId={DEMO_USER_ID}
                   onSave={(audienceData) => {
+                    // Block saving for unpaid users
+                    if (isFeatureLocked('audiences')) {
+                      toast.error('Upgrade to save audiences', {
+                        description: 'Complete payment to build and save custom audiences',
+                        action: {
+                          label: 'Upgrade',
+                          onClick: () => router.push('/dashboard'),
+                        },
+                      });
+                      return;
+                    }
                     console.log("Audience saved:", audienceData);
                     // Refresh library when switching tabs
                     setActiveTab("library");

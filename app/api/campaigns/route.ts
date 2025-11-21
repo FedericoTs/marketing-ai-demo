@@ -5,6 +5,7 @@ import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { createLandingPages } from '@/lib/database/landing-queries';
 import { nanoid } from 'nanoid';
 import type { LandingPageInsert, LandingPageConfig } from '@/lib/database/types';
+import { validateBillingAccess } from '@/lib/server/billing-middleware';
 
 /**
  * GET /api/campaigns
@@ -43,8 +44,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    console.log('📋 [Campaigns API] GET request', { status, limit, offset, organizationId: userProfile.organization_id });
-
     // 4. Fetch campaigns with Supabase
     const filters: any = {
       limit,
@@ -56,8 +55,6 @@ export async function GET(request: NextRequest) {
     }
 
     const { campaigns, total } = await getAllCampaigns(userProfile.organization_id, filters);
-
-    console.log(`✅ [Campaigns API] Retrieved ${campaigns.length} campaigns (total: ${total})`);
 
     return NextResponse.json(
       successResponse({
@@ -113,6 +110,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 🔐 BILLING CHECK: Validate billing access for campaign creation
+    const billingCheck = await validateBillingAccess(supabase, user.id, 'campaigns');
+    if (!billingCheck.hasAccess) {
+      return NextResponse.json(
+        errorResponse(
+          billingCheck.error || 'Payment required',
+          'PAYMENT_REQUIRED',
+          { billingStatus: billingCheck.billingStatus }
+        ),
+        { status: 402 } // 402 Payment Required
+      );
+    }
+
     // 3. Parse request body
     const body = await request.json();
     const {
@@ -127,12 +137,6 @@ export async function POST(request: NextRequest) {
       includeLandingPage,
       landingPageConfig
     } = body;
-
-    console.log('📝 [Campaigns API] POST request - Creating campaign:', {
-      name,
-      organizationId: userProfile.organization_id,
-      includeLandingPage
-    });
 
     // Validate required fields
     if (!name) {
@@ -156,13 +160,9 @@ export async function POST(request: NextRequest) {
       status: status || 'draft',
     });
 
-    console.log('✅ [Campaigns API] Campaign created:', campaign.id);
-
     // 5. Generate landing pages if enabled
     if (includeLandingPage && recipientListId && landingPageConfig) {
       try {
-        console.log('🌐 [Campaigns API] Generating landing pages for campaign:', campaign.id);
-
         // Fetch recipients from the recipient list
         const supabaseService = createServiceClient();
         const { data: recipients, error: recipientsError } = await supabaseService
@@ -197,10 +197,6 @@ export async function POST(request: NextRequest) {
 
           // Batch create landing pages
           const createdPages = await createLandingPages(landingPagesToCreate);
-
-          console.log(`✅ [Campaigns API] Created ${createdPages.length} landing pages for campaign ${campaign.id}`);
-        } else {
-          console.log('⚠️ [Campaigns API] No recipients found for recipient list:', recipientListId);
         }
       } catch (landingPageError) {
         // Log error but don't fail campaign creation

@@ -171,8 +171,8 @@ BEGIN
       org_slug,
       email_domain,   -- Will be NULL for public domains
       'free',         -- All new users start on free plan
-      'trialing',     -- Give them a trial period
-      10000.00,       -- $100 in free credits (Data Axle @ $0.25/contact = 400 contacts)
+      'incomplete',   -- Waiting for subscription payment
+      0.00,           -- $0 credits until subscription is paid
       NOW(),
       NOW()
     )

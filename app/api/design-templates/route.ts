@@ -3,8 +3,10 @@ import {
   createAdminClient,
   getOrganizationTemplates,
 } from '@/lib/database/supabase-queries';
+import { createServerClient } from '@/lib/supabase/server';
 import type { DesignTemplateInsert } from '@/lib/database/types';
 import { getFormat } from '@/lib/design/print-formats';
+import { validateBillingAccess } from '@/lib/server/billing-middleware';
 
 /**
  * GET /api/design-templates
@@ -52,15 +54,36 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // 🔐 BILLING CHECK: Authenticate user and validate billing access
+    const supabase = await createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    // 🔍 DEBUG: Log incoming request body structure
-    console.log('🔍 [POST /api/design-templates] Incoming request:', {
-      name: body.name,
-      hasSurfaces: !!body.surfaces,
-      surfaceCount: body.surfaces?.length || 0,
-      hasCanvasJSON: !!body.canvas_json,
-    });
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Validate billing access for template creation
+    const billingCheck = await validateBillingAccess(supabase, user.id, 'templates');
+    if (!billingCheck.hasAccess) {
+      console.log('🔒 [Billing] Template creation blocked:', {
+        userId: user.id,
+        reason: billingCheck.error,
+        billingStatus: billingCheck.billingStatus,
+      });
+      return NextResponse.json(
+        {
+          error: billingCheck.error,
+          code: 'PAYMENT_REQUIRED',
+          billingStatus: billingCheck.billingStatus,
+        },
+        { status: 402 } // 402 Payment Required
+      );
+    }
+
+    const body = await request.json();
 
     // Validate required fields
     if (!body.organization_id) {
@@ -132,19 +155,6 @@ export async function POST(request: NextRequest) {
       status: body.status || 'draft',
     };
 
-    console.log('📝 Creating design template:', {
-      name: templateData.name,
-      format: templateData.format_type,
-      dimensions: `${templateData.canvas_width}×${templateData.canvas_height}px`,
-      surfaceCount: templateData.surfaces?.length || 0,
-      surfaces: templateData.surfaces?.map((s: any) => ({
-        side: s.side,
-        objectCount: s.canvas_json?.objects?.length || 0,
-        hasMappings: !!s.variable_mappings,
-        mappingCount: Object.keys(s.variable_mappings || {}).length,
-      })),
-    });
-
     // Use admin client to bypass RLS for server-side operations
     const supabase = createAdminClient();
 
@@ -157,8 +167,6 @@ export async function POST(request: NextRequest) {
     if (error) {
       throw new Error(`Failed to create template: ${error.message}`);
     }
-
-    console.log('✅ Template created:', template.id);
 
     return NextResponse.json({
       success: true,
@@ -194,8 +202,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log('🗑️ Deleting template:', templateId);
-
     // Use admin client to bypass RLS for server-side operations
     const supabase = createAdminClient();
 
@@ -207,8 +213,6 @@ export async function DELETE(request: NextRequest) {
     if (error) {
       throw new Error(`Failed to delete template: ${error.message}`);
     }
-
-    console.log('✅ Template deleted:', templateId);
 
     return NextResponse.json({
       success: true,

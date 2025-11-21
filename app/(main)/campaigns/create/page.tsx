@@ -10,8 +10,12 @@ import { Step3Mapping } from '@/components/campaigns/wizard-steps/step3-mapping'
 import { Step4Review } from '@/components/campaigns/wizard-steps/step4-review';
 import { toast } from 'sonner';
 import type { CampaignWizardState, DesignTemplate, RecipientList, VariableMapping, LandingPageConfig } from '@/lib/database/types';
+import { useBillingStatus } from '@/lib/hooks/use-billing-status';
+import { FeatureLocked } from '@/components/billing/feature-locked';
+import { Loader2 } from 'lucide-react';
 
 export default function CampaignCreatePage() {
+  const { isFeatureLocked, isLoading } = useBillingStatus();
   const router = useRouter();
   const [wizardState, setWizardState] = useState<CampaignWizardState>({
     selectedTemplate: null,
@@ -207,6 +211,41 @@ export default function CampaignCreatePage() {
     }
   };
 
+  // Show loading state while checking billing status
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-slate-600 mb-4" />
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show locked state if feature is not accessible
+  if (isFeatureLocked('campaigns')) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        {/* Header */}
+        <div className="bg-white border-b border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h1 className="text-3xl font-bold text-slate-900">Create New Campaign</h1>
+            <p className="text-slate-600 mt-2">
+              Campaign creation requires an active subscription
+            </p>
+          </div>
+        </div>
+
+        {/* Locked Feature UI */}
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <FeatureLocked feature="campaigns" variant="card" showDetails={true} />
+        </div>
+      </div>
+    );
+  }
+
+  // Show normal wizard for paid users
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}

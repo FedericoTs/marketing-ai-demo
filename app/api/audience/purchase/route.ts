@@ -8,6 +8,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { getDataAxleClient, type AudienceFilters } from '@/lib/audience';
 import { getCurrentUserId } from '@/lib/auth/admin';
+import { validateBillingAccess } from '@/lib/server/billing-middleware';
 
 interface PurchaseRequest {
   filters: AudienceFilters;
@@ -62,6 +63,19 @@ export async function POST(request: Request) {
     }
 
     const organizationId = userProfile.organization_id;
+
+    // 🔐 BILLING CHECK: Validate billing access for audience purchase
+    const billingCheck = await validateBillingAccess(supabase, user.id, 'audiences');
+    if (!billingCheck.hasAccess) {
+      return NextResponse.json(
+        {
+          error: billingCheck.error,
+          code: 'PAYMENT_REQUIRED',
+          billingStatus: billingCheck.billingStatus,
+        },
+        { status: 402 } // 402 Payment Required
+      );
+    }
 
     console.log('[Purchase API] Fetching pricing for count:', maxContacts);
 

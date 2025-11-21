@@ -12,10 +12,9 @@ import { AgentManager } from "@/components/settings/agent-manager";
 import { BrandProfileManager } from "@/components/settings/brand-profile-manager";
 import { BrandKitManager, BrandKitManagerRef } from "@/components/settings/brand-kit-manager";
 import { WebsiteAnalyzer } from "@/components/settings/website-analyzer";
-import { TeamManagement } from "@/components/settings/team-management";
 import TrackingSnippets from "@/components/settings/tracking-snippets";
 import { toast } from "sonner";
-import { Save, Building2, Key, Check, Sparkles, Palette, Loader2, Code, Users } from "lucide-react";
+import { Save, Building2, Key, Check, Sparkles, Palette, Loader2, Code } from "lucide-react";
 import { ElevenLabsAgent } from "@/types/settings";
 
 interface ExtractedProfile {
@@ -258,7 +257,7 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSubmit}>
         <Tabs defaultValue="brand" className="space-y-6">
-          <TabsList className="grid w-full max-w-5xl grid-cols-4 h-auto p-1">
+          <TabsList className="grid w-full max-w-5xl grid-cols-3 h-auto p-1">
             <TabsTrigger value="brand" className="gap-2 py-3">
               <Sparkles className="h-4 w-4" />
               <span className="font-medium">Brand Intelligence</span>
@@ -270,10 +269,6 @@ export default function SettingsPage() {
             <TabsTrigger value="tracking" className="gap-2 py-3">
               <Code className="h-4 w-4" />
               <span className="font-medium">Tracking</span>
-            </TabsTrigger>
-            <TabsTrigger value="team" className="gap-2 py-3">
-              <Users className="h-4 w-4" />
-              <span className="font-medium">Team</span>
             </TabsTrigger>
           </TabsList>
 
@@ -616,14 +611,9 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
 
-          {/* Tab 4: Tracking Snippets */}
+          {/* Tab 3: Tracking Snippets */}
           <TabsContent value="tracking" className="space-y-6 mt-6">
             <TrackingSnippets />
-          </TabsContent>
-
-          {/* Tab 4: Team Management */}
-          <TabsContent value="team" className="space-y-6 mt-6">
-            <TeamManagement />
           </TabsContent>
         </Tabs>
       </form>
