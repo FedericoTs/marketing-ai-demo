@@ -72,7 +72,7 @@ export function DemoForm() {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-200">
+    <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-200" suppressHydrationWarning>
       <div className="text-center mb-6">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 mb-4">
           <Mail className="w-6 h-6 text-white" />
