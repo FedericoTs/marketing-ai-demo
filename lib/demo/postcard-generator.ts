@@ -37,141 +37,308 @@ export async function generateDemoPostcardHTML(options: PostcardOptions): Promis
       box-sizing: border-box;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-      background: #f8f9fa;
-      padding: 20px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #ffffff;
+      padding: 0;
+      margin: 0;
     }
     .postcard {
-      width: 600px;
-      height: 400px;
+      width: 1200px;
+      height: 800px;
       margin: 0 auto;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      background: #ffffff;
       position: relative;
       overflow: hidden;
     }
+
+    /* Background gradient pattern */
     .postcard::before {
       content: '';
       position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-      animation: pulse 3s ease-in-out infinite;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+      z-index: 0;
     }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.1); }
+
+    /* Decorative circles */
+    .postcard::after {
+      content: '';
+      position: absolute;
+      top: -200px;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+      z-index: 1;
     }
+
     .content {
       position: relative;
-      z-index: 1;
-      padding: 40px;
+      z-index: 2;
       height: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    /* Left side - Message */
+    .left-panel {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      padding: 80px 60px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       color: white;
     }
-    .logo {
+
+    .logo-section {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
+      margin-bottom: 60px;
     }
+
     .logo-icon {
-      width: 40px;
-      height: 40px;
+      width: 56px;
+      height: 56px;
       background: white;
-      border-radius: 8px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
-      justify-center;
-      font-weight: bold;
-      color: #667eea;
-      font-size: 20px;
+      justify-content: center;
+      font-weight: 800;
+      color: #6366f1;
+      font-size: 28px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
+
     .logo-text {
-      font-size: 24px;
-      font-weight: bold;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
-    .message {
+
+    .message-section {
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
+
     .greeting {
-      font-size: 32px;
-      font-weight: bold;
-      margin-bottom: 16px;
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 24px;
+      line-height: 1.2;
     }
+
     .headline {
-      font-size: 20px;
-      line-height: 1.4;
-      opacity: 0.95;
-      margin-bottom: 12px;
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 20px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
+
     .subline {
+      font-size: 20px;
+      line-height: 1.5;
+      opacity: 0.95;
+      font-weight: 400;
+    }
+
+    .cta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      padding: 12px 24px;
+      border-radius: 100px;
       font-size: 16px;
-      opacity: 0.8;
+      font-weight: 600;
+      margin-top: 32px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
     }
-    .qr-section {
+
+    .arrow {
+      font-size: 20px;
+    }
+
+    /* Right side - QR Code */
+    .right-panel {
+      padding: 80px 60px;
       display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      position: relative;
     }
+
+    .demo-badge {
+      position: absolute;
+      top: 40px;
+      right: 40px;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #78350f;
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+    }
+
+    .qr-wrapper {
+      text-align: center;
+    }
+
     .qr-container {
       background: white;
-      padding: 12px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      padding: 32px;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(99, 102, 241, 0.15);
+      border: 4px solid #e0e7ff;
+      margin-bottom: 32px;
+      display: inline-block;
     }
+
     .qr-container img {
       display: block;
-      width: 120px;
-      height: 120px;
+      width: 280px;
+      height: 280px;
     }
-    .qr-label {
-      font-size: 12px;
-      margin-top: 8px;
+
+    .qr-instructions {
       text-align: center;
-      opacity: 0.7;
+      color: #475569;
     }
-    .demo-code {
-      font-size: 14px;
-      opacity: 0.7;
+
+    .qr-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 12px;
+    }
+
+    .qr-subtitle {
+      font-size: 18px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    .tracking-code {
+      position: absolute;
+      bottom: 40px;
+      right: 40px;
+      font-size: 12px;
+      color: #94a3b8;
       letter-spacing: 2px;
+      font-weight: 600;
+    }
+
+    /* Feature badges at bottom */
+    .feature-badges {
+      margin-top: 40px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .feature-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .check-icon {
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #10b981;
+      font-weight: 700;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
   <div class="postcard">
     <div class="content">
-      <div class="logo">
-        <div class="logo-icon">D</div>
-        <div class="logo-text">DropLab</div>
+      <!-- Left Panel - Message -->
+      <div class="left-panel">
+        <div class="logo-section">
+          <div class="logo-icon">D</div>
+          <div class="logo-text">DropLab</div>
+        </div>
+
+        <div class="message-section">
+          <div class="greeting">Hey ${escapeHtml(name)}! 👋</div>
+          <div class="headline">
+            Offline Marketing.<br>
+            Online Attribution.
+          </div>
+          <div class="subline">
+            This postcard is being tracked in real-time. Every scan, click, and conversion is measured with pixel-perfect accuracy.
+          </div>
+
+          <div class="cta-badge">
+            Scan to see your personal demo <span class="arrow">→</span>
+          </div>
+        </div>
+
+        <div class="feature-badges">
+          <div class="feature-badge">
+            <div class="check-icon">✓</div>
+            <span>Real-Time Tracking</span>
+          </div>
+          <div class="feature-badge">
+            <div class="check-icon">✓</div>
+            <span>Full Attribution</span>
+          </div>
+          <div class="feature-badge">
+            <div class="check-icon">✓</div>
+            <span>Conversion Data</span>
+          </div>
+        </div>
       </div>
 
-      <div class="message">
-        <div class="greeting">Hey ${escapeHtml(name)}! 👋</div>
-        <div class="headline">
-          You just experienced DropLab's<br>
-          <strong>attribution magic</strong>
-        </div>
-        <div class="subline">
-          Scan the QR code to see your personalized demo landing page
-        </div>
-      </div>
+      <!-- Right Panel - QR Code -->
+      <div class="right-panel">
+        <div class="demo-badge">DEMO</div>
 
-      <div class="qr-section">
-        <div class="demo-code">
-          DEMO-${demo_code.toUpperCase()}
+        <div class="qr-wrapper">
+          <div class="qr-container">
+            <img src="${qrCodeDataURL}" alt="Scan QR Code" />
+          </div>
+
+          <div class="qr-instructions">
+            <div class="qr-title">Your Personalized Demo</div>
+            <div class="qr-subtitle">
+              Scan with your phone camera<br>
+              to experience the platform
+            </div>
+          </div>
         </div>
-        <div class="qr-container">
-          <img src="${qrCodeDataURL}" alt="QR Code" />
-          <div class="qr-label">Scan to continue</div>
+
+        <div class="tracking-code">
+          ${demo_code.toUpperCase()}
         </div>
       </div>
     </div>

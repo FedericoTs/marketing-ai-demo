@@ -2,12 +2,12 @@
  * Demo System Database Queries
  *
  * Handles all database operations for the interactive demo system.
- * Uses Supabase client for secure, multi-tenant access.
+ * Uses Supabase SERVICE ROLE client to bypass RLS (public demo system, no auth required).
  *
  * Phase 9.2.15 - Interactive Demo System
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { nanoid } from 'nanoid';
 
 // ============================================================================
@@ -65,7 +65,7 @@ export async function createDemoSubmission(data: {
   ip_address?: string;
 }): Promise<DemoSubmission | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
     const demo_code = nanoid(10); // Generate unique 10-character code
 
     const { data: submission, error } = await supabase
@@ -97,7 +97,7 @@ export async function createDemoSubmission(data: {
  */
 export async function getDemoSubmissionByCode(code: string): Promise<DemoSubmission | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     const { data, error } = await supabase
       .from('demo_submissions')
@@ -125,7 +125,7 @@ export async function updateDemoSubmission(
   updates: Partial<Pick<DemoSubmission, 'email_sent_at' | 'email_opened' | 'qr_scanned' | 'postcard_image_url'>>
 ): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     const { error } = await supabase
       .from('demo_submissions')
@@ -160,7 +160,7 @@ export async function trackDemoEvent(data: {
   event_data?: Record<string, any>;
 }): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     const { error } = await supabase
       .from('demo_events')
@@ -195,7 +195,7 @@ export async function trackDemoEvent(data: {
  */
 export async function getDemoEvents(code: string): Promise<DemoEvent[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     const { data, error } = await supabase
       .from('demo_events')
@@ -224,7 +224,7 @@ export async function getDemoEvents(code: string): Promise<DemoEvent[]> {
  */
 export async function getDemoAnalytics(): Promise<DemoAnalytics> {
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
 
     // Get total submissions
     const { count: total_submissions } = await supabase
