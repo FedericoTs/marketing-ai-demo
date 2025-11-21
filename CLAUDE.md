@@ -201,10 +201,10 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
   - Agent configuration management
 - Note: Requires ElevenLabs API key with phone calling enabled
 
-### 6. Settings Tab (Enhanced - Phase 2 + Brand Kit Update)
+### 6. Settings Tab (Enhanced - Phase 2 + Brand Kit + Billing)
 - **Four-tab interface**:
   - **Brand Intelligence Tab**:
-    - **AI Website Analyzer** (NEW):
+    - **AI Website Analyzer**:
       - Enter any company website URL
       - AI automatically extracts complete brand identity:
         - Company name, industry, target audience
@@ -234,11 +234,29 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
     - API keys (OpenAI, ElevenLabs)
     - ElevenLabs agent management
     - Phone number configuration
+  - **Billing Tab** (NEW - Phase 9.2.10):
+    - **Subscription Status**:
+      - Current billing status (Active, Cancelled, Past Due, Incomplete)
+      - Available credits display ($499 Month 1, $99 Month 2+)
+      - Plan details ($499/month Professional)
+      - Status badges with color coding
+    - **Subscription Management**:
+      - Cancel subscription (with confirmation)
+      - Reactivate cancelled subscription
+      - Manage payment method (Stripe Customer Portal)
+      - Update credit card information
+    - **Billing History**:
+      - Invoice table with dates, amounts, status
+      - PDF invoice downloads
+      - Payment period information
+      - Status badges (Paid, Open, Void)
+    - **API Routes**:
+      - `POST /api/stripe/create-portal-session` - Customer portal URL
+      - `POST /api/stripe/cancel-subscription` - Cancel subscription
+      - `GET /api/stripe/billing-history` - Invoice history
   - **Tracking Tab**:
     - Landing page tracking snippets
     - Analytics integration code
-  - **Industry Modules Tab**:
-    - Industry-specific features and templates
 - Used to personalize outputs across all features
 - **Auto-updates on website analysis**: Colors, logo, and fonts update immediately in UI
 

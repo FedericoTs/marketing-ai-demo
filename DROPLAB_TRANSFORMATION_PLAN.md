@@ -4747,12 +4747,63 @@ Use Supabase Realtime for canvas synchronization.
 - Address validation (USPS API)
 - Return address management
 
-**9.2: Stripe Billing Integration**
-- Subscription plans (Starter, Pro, Enterprise)
-- Usage-based metering (per DM sent, per contact purchased)
-- Payment method management
-- Invoice generation
-- Webhook handling (payment.succeeded, subscription.cancelled)
+**9.2: Stripe Billing Integration** ✅ **COMPLETE** (Nov 21, 2025)
+
+**Features Implemented**:
+- ✅ Customer creation on signup (automatic, non-blocking)
+- ✅ Subscription creation ($499/month Professional plan)
+- ✅ Credits system ($499 Month 1, $99 Month 2+)
+- ✅ Webhook handling (5 events: invoice.payment_succeeded, invoice.payment_failed, customer.subscription.*)
+- ✅ Feature gating (frontend + backend middleware)
+- ✅ Checkout session creation
+- ✅ **Subscription Management UI** (Phase 9.2.10)
+  - View subscription status and credits
+  - Cancel subscription (at period end)
+  - Update payment method (Stripe Customer Portal)
+  - View billing history with invoice downloads
+  - Status badges (Active, Cancelled, Past Due, Incomplete)
+
+**API Routes Created**:
+- `POST /api/stripe/create-customer` - Create Stripe customer
+- `POST /api/stripe/create-checkout-session` - Payment collection
+- `POST /api/stripe/webhook` - Handle Stripe events
+- `POST /api/stripe/create-portal-session` - Customer portal URL
+- `POST /api/stripe/cancel-subscription` - Cancel subscription
+- `GET /api/stripe/billing-history` - Invoice history
+
+**UI Components**:
+- `components/settings/billing-manager.tsx` - Subscription management interface
+- `app/settings/page.tsx` - Billing tab integration
+- `lib/hooks/use-billing-status.ts` - Billing status hook
+- `components/billing/feature-locked.tsx` - Feature gate UI
+
+**Database Integration**:
+- Organizations table: `stripe_customer_id`, `stripe_subscription_id`, `billing_status`, `credits`
+- Automatic subscription creation on signup
+- Credit allocation via webhooks
+- RLS policies for financial data protection
+
+**Testing Status**:
+- ✅ Customer creation (automatic on signup)
+- ✅ Subscription creation (automatic after customer)
+- ✅ Webhook processing (all 5 events)
+- ✅ Credit allocation (billing cycle detection)
+- ✅ Feature gating (frontend + backend)
+- ✅ Subscription management UI (cancel, portal, history)
+
+**Files Created/Modified**:
+- `lib/stripe/client.ts` - Stripe client initialization
+- `lib/stripe/customer.ts` - Customer management
+- `lib/stripe/subscription.ts` - Subscription creation
+- `lib/stripe/credits.ts` - Credit allocation logic
+- `lib/server/billing-middleware.ts` - Backend validation
+- `app/api/stripe/*/route.ts` - 6 API routes
+- `components/settings/billing-manager.tsx` - UI (420 lines)
+
+**Documentation**:
+- `PHASE_9.2.7_PAYMENT_FLOW_FIXES.md` - Payment flow fixes
+- `SECURITY_FIXES_COMPLETE.md` - Migrations 025-027
+- Database migrations 023-027 applied
 
 **9.3: Email Marketing & Multi-Channel** (Moved from Phase 5.7)
 - Email campaign builder
