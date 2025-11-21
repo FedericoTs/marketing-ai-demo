@@ -542,8 +542,6 @@ export default function SettingsPage() {
                     Used for copywriting, content generation, and brand intelligence
                   </p>
                 </div>
-
-                </div>
               </CardContent>
             </Card>
 

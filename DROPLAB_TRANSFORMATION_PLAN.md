@@ -4817,6 +4817,46 @@ Use Supabase Realtime for canvas synchronization.
     - Existing organizations keep their current values (migration is non-destructive)
     - Brand Intelligence AI analyzer still auto-fills when used
 
+- ✅ **Landing Page Manager** (Phase 9.2.13) - Nov 21, 2025
+  - **Problem**: No centralized way to view, manage, or edit landing pages after campaign creation
+  - **Solution**: Complete landing page management system with analytics integration
+  - **Features**:
+    - **List View** (`/landing-pages`):
+      - Table showing all landing pages with inline analytics
+      - Columns: Campaign, Template, Views, Scans, Conversions, Conv. Rate, Created, Status
+      - Search by campaign name
+      - Filter by template type
+      - Quick actions: View, Edit, Analytics
+      - Stats cards: Total pages, views, conversions, avg conversion rate
+    - **Edit View** (`/landing-pages/[id]/edit`):
+      - Live preview iframe showing actual landing page
+      - Edit form: Headline, subheadline, CTA text, CTA URL, colors
+      - Real-time validation
+      - Save changes without breaking tracking codes
+    - **Analytics Integration**:
+      - Views count (page_view + qr_scan events)
+      - QR scan count (qr_scan events only)
+      - Conversion count (conversions table)
+      - Conversion rate calculation
+  - **API Routes Created**:
+    - `GET /api/landing-pages` - List with analytics (org-scoped)
+    - `PATCH /api/landing-pages/[id]` - Update page_config (ownership verified)
+  - **Components Created**:
+    - `components/landing-pages/landing-page-table.tsx` - Main table with filters
+    - `components/landing-pages/landing-page-editor.tsx` - Edit form + live preview
+  - **Database Queries**:
+    - `lib/database/landing-page-analytics-queries.ts` - Analytics aggregation
+    - Parallel queries for views, scans, conversions per landing page
+  - **Architecture**:
+    - Zero breaking changes - all new routes and components
+    - Maintains compatibility with existing `/lp/[trackingId]` system
+    - Updates landing_pages.page_config JSONB column only
+    - Preserves tracking_code (critical for QR code links)
+  - **Security**:
+    - RLS enforcement via campaign → organization ownership check
+    - Authenticated users only
+    - No cross-organization data leakage
+
 **API Routes Created**:
 - `POST /api/stripe/create-customer` - Create Stripe customer
 - `POST /api/stripe/create-checkout-session` - Payment collection
