@@ -4763,6 +4763,40 @@ Use Supabase Realtime for canvas synchronization.
   - View billing history with invoice downloads
   - Status badges (Active, Cancelled, Past Due, Incomplete)
 
+- ✅ **Dashboard Business Intelligence** (Phase 9.2.11) - Nov 21, 2025
+  - **Removed Legacy Components**:
+    - Floating quick actions button (SQLite version)
+    - "Coming Soon" placeholder cards (AI Copywriting, DM Creative, Data Axle)
+    - "Phase 1 Completion Status" card (internal dev tracking)
+  - **Campaign Performance Overview** (4 cards):
+    - Campaigns Sent vs Total Created
+    - Active Campaigns (green highlight)
+    - Average Response Rate with event counts
+    - Total Revenue from conversions
+  - **Recent Campaigns Table**:
+    - Last 5 campaigns with status badges
+    - Recipients, response rate, conversions per campaign
+    - View Analytics and Duplicate buttons
+    - Empty state with "Create First Campaign" CTA
+    - "View All Campaigns" link for 5+ campaigns
+  - **Performance Insights Widget**:
+    - Top performing template (by response rate)
+    - Top 3 geographic locations (by event count)
+    - Data-driven recommendations
+    - Quick action links ("Use this template →")
+  - **Dashboard Metrics API**:
+    - `GET /api/dashboard/metrics` - Aggregated business intelligence
+    - Parallel queries for performance
+    - Response rate calculation (events / recipients)
+    - ROI calculation (conversion values sum)
+    - Template performance analysis
+    - Geographic event distribution
+  - **Components Created**:
+    - `components/dashboard/campaign-performance-cards.tsx`
+    - `components/dashboard/recent-campaigns-table.tsx`
+    - `components/dashboard/performance-insights.tsx`
+    - `app/api/dashboard/metrics/route.ts`
+
 **API Routes Created**:
 - `POST /api/stripe/create-customer` - Create Stripe customer
 - `POST /api/stripe/create-checkout-session` - Payment collection

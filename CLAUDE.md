@@ -103,14 +103,98 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
 
 ## Core Features
 
-### 1. Home Dashboard (NEW - Phase 4)
-- Welcome section with personalized greeting
-- Quick stats overview (campaigns, recipients, conversions)
-- Recent campaigns widget
-- Quick action cards for common tasks
-- Recent activity feed preview
-- Getting started guide for new users
-- Platform status indicators
+### 1. Home Dashboard (Business Intelligence - Updated Nov 21, 2025)
+
+**Purpose**: Provides actionable business intelligence and campaign performance metrics instead of project tracking.
+
+**Key Sections**:
+
+1. **Header with Organization Info**
+   - Organization logo and name
+   - User role and email
+   - Sign out button
+
+2. **Organization Stats (3 Cards)**
+   - **Organization Card**: Company name, plan tier, billing status, team member count
+   - **Credits Card**: Available Data Axle credits, monthly design/send limits
+   - **Role & Permissions Card**: User role, job title, permission checkboxes
+
+3. **Team Management Widget** (Owner-only)
+   - Team member list with role management
+   - Invite new members via email
+   - Permission management (Design, Campaign, Billing)
+   - Optimistic UI updates for role changes
+
+4. **Payment Required Banner** (Incomplete subscriptions only)
+   - Orange gradient alert for incomplete billing
+   - Complete payment button → Stripe Checkout
+   - Credits information ($499 Month 1, $99 Month 2+)
+
+5. **Campaign Performance Overview** (4 Cards)
+   - **Campaigns Sent**: Count of sent vs total campaigns
+   - **Active Campaigns**: Currently running campaigns (green highlight)
+   - **Response Rate**: Percentage with total events count
+   - **Total Revenue**: Dollar amount from conversions with count
+
+6. **Recent Campaigns Table**
+   - Shows last 5 campaigns with:
+     - Campaign name with status badge
+     - Recipients count
+     - Response rate percentage
+     - Conversions count
+     - Sent date
+     - View Analytics button (links to `/analytics?campaign=[id]`)
+     - Duplicate campaign button
+   - Empty state: "Create Your First Campaign" CTA
+   - "View All Campaigns →" link when 5+ campaigns exist
+
+7. **Performance Insights Widget**
+   - **Top Performing Template**:
+     - Template thumbnail or placeholder icon
+     - Template name
+     - Response rate percentage (bold purple)
+     - Number of campaigns using template
+     - "Use this template →" quick action link
+   - **Top 3 Geographic Locations**:
+     - Ranked list with numbered badges (1st, 2nd, 3rd)
+     - Location name (city or region)
+     - Event count
+     - Recommendation tip: "Consider targeting more contacts in these high-performing areas"
+   - Gradient blue/purple background for visual distinction
+   - Empty state when no campaign data exists
+
+**Dashboard Metrics API** (`/api/dashboard/metrics`):
+- **Authentication**: Requires authenticated user
+- **Authorization**: RLS enforces organization isolation
+- **Performance**: Parallel queries for campaigns, events, conversions, templates
+- **Calculations**:
+  - Response Rate: `(totalEvents / totalRecipients) * 100`
+  - Total Revenue: Sum of `conversion_value` from conversions
+  - Top Template: Highest response rate among templates
+  - Top Locations: Top 3 by event count from `events.region` or `events.city`
+
+**Components**:
+- `app/(main)/dashboard/page.tsx` - Main dashboard page (client component)
+- `components/dashboard/campaign-performance-cards.tsx` - 4 metric cards
+- `components/dashboard/recent-campaigns-table.tsx` - Campaigns table with actions
+- `components/dashboard/performance-insights.tsx` - Top performers widget
+- `components/dashboard/team-widget-enhanced.tsx` - Team management
+- `app/api/dashboard/metrics/route.ts` - Metrics aggregation API
+
+**State Management**:
+- `dashboardMetrics` - API response with overview, recentCampaigns, insights
+- `metricsLoading` - Loading state for async fetch
+- `fetchDashboardMetrics()` - Called on component mount
+
+**Loading States**:
+- Skeleton loaders with `animate-pulse` for all widgets
+- Graceful degradation when no data exists
+- Error handling with toast notifications
+
+**Removed Components** (Nov 21, 2025):
+- ❌ Floating quick actions button (bottom-right FAB)
+- ❌ "Coming Soon" cards (AI Copywriting, DM Creative, Data Axle)
+- ❌ "Phase 1 Completion Status" card
 
 ### 2. Copywriting Tab (Enhanced - Phase 1)
 - Input: Marketing idea/message/campaign

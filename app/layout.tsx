@@ -5,7 +5,6 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { SettingsProvider } from "@/lib/contexts/settings-context";
 import { Toaster } from "@/components/ui/sonner";
-import { QuickActionsFAB } from "@/components/dashboard/quick-actions-fab";
 import { usePathname } from "next/navigation";
 
 const geistSans = Geist({
@@ -56,7 +55,6 @@ export default function RootLayout({
                 {children}
               </main>
               <Toaster />
-              <QuickActionsFAB />
             </div>
           )}
         </SettingsProvider>

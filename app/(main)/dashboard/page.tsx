@@ -7,18 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   LogOut,
-  User as UserIcon,
-  Mail,
-  Sparkles,
   Loader2,
   Building2,
   CreditCard,
-  Users,
   Shield,
   AlertCircle
 } from 'lucide-react';
 import type { UserProfile, Organization } from '@/lib/database/types';
 import { TeamWidget } from '@/components/dashboard/team-widget-enhanced';
+import { CampaignPerformanceCards } from '@/components/dashboard/campaign-performance-cards';
+import { RecentCampaignsTable } from '@/components/dashboard/recent-campaigns-table';
+import { PerformanceInsights } from '@/components/dashboard/performance-insights';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
@@ -30,6 +29,8 @@ export default function DashboardPage() {
   const [teamCount, setTeamCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [dashboardMetrics, setDashboardMetrics] = useState<any>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
@@ -86,10 +87,28 @@ export default function DashboardPage() {
 
         setTeamCount(count || 0);
 
+        // Fetch dashboard metrics
+        fetchDashboardMetrics();
+
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
         setLoading(false);
+      }
+    }
+
+    async function fetchDashboardMetrics() {
+      try {
+        const response = await fetch('/api/dashboard/metrics');
+        const data = await response.json();
+
+        if (data.success) {
+          setDashboardMetrics(data.data);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard metrics:', error);
+      } finally {
+        setMetricsLoading(false);
       }
     }
 
@@ -441,116 +460,31 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Coming Soon Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-blue-600" />
-                AI Copywriting
-              </CardTitle>
-              <CardDescription>
-                Generate campaign variations with AI
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-slate-600 mb-4">
-                Coming soon in the Supabase version
-              </div>
-              <Button variant="outline" disabled className="w-full">
-                Coming Soon
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-purple-600" />
-                DM Creative
-              </CardTitle>
-              <CardDescription>
-                Design personalized direct mail
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-slate-600 mb-4">
-                Coming soon in the Supabase version
-              </div>
-              <Button variant="outline" disabled className="w-full">
-                Coming Soon
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserIcon className="h-5 w-5 text-green-600" />
-                Data Axle
-              </CardTitle>
-              <CardDescription>
-                Access 250M+ contacts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-slate-600 mb-4">
-                Coming soon in the Supabase version
-              </div>
-              <Button variant="outline" disabled className="w-full">
-                Coming Soon
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Campaign Performance Overview */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-slate-900 mb-4">Campaign Performance</h2>
+          <CampaignPerformanceCards
+            data={dashboardMetrics?.overview || null}
+            isLoading={metricsLoading}
+          />
         </div>
 
-        {/* Phase 1 Completion Status */}
-        <Card className="mt-8 border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="text-green-900 flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              🎉 Phase 1: Foundation Complete!
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="font-semibold text-green-900 mb-2">✅ Database Schema</p>
-                  <ul className="space-y-1 text-sm text-green-800">
-                    <li>• Organizations table with RLS</li>
-                    <li>• User profiles with RBAC</li>
-                    <li>• Design templates (Fabric.js)</li>
-                    <li>• Design assets management</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="font-semibold text-green-900 mb-2">✅ Authentication</p>
-                  <ul className="space-y-1 text-sm text-green-800">
-                    <li>• Supabase Auth integration</li>
-                    <li>• Protected routes middleware</li>
-                    <li>• Login/Signup flows</li>
-                    <li>• Multi-tenant isolation</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-green-300">
-                <p className="font-semibold text-green-900 mb-2">⏭️ Next: Phase 2 - Design Engine</p>
-                <p className="text-sm text-green-800">
-                  Fabric.js canvas editor with drag-and-drop, template save/load, and variable markers
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-green-300">
-                <p className="text-xs text-green-700">
-                  <strong>Note:</strong> SQLite version still accessible on branch{' '}
-                  <code className="bg-green-100 px-2 py-1 rounded">feature/clean-restart-from-oct28</code>
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Recent Campaigns and Insights Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <RecentCampaignsTable
+              campaigns={dashboardMetrics?.recentCampaigns || []}
+              isLoading={metricsLoading}
+            />
+          </div>
+          <div>
+            <PerformanceInsights
+              topTemplate={dashboardMetrics?.insights?.topTemplate || null}
+              topLocations={dashboardMetrics?.insights?.topLocations || []}
+              isLoading={metricsLoading}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
