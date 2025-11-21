@@ -16,12 +16,17 @@ Transform DropLab's homepage into a modern, premium landing page that:
 3. **Tertiary**: Marketing agencies managing direct mail for clients
 
 ### Competitive Positioning
-**DropLab vs PostGrid/Lob:**
-- ✅ **AI-Powered Design** (not just sending, but creating high-converting mail)
-- ✅ **Built-in Analytics** (track every scan, view, conversion)
-- ✅ **Template Marketplace** (proven templates with performance data)
-- ✅ **No Minimum Order** (start with 1 postcard vs 500+ minimum)
-- ✅ **End-to-End Platform** (Design → Print → Track → Analyze in one tool)
+**DropLab vs PostGrid/Lob/Traditional Direct Mail:**
+- ✅ **Complete Attribution** (pixel-perfect tracking vs black box)
+- ✅ **Digital-Level Analytics** (see every scan, click, conversion in real-time)
+- ✅ **ROI Proof** (know exact cost-per-acquisition vs guessing)
+- ✅ **Online-Offline Bridge** (unified measurement vs fragmented data)
+- ✅ **No Minimums** (start with 1 postcard vs 500+ minimum)
+- ✅ **AI-Powered** (create + track vs just send)
+
+**The Real Differentiator:**
+PostGrid/Lob are "sending APIs" - they mail your pieces but leave you blind.
+DropLab solves the **attribution problem** - the #1 challenge for 50% of marketers (CMO Council research).
 
 ---
 
@@ -68,32 +73,37 @@ Transform DropLab's homepage into a modern, premium landing page that:
 ## 📝 Copy Framework (Benefit-Driven)
 
 ### Hero Section
-**Headline**: "Direct Mail That Actually Converts"
-**Subheadline**: "Design, send, and track high-converting direct mail campaigns in minutes. No minimums, no guesswork, no wasted budget."
+**Headline**: "Offline Marketing. Online Attribution."
+**Subheadline**: "You wouldn't run Google Ads without analytics. Why send direct mail blind? Track every scan, click, and conversion with pixel-perfect precision."
 **Primary CTA**: "Try Interactive Demo" (orange button, 48px height)
 **Secondary CTA**: "See How It Works" (ghost button, scroll to features)
 
-### Value Propositions (4 Key Features)
+**Alternative Subheadlines** (for A/B testing):
+- "Track every scan, click, and conversion from your direct mail. Finally, prove ROI on offline marketing with pixel-perfect precision."
+- "50% of marketers can't connect offline campaigns to revenue. Join the other 50% with complete attribution."
+- "Send personalized direct mail with unique QR codes. Track scans, visits, and conversions. Know exactly which campaigns drive revenue."
 
-**1. AI-Powered Design**
-- **Icon**: Sparkles or magic wand
-- **Headline**: "Designs That Convert"
-- **Body**: "AI analyzes 10,000+ campaigns to suggest proven layouts, copy, and CTAs. No design skills needed."
+### Value Propositions (4 Key Features) - **ATTRIBUTION-FOCUSED**
 
-**2. Personalized at Scale**
-- **Icon**: Database or grid
-- **Headline**: "One Click, 10,000 Pieces"
-- **Body**: "Upload a CSV, customize with AI, and personalize every postcard with names, addresses, and unique QR codes."
+**1. Full-Funnel Attribution**
+- **Icon**: Target with arrow or funnel
+- **Headline**: "From Mailbox to Conversion"
+- **Body**: "Track the complete customer journey with unique QR codes and personalized landing pages. See every touchpoint from scan to sale."
 
-**3. Track Everything**
-- **Icon**: Bar chart or analytics
-- **Headline**: "Know What Works"
-- **Body**: "See exactly who scanned your QR code, visited your landing page, and converted. No black box."
+**2. Digital-Level Analytics**
+- **Icon**: Bar chart or analytics dashboard
+- **Headline**: "Google Analytics for Direct Mail"
+- **Body**: "See exactly who scanned, when they visited, what they clicked, and how much they spent. Pixel-perfect tracking for offline campaigns."
 
-**4. Print & Ship Fast**
-- **Icon**: Truck or package
-- **Headline**: "In Mailboxes Within 3 Days"
-- **Body**: "We print, stamp, and ship directly to USPS. Track delivery status in real-time."
+**3. Prove ROI, Finally**
+- **Icon**: Dollar sign with arrow up
+- **Headline**: "Know Your Cost-Per-Acquisition"
+- **Body**: "Track revenue down to the penny. No more guessing which campaigns drive sales. Show your CFO: $10k spend → $47k revenue = 4.7x ROI."
+
+**4. Offline Meets Online**
+- **Icon**: Bridge or connection nodes
+- **Headline**: "Bridge the Attribution Gap"
+- **Body**: "Connect your physical campaigns to digital infrastructure. One dashboard shows complete attribution across online and offline channels."
 
 ### How It Works (3 Steps)
 

@@ -4905,20 +4905,26 @@ Use Supabase Realtime for canvas synchronization.
   - **Status**: Fully designed and documented in `LANDING_PAGE_STRATEGY.md`
   - **Purpose**: Transform homepage into modern, premium landing page that converts visitors into qualified leads
   - **Strategic Goals**:
-    - Instantly communicate value proposition ("Direct mail that actually converts")
+    - Instantly communicate value proposition ("Offline Marketing. Online Attribution.")
+    - Position as solving THE attribution problem for offline marketing (50% of marketers can't connect offline campaigns to revenue)
     - Capture qualified leads through interactive demo experience
     - Demonstrate product utility via email-based postcard simulation
     - Convert demo users into paying customers
   - **Target Audience**:
-    - Primary: Marketing managers at local businesses (healthcare, dental, real estate)
-    - Secondary: Small business owners (50-500 employees)
-    - Tertiary: Marketing agencies managing direct mail campaigns
+    - Primary: Marketing managers struggling to prove ROI on offline campaigns
+    - Secondary: CMOs/Marketing VPs who need complete attribution across online and offline channels
+    - Tertiary: Marketing agencies managing direct mail for multiple clients
   - **Competitive Positioning** (vs PostGrid/Lob):
-    - AI-Powered Design (not just sending, creating high-converting mail)
-    - Built-in Analytics (track every scan, view, conversion)
-    - Template Marketplace (proven templates with performance data)
-    - No Minimum Order (start with 1 postcard vs 500+)
-    - End-to-End Platform (Design → Print → Track → Analyze)
+    - **Complete Attribution** (pixel-perfect tracking vs black box) - THE #1 DIFFERENTIATOR
+    - **Digital-Level Analytics** (see every scan, click, conversion in real-time like Google Analytics)
+    - **Prove ROI, Finally** (know exact cost-per-acquisition, show CFO $10k → $47k revenue = 4.7x ROI)
+    - **Online-Offline Bridge** (unified measurement dashboard across all channels)
+    - **AI-Powered Design** (not just sending, creating high-converting mail)
+    - **No Minimum Order** (start with 1 postcard vs 500+)
+
+  **The Real Differentiator**:
+  PostGrid/Lob are "sending APIs" - they mail your pieces but leave you blind.
+  DropLab solves the **attribution problem** - the #1 challenge for 50% of marketers (CMO Council research).
   - **Demo Experience Flow**:
     1. User enters email on landing page → "Try Interactive Demo"
     2. System generates personalized demo postcard with QR code
