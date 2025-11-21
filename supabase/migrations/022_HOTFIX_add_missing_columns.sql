@@ -1,6 +1,9 @@
 -- ============================================================================
--- HOTFIX for Migration 022: Add Missing Columns to INSERT Statement
--- CRITICAL: Signup is broken without this!
+-- Migration 022 HOTFIX #2: Remove Non-Existent Email Column Reference
+-- Created: 2025-11-21
+-- Issue: Function tries to INSERT into email column that doesn't exist in user_profiles
+-- Root Cause: Email is stored in auth.users, not user_profiles (proper normalization)
+-- Fix: Remove email from INSERT statement in handle_new_user_signup()
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION handle_new_user_signup()
@@ -13,7 +16,7 @@ DECLARE
   new_org_id UUID;
   user_full_name TEXT;
   user_email TEXT;
-  email_domain TEXT;
+  user_email_domain TEXT;
   org_name TEXT;
   org_slug TEXT;
   is_public_domain BOOLEAN;
@@ -27,25 +30,31 @@ DECLARE
     'yandex.com', 'gmx.com', 'tutanota.com'
   ];
 BEGIN
+  -- Extract user data from auth.users NEW record
   user_email := NEW.email;
-  email_domain := lower(split_part(user_email, '@', 2));
+  user_email_domain := lower(split_part(user_email, '@', 2));
 
+  -- Get full name from metadata, fallback to email prefix
   user_full_name := COALESCE(
     NULLIF(trim(NEW.raw_user_meta_data->>'full_name'), ''),
     NULLIF(trim(NEW.raw_user_meta_data->>'name'), ''),
     split_part(user_email, '@', 1)
   );
 
-  is_public_domain := email_domain = ANY(public_domains);
+  -- Check if this is a public email domain
+  is_public_domain := user_email_domain = ANY(public_domains);
 
+  -- Generate organization name based on email domain
   IF is_public_domain THEN
+    -- Personal workspace for public email domains
     org_name := user_full_name || '''s Workspace';
-    email_domain := NULL;
+    user_email_domain := NULL;
   ELSE
+    -- Use company domain as org name
     org_name := initcap(
       replace(
         regexp_replace(
-          split_part(email_domain, '.', 1),
+          split_part(user_email_domain, '.', 1),
           '-',
           ' ',
           'g'
@@ -56,10 +65,11 @@ BEGIN
     );
   END IF;
 
+  -- Generate unique slug
   org_slug := generate_org_slug_from_email(user_email);
 
+  -- STEP 1: Create organization for this user
   BEGIN
-    -- HOTFIX: Added monthly_design_limit and monthly_sends_limit
     INSERT INTO organizations (
       name,
       slug,
@@ -67,26 +77,22 @@ BEGIN
       plan_tier,
       billing_status,
       credits,
-      monthly_design_limit,    -- ADDED
-      monthly_sends_limit,     -- ADDED
       created_at,
       updated_at
     ) VALUES (
       org_name,
       org_slug,
-      email_domain,
+      user_email_domain,
       'free',
       'incomplete',
       0.00,
-      0,                       -- ADDED: 0 until subscription paid
-      0,                       -- ADDED: 0 until subscription paid
       NOW(),
       NOW()
     )
     RETURNING id INTO new_org_id;
 
     RAISE NOTICE 'Created organization % (slug: %, domain: %) for user %',
-      org_name, org_slug, COALESCE(email_domain, 'public'), user_email;
+      org_name, org_slug, COALESCE(user_email_domain, 'public'), user_email;
 
   EXCEPTION
     WHEN unique_violation THEN
@@ -95,12 +101,13 @@ BEGIN
       RAISE EXCEPTION 'Failed to create organization: %', SQLERRM;
   END;
 
+  -- STEP 2: Create user profile linked to organization
+  -- FIXED: Removed 'email' column reference (email stored in auth.users, accessed via FK)
   BEGIN
     INSERT INTO user_profiles (
       id,
       organization_id,
       full_name,
-      email,
       role,
       platform_role,
       can_create_designs,
@@ -117,19 +124,10 @@ BEGIN
       NEW.id,
       new_org_id,
       user_full_name,
-      user_email,
       'owner',
       'user',
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      NOW(),
-      NOW(),
-      NOW()
+      true, true, true, true, true, true, true,
+      NOW(), NOW(), NOW()
     );
 
     RAISE NOTICE 'Created user profile for % (id: %) in organization %',
@@ -137,11 +135,12 @@ BEGIN
 
   EXCEPTION
     WHEN foreign_key_violation THEN
-      RAISE EXCEPTION 'Failed to link user to organization.';
+      RAISE EXCEPTION 'Failed to link user to organization. Database integrity error.';
     WHEN OTHERS THEN
       RAISE EXCEPTION 'Failed to create user profile: %', SQLERRM;
   END;
 
+  -- Success
   RETURN NEW;
 
 EXCEPTION
@@ -151,9 +150,11 @@ EXCEPTION
 END;
 $$;
 
--- Verification
+-- Verify fix
 DO $$
 BEGIN
-  RAISE NOTICE '✅ HOTFIX applied - signup should now work!';
-  RAISE NOTICE 'ℹ️  New users will get: credits=$0, monthly_design_limit=0, monthly_sends_limit=0';
+  RAISE NOTICE '✅ Migration 022 HOTFIX #2 applied successfully';
+  RAISE NOTICE 'ℹ️  Removed non-existent email column from user_profiles INSERT';
+  RAISE NOTICE 'ℹ️  Email accessible via auth.users FK relationship';
+  RAISE NOTICE 'ℹ️  Signup should now work without column errors';
 END $$;
