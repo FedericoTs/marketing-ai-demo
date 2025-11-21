@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createDemoSubmission, updateDemoSubmission } from '@/lib/demo/demo-queries';
 import { generateDemoPostcardHTML } from '@/lib/demo/postcard-generator';
+import { generatePostcardImageBuffer } from '@/lib/demo/postcard-image-generator';
 import { sendDemoEmail } from '@/lib/demo/email-sender';
 
 export async function POST(request: NextRequest) {
@@ -57,11 +58,24 @@ export async function POST(request: NextRequest) {
       qr_url: demo_url,
     });
 
-    // Send email
+    // Generate postcard PNG image from HTML (Phase 4: Server-side image generation)
+    let postcardImageBuffer: Buffer | undefined;
+    try {
+      postcardImageBuffer = await generatePostcardImageBuffer(postcardHTML, {
+        width: 1200,
+        height: 800,
+      });
+    } catch (error) {
+      console.error('[POST /api/demo/submit] Failed to generate PNG, fallback to HTML:', error);
+      // Continue without PNG - email will use HTML fallback
+    }
+
+    // Send email with PNG attachment (or HTML fallback if PNG generation failed)
     const emailResult = await sendDemoEmail({
       to: submission.email,
       name: submission.name,
-      postcardHTML,
+      postcardHTML: !postcardImageBuffer ? postcardHTML : undefined, // Only use HTML if PNG failed
+      postcardImageBuffer,
       demo_code: submission.demo_code,
       demo_url,
     });

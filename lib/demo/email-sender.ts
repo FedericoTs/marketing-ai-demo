@@ -13,7 +13,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export interface SendDemoEmailOptions {
   to: string;
   name: string;
-  postcardHTML: string;
+  postcardHTML?: string; // Deprecated - use postcardImageBuffer instead
+  postcardImageBuffer?: Buffer; // PNG image buffer for attachment
   demo_code: string;
   demo_url: string;
 }
@@ -28,12 +29,26 @@ export async function sendDemoEmail(options: SendDemoEmailOptions): Promise<{ su
       return { success: false, error: 'Email service not configured' };
     }
 
-    const { data, error } = await resend.emails.send({
-      from: 'DropLab Demo <demo@updates.droplab.app>',
+    // Build email params
+    const emailParams: any = {
+      from: 'DropLab Demo <onboarding@resend.dev>', // Use Resend's free domain for testing
       to: options.to,
       subject: `Your DropLab Demo Postcard Has Arrived! 📬`,
       html: generateEmailHTML(options),
-    });
+    };
+
+    // Add inline attachment if PNG buffer provided (using CID for inline display)
+    if (options.postcardImageBuffer) {
+      emailParams.attachments = [
+        {
+          filename: 'postcard.png',
+          content: options.postcardImageBuffer,
+          cid: 'postcard.png', // Content-ID for inline images
+        },
+      ];
+    }
+
+    const { data, error } = await resend.emails.send(emailParams);
 
     if (error) {
       console.error('[sendDemoEmail] Resend error:', error);
@@ -49,10 +64,15 @@ export async function sendDemoEmail(options: SendDemoEmailOptions): Promise<{ su
 }
 
 /**
- * Generate email HTML with postcard embedded
+ * Generate email HTML with postcard embedded or referenced
  */
 function generateEmailHTML(options: SendDemoEmailOptions): string {
-  const { name, postcardHTML, demo_url } = options;
+  const { name, postcardHTML, postcardImageBuffer, demo_url } = options;
+
+  // Use PNG attachment if available, otherwise fallback to embedded HTML
+  const postcardContent = postcardImageBuffer
+    ? `<img src="cid:postcard.png" alt="Your Personalized Postcard" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);" />`
+    : (postcardHTML || '');
 
   return `
 <!DOCTYPE html>
@@ -145,7 +165,7 @@ function generateEmailHTML(options: SendDemoEmailOptions): string {
     </div>
 
     <div class="postcard-container">
-      ${postcardHTML}
+      ${postcardContent}
     </div>
 
     <div class="cta-section">
