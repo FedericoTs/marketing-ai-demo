@@ -67,17 +67,17 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
     const [logoPreview, setLogoPreview] = useState<string>('');
     const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  // Form state
+  // Form state - Start with empty values (blank slate for new users)
   const [formData, setFormData] = useState({
     logoUrl: '',
-    primaryColor: '#1E3A8A',
-    secondaryColor: '#FF6B35',
-    accentColor: '#10B981',
-    backgroundColor: '#FFFFFF',
-    textColor: '#1F2937',
-    headingFont: 'Inter',
-    bodyFont: 'Open Sans',
-    landingPageTemplate: 'professional',
+    primaryColor: '',
+    secondaryColor: '',
+    accentColor: '',
+    backgroundColor: '#FFFFFF', // Keep white default for usability
+    textColor: '#1F2937', // Keep dark text for readability
+    headingFont: '',
+    bodyFont: '',
+    landingPageTemplate: 'professional', // Keep default template for usability
   });
 
   // Load existing brand config ONCE on mount
@@ -104,13 +104,13 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
 
           setFormData({
             logoUrl: result.data.logo_url || '',
-            primaryColor: result.data.primary_color || '#1E3A8A',
-            secondaryColor: result.data.secondary_color || '#FF6B35',
-            accentColor: result.data.accent_color || '#10B981',
-            backgroundColor: result.data.background_color || '#FFFFFF',
-            textColor: result.data.text_color || '#1F2937',
-            headingFont: result.data.heading_font || 'Inter',
-            bodyFont: result.data.body_font || 'Open Sans',
+            primaryColor: result.data.primary_color || '',
+            secondaryColor: result.data.secondary_color || '',
+            accentColor: result.data.accent_color || '',
+            backgroundColor: result.data.background_color || '#FFFFFF', // Keep white default
+            textColor: result.data.text_color || '#1F2937', // Keep dark text default
+            headingFont: result.data.heading_font || '',
+            bodyFont: result.data.body_font || '',
             landingPageTemplate: result.data.landing_page_template || 'professional',
           });
 
@@ -508,7 +508,7 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                 <Input
                   type="color"
                   id="primaryColor"
-                  value={formData.primaryColor}
+                  value={formData.primaryColor || '#000000'}
                   onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
                   className="w-16 h-10 cursor-pointer"
                 />
@@ -516,7 +516,7 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                   type="text"
                   value={formData.primaryColor}
                   onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
-                  placeholder="#1E3A8A"
+                  placeholder="Not set (e.g., #1E3A8A)"
                   className="flex-1 font-mono text-sm"
                 />
               </div>
@@ -529,7 +529,7 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                 <Input
                   type="color"
                   id="secondaryColor"
-                  value={formData.secondaryColor}
+                  value={formData.secondaryColor || '#000000'}
                   onChange={(e) => setFormData({ ...formData, secondaryColor: e.target.value })}
                   className="w-16 h-10 cursor-pointer"
                 />
@@ -537,7 +537,7 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                   type="text"
                   value={formData.secondaryColor}
                   onChange={(e) => setFormData({ ...formData, secondaryColor: e.target.value })}
-                  placeholder="#FF6B35"
+                  placeholder="Not set (e.g., #FF6B35)"
                   className="flex-1 font-mono text-sm"
                 />
               </div>
@@ -550,7 +550,7 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                 <Input
                   type="color"
                   id="accentColor"
-                  value={formData.accentColor}
+                  value={formData.accentColor || '#000000'}
                   onChange={(e) => setFormData({ ...formData, accentColor: e.target.value })}
                   className="w-16 h-10 cursor-pointer"
                 />
@@ -558,7 +558,7 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                   type="text"
                   value={formData.accentColor}
                   onChange={(e) => setFormData({ ...formData, accentColor: e.target.value })}
-                  placeholder="#10B981"
+                  placeholder="Not set (e.g., #10B981)"
                   className="flex-1 font-mono text-sm"
                 />
               </div>
@@ -619,7 +619,7 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                 onValueChange={(value) => setFormData({ ...formData, headingFont: value })}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select heading font..." />
                 </SelectTrigger>
                 <SelectContent>
                   {FONTS.map((font) => (
@@ -629,9 +629,11 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-2xl font-bold mt-2" style={{ fontFamily: formData.headingFont }}>
-                The Quick Brown Fox
-              </p>
+              {formData.headingFont && (
+                <p className="text-2xl font-bold mt-2" style={{ fontFamily: formData.headingFont }}>
+                  The Quick Brown Fox
+                </p>
+              )}
             </div>
 
             {/* Body Font */}
@@ -642,7 +644,7 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                 onValueChange={(value) => setFormData({ ...formData, bodyFont: value })}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select body font..." />
                 </SelectTrigger>
                 <SelectContent>
                   {FONTS.map((font) => (
@@ -652,9 +654,11 @@ export const BrandKitManager = forwardRef<BrandKitManagerRef, BrandKitManagerPro
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-base mt-2" style={{ fontFamily: formData.bodyFont }}>
-                The quick brown fox jumps over the lazy dog.
-              </p>
+              {formData.bodyFont && (
+                <p className="text-base mt-2" style={{ fontFamily: formData.bodyFont }}>
+                  The quick brown fox jumps over the lazy dog.
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

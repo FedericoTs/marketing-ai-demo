@@ -4797,6 +4797,26 @@ Use Supabase Realtime for canvas synchronization.
     - `components/dashboard/performance-insights.tsx`
     - `app/api/dashboard/metrics/route.ts`
 
+- ✅ **Blank Company Profile for New Users** (Phase 9.2.12) - Nov 21, 2025
+  - **Problem**: New users saw pre-filled brand kit values (blue/purple colors, Inter font)
+  - **Solution**: Remove DEFAULT values from database schema
+  - **Migration 028**: `blank_company_profile_for_new_users.sql`
+    - Removed DEFAULT from `brand_primary_color`, `brand_secondary_color`, `brand_accent_color`
+    - Removed DEFAULT from `brand_font_headline`, `brand_font_body`, `brand_logo_url`
+    - Kept operational defaults: `plan_tier='free'`, `billing_status='active'`, `credits=0.00`
+    - Added column comments: "NULL = not set yet"
+  - **UI Updates**: `components/settings/brand-kit-manager.tsx`
+    - Empty state initialization (no color/font defaults)
+    - Placeholder text: "Not set (e.g., #1E3A8A)"
+    - Color picker fallback: `#000000` (for HTML5 input requirement)
+    - Font selects show "Select heading font..." placeholder
+    - Preview only renders when values exist
+  - **Impact**:
+    - New organizations created via signup get NULL brand kit values
+    - Settings page shows truly blank fields ready to be filled
+    - Existing organizations keep their current values (migration is non-destructive)
+    - Brand Intelligence AI analyzer still auto-fills when used
+
 **API Routes Created**:
 - `POST /api/stripe/create-customer` - Create Stripe customer
 - `POST /api/stripe/create-checkout-session` - Payment collection
