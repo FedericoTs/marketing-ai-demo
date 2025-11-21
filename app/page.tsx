@@ -1,200 +1,207 @@
+/**
+ * Marketing Homepage
+ *
+ * Public-facing landing page with attribution-focused value proposition.
+ * "Offline Marketing. Online Attribution."
+ *
+ * Designed to convert visitors into qualified demo leads.
+ *
+ * Phase 9.2.15 - Public Marketing Landing Page
+ */
+
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  ArrowRight,
-  Mail,
-  Sparkles,
-  BarChart3,
-  Target,
-  Users,
-  CheckCircle2,
-  Zap
-} from 'lucide-react';
+import { HeroSection } from '@/components/marketing/hero-section';
+import { SocialProof } from '@/components/marketing/social-proof';
+import { ValueProps } from '@/components/marketing/value-props';
+import { HowItWorks } from '@/components/marketing/how-it-works';
+import { DemoForm } from '@/components/marketing/demo-form';
+import { MarketingFooter } from '@/components/marketing/marketing-footer';
 
-export default function LandingPage() {
+export default function MarketingHomepage() {
+  const handleDemoClick = () => {
+    // Scroll to demo section
+    const demoSection = document.getElementById('demo');
+    demoSection?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="flex flex-col items-center text-center mb-16">
-          <img
-            src="/images/logo_icon_tbg.png"
-            alt="DropLab"
-            className="h-16 w-auto object-contain mb-6"
-          />
-          <h1 className="text-5xl font-bold text-slate-900 mb-4">
-            AI-Powered Marketing Automation
-          </h1>
-          <p className="text-xl text-slate-600 mb-8 max-w-2xl">
-            Create personalized direct mail campaigns with AI copywriting,
-            automated fulfillment, and intelligent tracking—all in one platform.
-          </p>
-          <div className="flex gap-4">
-            <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-              <Link href="/auth/signup">
-                Get Started Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2">
+              <img
+                src="/images/logo_icon_tbg.png"
+                alt="DropLab"
+                className="h-6 w-auto object-contain"
+              />
+              <span className="text-xl font-bold text-slate-900">DropLab</span>
+            </Link>
+
+            {/* Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
+              <a
+                href="#features"
+                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Features
+              </a>
+              <a
+                href="#how-it-works"
+                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                How It Works
+              </a>
+              <a
+                href="#demo"
+                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Demo
+              </a>
               <Link href="/auth/login">
-                Sign In
+                <Button variant="outline" size="sm">
+                  Sign In
+                </Button>
               </Link>
-            </Button>
-          </div>
-        </div>
-
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          <Card className="border-2 hover:border-blue-300 transition-colors">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Sparkles className="h-6 w-6 text-blue-600" />
-                </div>
-                <CardTitle>AI Copywriting</CardTitle>
-              </div>
-              <CardDescription>
-                Generate multiple campaign variations with different tones and
-                target audiences using advanced AI.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-2 hover:border-purple-300 transition-colors">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Mail className="h-6 w-6 text-purple-600" />
-                </div>
-                <CardTitle>Direct Mail Creative</CardTitle>
-              </div>
-              <CardDescription>
-                Design beautiful, personalized direct mail with AI-generated
-                backgrounds and dynamic QR codes.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-2 hover:border-green-300 transition-colors">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Target className="h-6 w-6 text-green-600" />
-                </div>
-                <CardTitle>Smart Targeting</CardTitle>
-              </div>
-              <CardDescription>
-                Access 250M+ contacts with Data Axle integration and
-                intelligent audience filtering.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-2 hover:border-orange-300 transition-colors">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Zap className="h-6 w-6 text-orange-600" />
-                </div>
-                <CardTitle>Automated Fulfillment</CardTitle>
-              </div>
-              <CardDescription>
-                Send campaigns at scale with PostGrid integration—no printing
-                or mailing required.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-2 hover:border-pink-300 transition-colors">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-pink-100 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-pink-600" />
-                </div>
-                <CardTitle>Real-Time Analytics</CardTitle>
-              </div>
-              <CardDescription>
-                Track QR scans, page views, and conversions with comprehensive
-                campaign analytics.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-2 hover:border-indigo-300 transition-colors">
-            <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-indigo-100 rounded-lg">
-                  <Users className="h-6 w-6 text-indigo-600" />
-                </div>
-                <CardTitle>Multi-Tenant SaaS</CardTitle>
-              </div>
-              <CardDescription>
-                Secure, scalable infrastructure with team collaboration and
-                role-based access control.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-
-        {/* Benefits Section */}
-        <div className="bg-white rounded-xl p-8 shadow-lg mb-16">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6 text-center">
-            Why Choose DropLab?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-1">Save Time</h3>
-                <p className="text-slate-600">Generate campaign copy and creative in minutes, not hours</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-1">Increase Engagement</h3>
-                <p className="text-slate-600">Personalized messages drive 6x higher response rates</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-1">Scale Effortlessly</h3>
-                <p className="text-slate-600">From 100 to 100,000 recipients with automated fulfillment</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-slate-900 mb-1">Track Everything</h3>
-                <p className="text-slate-600">Know exactly who engaged and converted from your campaigns</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CTA Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-12 text-center text-white">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to Transform Your Marketing?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join hundreds of marketers using AI to create better campaigns faster.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button asChild size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-slate-100">
               <Link href="/auth/signup">
-                Start Free Trial
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <Button size="sm" className="bg-gradient-to-r from-indigo-600 to-purple-600">
+                  Get Started
+                </Button>
               </Link>
-            </Button>
+            </nav>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <Link href="/auth/signup">
+                <Button size="sm">Get Started</Button>
+              </Link>
+            </div>
           </div>
         </div>
+      </header>
+
+      {/* Hero Section */}
+      <HeroSection onDemoClick={handleDemoClick} />
+
+      {/* Social Proof */}
+      <SocialProof />
+
+      {/* Value Propositions */}
+      <ValueProps />
+
+      {/* How It Works */}
+      <div id="how-it-works">
+        <HowItWorks />
       </div>
+
+      {/* Demo Section */}
+      <section id="demo" className="py-24 bg-gradient-to-br from-slate-50 to-indigo-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section Header */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
+              See the Attribution Magic
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Get a personalized demo postcard via email. Scan the QR code to experience
+              pixel-perfect tracking for yourself.
+            </p>
+          </div>
+
+          {/* Demo Form */}
+          <DemoForm />
+
+          {/* Below Form - What Happens Next */}
+          <div className="mt-12 bg-white rounded-xl p-8 shadow-md">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4 text-center">
+              What happens after you submit?
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 font-bold mb-3">
+                  1
+                </div>
+                <p className="text-sm text-slate-600">
+                  We generate a personalized demo postcard with your name
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-purple-100 text-purple-600 font-bold mb-3">
+                  2
+                </div>
+                <p className="text-sm text-slate-600">
+                  You receive it via email within 30 seconds
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-100 text-orange-600 font-bold mb-3">
+                  3
+                </div>
+                <p className="text-sm text-slate-600">
+                  Scan the QR code to see live attribution tracking
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-24 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+            Ready to Prove ROI on Offline Marketing?
+          </h2>
+          <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
+            Join 500+ marketers who have complete attribution across online and offline channels.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={handleDemoClick}
+              className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors shadow-lg"
+            >
+              Try Interactive Demo
+            </button>
+            <Link
+              href="/auth/signup"
+              className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-semibold hover:bg-white/10 transition-colors inline-block"
+            >
+              Start Your First Campaign
+            </Link>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="mt-12 flex items-center justify-center gap-8 text-sm text-indigo-100 flex-wrap">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Free demo</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>No credit card</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Setup in 60 seconds</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <MarketingFooter />
     </div>
   );
 }
