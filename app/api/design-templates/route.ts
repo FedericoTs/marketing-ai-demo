@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 🔐 BILLING CHECK: Authenticate user and validate billing access
-    const supabase = await createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const supabaseAuth = await createServerClient();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate billing access for template creation
-    const billingCheck = await validateBillingAccess(supabase, user.id, 'templates');
+    const billingCheck = await validateBillingAccess(supabaseAuth, user.id, 'templates');
     if (!billingCheck.hasAccess) {
       console.log('🔒 [Billing] Template creation blocked:', {
         userId: user.id,
@@ -156,9 +156,9 @@ export async function POST(request: NextRequest) {
     };
 
     // Use admin client to bypass RLS for server-side operations
-    const supabase = createAdminClient();
+    const supabaseAdmin = createAdminClient();
 
-    const { data: template, error } = await supabase
+    const { data: template, error } = await supabaseAdmin
       .from('design_templates')
       .insert(templateData)
       .select()
@@ -203,9 +203,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Use admin client to bypass RLS for server-side operations
-    const supabase = createAdminClient();
+    const supabaseAdmin = createAdminClient();
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('design_templates')
       .delete()
       .eq('id', templateId);
