@@ -57,6 +57,7 @@ export default function CampaignDetailsPage() {
         status: stats.status,
         total_recipients: stats.totalRecipients,
         organization_id: stats.organizationId,
+        created_at: stats.createdAt,
       } as Campaign);
 
       // Set generated count

@@ -300,6 +300,33 @@ export async function POST(
       },
     })
 
+    // Track vendor cost for margin analysis
+    // PostGrid wholesale cost: $0.85/postcard, User price: $1.00/postcard
+    const postgridWholesaleCost = 0.85 * successCount
+    const userCharge = actualCost
+
+    await supabase.from('vendor_costs').insert({
+      organization_id: organizationId,
+      vendor_name: 'postgrid',
+      service_type: 'printing',
+      cost_amount: postgridWholesaleCost,
+      credits_charged: userCharge,
+      transaction_id: null, // PostGrid transaction IDs stored in postgridResponse
+      internal_reference_id: printJob.id,
+      internal_reference_type: 'print_job',
+      payment_status: 'pending', // Will be marked 'paid' when PostGrid invoice is processed
+      payment_method: environment === 'test' ? 'prepaid_wallet' : 'invoice',
+      quantity: successCount,
+      unit_cost: 0.85,
+      metadata: {
+        campaign_id: campaignId,
+        campaign_name: campaign.name,
+        mail_type: mailType,
+        environment,
+        cost_per_piece_user: costEstimate.costPerPiece,
+      },
+    })
+
     const duration = (Date.now() - startTime) / 1000
 
     console.log(

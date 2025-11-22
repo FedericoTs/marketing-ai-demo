@@ -252,6 +252,34 @@ export async function POST(request: Request) {
       // Don't rollback - contacts are already imported
     }
 
+    // Step 4a: Track vendor cost for margin analysis
+    if (contactPurchase) {
+      const vendorCost = maxContacts * Number(tier.cost_per_contact); // Wholesale cost
+      const userCharge = totalCost; // What user paid
+
+      await serviceSupabase
+        .from('vendor_costs')
+        .insert({
+          organization_id: organizationId,
+          vendor_name: 'data_axle',
+          service_type: 'contacts',
+          cost_amount: vendorCost,
+          credits_charged: userCharge,
+          transaction_id: null, // Data Axle doesn't provide transaction IDs in mock mode
+          internal_reference_id: contactPurchase.id,
+          internal_reference_type: 'contact_purchase',
+          payment_status: 'pending', // Will be marked 'paid' when Data Axle invoice is processed
+          payment_method: 'invoice', // Data Axle uses monthly invoicing
+          quantity: maxContacts,
+          unit_cost: Number(tier.cost_per_contact),
+          metadata: {
+            mockMode: isMockData,
+            recipientListId: recipientList.id,
+            filters: filters,
+          },
+        });
+    }
+
     // Step 5: Deduct credits using database function
     const { data: transaction, error: deductError } = await serviceSupabase
       .rpc('spend_credits', {

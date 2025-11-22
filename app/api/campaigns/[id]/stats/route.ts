@@ -24,7 +24,7 @@ export async function GET(
     // Get campaign basic info
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
-      .select('id, name, status, total_recipients, organization_id')
+      .select('id, name, status, total_recipients, organization_id, created_at')
       .eq('id', campaignId)
       .single()
 
@@ -55,6 +55,7 @@ export async function GET(
       totalRecipients: campaign.total_recipients || 0,
       generatedCount: generatedCount || 0,
       organizationId: campaign.organization_id,
+      createdAt: campaign.created_at,
     }
 
     console.log('✅ [Campaign Stats] Stats loaded:', stats)

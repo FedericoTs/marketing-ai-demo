@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSettings } from "@/lib/contexts/settings-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ interface BrandKitData {
 }
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams();
   const { settings, updateSettings, isLoaded } = useSettings();
   const [formData, setFormData] = useState(settings);
   const [brandProfile, setBrandProfile] = useState<ExtractedProfile | null>(null);
@@ -47,6 +49,7 @@ export default function SettingsPage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'brand');
   const brandKitRef = useRef<BrandKitManagerRef>(null);
 
   // Load settings ONCE when they first become available
@@ -255,7 +258,7 @@ export default function SettingsPage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <Tabs defaultValue="brand" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-5xl grid-cols-4 h-auto p-1">
             <TabsTrigger value="brand" className="gap-2 py-3">
               <Sparkles className="h-4 w-4" />

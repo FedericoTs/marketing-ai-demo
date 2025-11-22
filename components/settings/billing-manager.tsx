@@ -5,11 +5,13 @@
  *
  * Provides UI for subscription management:
  * - View subscription status
+ * - Purchase additional credits
  * - Cancel subscription
  * - Update payment method (Stripe Customer Portal)
  * - View billing history
  *
  * Phase 9.2.10 - Subscription Management
+ * Phase 9.2.16 - One-Time Credit Purchase System
  */
 
 import { useState, useEffect } from 'react';
@@ -17,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useBillingStatus } from '@/lib/hooks/use-billing-status';
 import { toast } from 'sonner';
 import {
@@ -28,6 +32,8 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
+  Plus,
+  DollarSign,
 } from 'lucide-react';
 
 interface Invoice {
@@ -63,6 +69,8 @@ export function BillingManager() {
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+  const [creditAmount, setCreditAmount] = useState<string>('100');
+  const [isPurchasingCredits, setIsPurchasingCredits] = useState(false);
 
   // Load billing history on mount
   useEffect(() => {
@@ -70,6 +78,24 @@ export function BillingManager() {
       loadBillingHistory();
     }
   }, [organization?.stripe_customer_id]);
+
+  // Handle credit purchase success/cancel from URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const purchaseStatus = urlParams.get('purchase');
+    const amount = urlParams.get('amount');
+
+    if (purchaseStatus === 'success' && amount) {
+      toast.success(`Successfully purchased $${amount} in credits! Your balance has been updated.`);
+      refresh(); // Refresh to show new credit balance
+      // Clear URL parameters
+      window.history.replaceState({}, '', '/settings');
+    } else if (purchaseStatus === 'canceled') {
+      toast.info('Credit purchase canceled');
+      // Clear URL parameters
+      window.history.replaceState({}, '', '/settings');
+    }
+  }, []);
 
   async function loadBillingHistory() {
     setIsLoadingInvoices(true);
@@ -142,6 +168,39 @@ export function BillingManager() {
       toast.error('Failed to open customer portal. Please try again.');
       console.error('Error opening customer portal:', error);
       setIsOpeningPortal(false);
+    }
+  }
+
+  async function handlePurchaseCredits() {
+    const amount = parseFloat(creditAmount);
+
+    // Validate amount
+    if (isNaN(amount) || amount < 10 || amount > 10000) {
+      toast.error('Amount must be between $10 and $10,000');
+      return;
+    }
+
+    setIsPurchasingCredits(true);
+    try {
+      const response = await fetch('/api/stripe/purchase-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        toast.error(data.error || 'Failed to create checkout session');
+        setIsPurchasingCredits(false);
+      }
+    } catch (error) {
+      toast.error('Failed to purchase credits. Please try again.');
+      console.error('Error purchasing credits:', error);
+      setIsPurchasingCredits(false);
     }
   }
 
@@ -291,6 +350,90 @@ export function BillingManager() {
               </Button>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Purchase Additional Credits Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Purchase Additional Credits
+          </CardTitle>
+          <CardDescription>
+            Buy extra credits for Data Axle contacts and PostGrid printing. $1 = 1 credit.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Current Balance Display */}
+          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">Current Credit Balance</p>
+              <p className="text-3xl font-bold text-slate-900">${credits}</p>
+            </div>
+            <DollarSign className="h-10 w-10 text-slate-400" />
+          </div>
+
+          {/* Amount Input */}
+          <div className="space-y-2">
+            <Label htmlFor="credit-amount">Purchase Amount ($10 - $10,000)</Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                <Input
+                  id="credit-amount"
+                  type="number"
+                  min="10"
+                  max="10000"
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(e.target.value)}
+                  className="pl-7"
+                  placeholder="100"
+                />
+              </div>
+              <Button
+                onClick={handlePurchaseCredits}
+                disabled={isPurchasingCredits}
+                className="min-w-[120px]"
+              >
+                {isPurchasingCredits ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Purchase'
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Amount Buttons */}
+          <div className="space-y-2">
+            <Label className="text-sm text-slate-600">Quick Amounts</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {[50, 100, 250, 500].map((amount) => (
+                <Button
+                  key={amount}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCreditAmount(amount.toString())}
+                  className="w-full"
+                >
+                  ${amount}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Info Alert */}
+          <Alert className="border-blue-200 bg-blue-50">
+            <CheckCircle2 className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-900 text-sm">
+              <strong>How it works:</strong> Purchase credits in any amount. Use them to buy Data Axle contacts
+              or print postcards via PostGrid. Credits never expire and roll over month-to-month.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 

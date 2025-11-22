@@ -2,12 +2,15 @@
  * Stripe Webhook Handler
  *
  * Receives and processes webhook events from Stripe:
- * - invoice.payment_succeeded → Grant credits to organization
+ * - invoice.payment_succeeded → Grant credits to organization (subscriptions)
+ * - checkout.session.completed → Grant credits from one-time purchases
  * - customer.subscription.created → Log subscription creation
  * - customer.subscription.updated → Update subscription status
  * - customer.subscription.deleted → Handle subscription cancellation
+ * - invoice.payment_failed → Update billing status to past_due
  *
  * Phase 9.2.3 - Webhook Integration
+ * Phase 9.2.16 - One-Time Credit Purchase System
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -299,6 +302,72 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 /**
+ * Handle checkout.session.completed event for one-time credit purchases
+ *
+ * When a user purchases additional credits (NOT subscription):
+ * - Verify payment_status is 'paid'
+ * - Check metadata.type === 'credits' to distinguish from subscriptions
+ * - Add credits to organization (1:1 dollar to credit ratio)
+ * - Log transaction in credit_transactions table
+ *
+ * Phase 9.2.16 - One-Time Credit Purchase System
+ */
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  try {
+    console.log(`[Webhook] Checkout session completed: ${session.id}`);
+
+    // Only process credit purchases (not subscriptions)
+    if (session.metadata?.type !== 'credits') {
+      console.log('[Webhook] Not a credit purchase - skipping');
+      return;
+    }
+
+    // Verify payment was successful
+    if (session.payment_status !== 'paid') {
+      console.error('[Webhook] Payment not completed:', session.payment_status);
+      return;
+    }
+
+    // Get organization ID from metadata
+    const organizationId = session.metadata?.organization_id;
+
+    if (!organizationId) {
+      console.error('[Webhook] No organization_id in session metadata');
+      return;
+    }
+
+    // Get amount from metadata (in dollars)
+    const amount = parseFloat(session.metadata?.amount || '0');
+
+    if (!amount || amount <= 0) {
+      console.error('[Webhook] Invalid amount in metadata:', session.metadata?.amount);
+      return;
+    }
+
+    console.log(
+      `[Webhook] Processing credit purchase: $${amount.toFixed(2)} for organization ${organizationId}`
+    );
+
+    // Convert dollars to cents for addCreditsToOrganization function
+    const amountCents = Math.round(amount * 100);
+
+    // Add credits to organization
+    // billingCycleCount = 0 for one-time purchases (not subscription billing)
+    const result = await addCreditsToOrganization(organizationId, amountCents, 0);
+
+    if (result.success) {
+      console.log(
+        `[Webhook] ✅ Granted $${result.creditsAdded?.toFixed(2)} credits from one-time purchase (new balance: $${result.newBalance?.toFixed(2)})`
+      );
+    } else {
+      console.error('[Webhook] ❌ Failed to grant credits:', result.error);
+    }
+  } catch (error) {
+    console.error('[Webhook] Error handling checkout session completed:', error);
+  }
+}
+
+/**
  * POST /api/stripe/webhook
  *
  * Stripe webhook endpoint - receives events from Stripe
@@ -346,6 +415,10 @@ export async function POST(request: NextRequest) {
 
       case 'invoice.payment_failed':
         await handlePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
         break;
 
       default:

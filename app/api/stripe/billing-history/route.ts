@@ -62,11 +62,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Return empty list if no Stripe customer yet
     if (!org.stripe_customer_id) {
-      return NextResponse.json(
-        { error: 'No Stripe customer found' },
-        { status: 400 }
-      );
+      console.log('[Billing History] No Stripe customer ID - returning empty list');
+      return NextResponse.json({
+        success: true,
+        invoices: [],
+        has_more: false,
+      });
     }
 
     // Get query parameters for pagination

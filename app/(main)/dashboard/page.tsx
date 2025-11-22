@@ -11,7 +11,8 @@ import {
   Building2,
   CreditCard,
   Shield,
-  AlertCircle
+  AlertCircle,
+  Plus
 } from 'lucide-react';
 import type { UserProfile, Organization } from '@/lib/database/types';
 import { TeamWidget } from '@/components/dashboard/team-widget-enhanced';
@@ -407,7 +408,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-3xl font-bold">${organization?.credits?.toFixed(2) || '0.00'}</p>
                   <p className="text-sm text-slate-500">
-                    For Data Axle contacts
+                    For Data Axle contacts & PostGrid printing
                   </p>
                 </div>
                 <div className="pt-2 border-t">
@@ -415,6 +416,17 @@ export default function DashboardPage() {
                   <p className="text-sm">
                     {organization?.monthly_design_limit || 0} designs • {organization?.monthly_sends_limit || 0} sends
                   </p>
+                </div>
+                <div className="pt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => router.push('/settings?tab=billing')}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Purchase Credits
+                  </Button>
                 </div>
               </div>
             </CardContent>
