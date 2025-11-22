@@ -17,14 +17,21 @@ export function SocialProof() {
           </p>
         </div>
 
-        {/* Logo Grid (Placeholder) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center justify-items-center opacity-50">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+        {/* Logo Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center justify-items-center">
+          {[
+            'Zendesk',
+            'Notion',
+            'Airtable',
+            'Monday',
+            'Asana',
+            'Basecamp',
+          ].map((company) => (
             <div
-              key={i}
-              className="w-32 h-12 bg-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs font-semibold"
+              key={company}
+              className="px-6 py-3 text-slate-400 font-bold text-lg tracking-tight opacity-60 hover:opacity-100 transition-opacity"
             >
-              LOGO {i}
+              {company}
             </div>
           ))}
         </div>

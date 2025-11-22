@@ -14,18 +14,31 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Menu, X } from 'lucide-react';
 import { HeroSection } from '@/components/marketing/hero-section';
 import { SocialProof } from '@/components/marketing/social-proof';
 import { ValueProps } from '@/components/marketing/value-props';
+import { PlatformShowcase } from '@/components/marketing/platform-showcase';
 import { HowItWorks } from '@/components/marketing/how-it-works';
+import { Testimonials } from '@/components/marketing/testimonials';
+import { FAQ } from '@/components/marketing/faq';
 import { DemoForm } from '@/components/marketing/demo-form';
 import { MarketingFooter } from '@/components/marketing/marketing-footer';
 
 export default function MarketingHomepage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const handleDemoClick = () => {
     // Scroll to demo section
     const demoSection = document.getElementById('demo');
     demoSection?.scrollIntoView({ behavior: 'smooth' });
+    setMobileMenuOpen(false); // Close mobile menu after clicking
+  };
+
+  const handleNavClick = (sectionId: string) => {
+    const section = document.getElementById(sectionId);
+    section?.scrollIntoView({ behavior: 'smooth' });
+    setMobileMenuOpen(false); // Close mobile menu after clicking
   };
 
   return (
@@ -78,11 +91,56 @@ export default function MarketingHomepage() {
 
             {/* Mobile menu button */}
             <div className="md:hidden">
-              <Link href="/auth/signup">
-                <Button size="sm">Get Started</Button>
-              </Link>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-slate-600 hover:text-slate-900"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
+              </button>
             </div>
           </div>
+
+          {/* Mobile Navigation Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-slate-200 bg-white">
+              <div className="px-4 py-4 space-y-3">
+                <button
+                  onClick={() => handleNavClick('features')}
+                  className="block w-full text-left text-sm font-medium text-slate-600 hover:text-slate-900 py-2"
+                >
+                  Features
+                </button>
+                <button
+                  onClick={() => handleNavClick('how-it-works')}
+                  className="block w-full text-left text-sm font-medium text-slate-600 hover:text-slate-900 py-2"
+                >
+                  How It Works
+                </button>
+                <button
+                  onClick={handleDemoClick}
+                  className="block w-full text-left text-sm font-medium text-slate-600 hover:text-slate-900 py-2"
+                >
+                  Demo
+                </button>
+                <div className="pt-3 space-y-2">
+                  <Link href="/auth/login" className="block">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/auth/signup" className="block">
+                    <Button size="sm" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600">
+                      Get Started
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -95,10 +153,19 @@ export default function MarketingHomepage() {
       {/* Value Propositions */}
       <ValueProps />
 
+      {/* Platform Showcase */}
+      <PlatformShowcase />
+
       {/* How It Works */}
       <div id="how-it-works">
         <HowItWorks />
       </div>
+
+      {/* Testimonials */}
+      <Testimonials />
+
+      {/* FAQ */}
+      <FAQ />
 
       {/* Demo Section */}
       <section id="demo" className="py-24 bg-gradient-to-br from-slate-50 to-indigo-50">

@@ -7,9 +7,9 @@
 
 **Strategic Vision**: Build the first "Figma meets Mailchimp for Physical Mail" platform
 
-**Last Updated**: 2025-11-19 (Phase 1 Enhancement - Team Management System Complete!)
+**Last Updated**: 2025-11-22 (Phase 9.2.15 - Public Marketing Landing Page Complete!)
 
-**Version**: 5.2 (🎉 NEW: Team Management with Optimistic UI Updates!)
+**Version**: 5.3 (🎉 NEW: Public Marketing Homepage with Privacy/Terms Pages!)
 
 ---
 
@@ -82,14 +82,20 @@ A complete direct mail platform requires these 5 core capabilities:
 
 **Current Status**: **97% Complete!** 🚀 - Phase 5.7 Analytics COMPLETE! Only AI Intelligence and Stripe billing remain
 
-**🎉 LATEST UPDATE (Nov 19, 2025)**:
-- **100% Supabase Migration COMPLETE!** ✅ - All SQLite dependencies removed
-- **ElevenLabs Call Tracking** ✅ - 35 calls synced with full analytics
-- **Investment Tracking Dashboard** ✅ - Cost breakdown, budget tracking, ROI calculation
-- **Sankey Diagram Fixed** ✅ - 35 calls displayed correctly (was showing 5)
-- **Call Analytics Dashboard** ✅ - Success rate, avg duration, conversion metrics
-- **Sidebar UI Cleanup** ✅ - Removed "NEW" badges for production-ready feel
-- **Chart Formatting** ✅ - 1 decimal precision for all percentages
+**🎉 LATEST UPDATE (Nov 22, 2025)**:
+- **Public Marketing Landing Page COMPLETE!** ✅ - Phase 9.2.15
+  - Privacy Policy page with comprehensive legal coverage
+  - Terms of Service page with subscription model, billing, compliance
+  - Mobile-responsive hamburger menu with smooth scrolling
+  - Functional "Learn more" buttons scrolling to demo section
+  - Fixed icon display in How It Works section (Design, Personalize, Send & Track)
+  - All footer links working (Privacy, Terms, Contact)
+- **Previous Updates (Nov 19, 2025)**:
+  - 100% Supabase Migration COMPLETE ✅
+  - ElevenLabs Call Tracking ✅
+  - Investment Tracking Dashboard ✅
+  - Sankey Diagram Fixed ✅
+  - Call Analytics Dashboard ✅
 
 **🎉 MAJOR SIMPLIFICATION (Nov 20, 2025) - PLANNING COMPLETE**:
 - **Credits-Based Business Model Finalized** ✅

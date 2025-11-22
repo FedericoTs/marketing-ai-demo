@@ -12,19 +12,62 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ChevronDown } from 'lucide-react';
+import { ArrowRight, ChevronDown, Mail, TrendingUp, Target, Activity } from 'lucide-react';
+import { MiniAttributionChart } from './mini-attribution-chart';
 
 interface HeroSectionProps {
   onDemoClick?: () => void;
 }
 
 export function HeroSection({ onDemoClick }: HeroSectionProps) {
+  const [metrics, setMetrics] = useState({
+    sent: 0,
+    scans: 0,
+    responseRate: 0,
+    conversions: 0,
+  });
+
   const scrollToFeatures = () => {
     const featuresSection = document.getElementById('features');
     featuresSection?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Animate metrics counting up
+  useEffect(() => {
+    const targetMetrics = {
+      sent: 1247,
+      scans: 423,
+      responseRate: 33.9,
+      conversions: 87,
+    };
+
+    const duration = 2000;
+    const steps = 60;
+    const stepDuration = duration / steps;
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      setMetrics({
+        sent: Math.floor(targetMetrics.sent * easeOut),
+        scans: Math.floor(targetMetrics.scans * easeOut),
+        responseRate: parseFloat((targetMetrics.responseRate * easeOut).toFixed(1)),
+        conversions: Math.floor(targetMetrics.conversions * easeOut),
+      });
+
+      if (currentStep >= steps) {
+        clearInterval(interval);
+        setMetrics(targetMetrics);
+      }
+    }, stepDuration);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50">
@@ -115,40 +158,92 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* Right Column - Visual (Dashboard Preview) */}
+          {/* Right Column - Enhanced Dashboard Preview */}
           <div className="relative">
-            {/* Placeholder for dashboard screenshot/visual */}
-            <div className="relative rounded-2xl bg-white shadow-2xl border border-slate-200 p-4 transform hover:scale-105 transition-transform duration-300">
-              {/* Mock Dashboard */}
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex items-center justify-between pb-3 border-b">
-                  <h3 className="font-semibold text-slate-900">Campaign Performance</h3>
-                  <span className="text-xs text-slate-500">Live</span>
+            <div className="relative rounded-2xl bg-white shadow-2xl border border-slate-200 p-6 transform hover:scale-105 transition-transform duration-300">
+              {/* Header with Live Indicator */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+                <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-indigo-600" />
+                  Campaign Performance
+                </h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-semibold text-green-900">Live Data</span>
+                </div>
+              </div>
+
+              {/* Enhanced Metrics Grid */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {/* Mail Sent */}
+                <div className="p-3 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-lg border border-indigo-200 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Mail className="w-4 h-4 text-indigo-600" />
+                    <span className="text-xs font-semibold text-slate-600">Mail Sent</span>
+                  </div>
+                  <div className="text-2xl font-bold text-indigo-900 tabular-nums">
+                    {metrics.sent.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-indigo-600 mt-1">+12.5% this week</div>
                 </div>
 
-                {/* Metrics */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-slate-50 rounded-lg">
-                    <div className="text-xs text-slate-600 mb-1">QR Scans</div>
-                    <div className="text-2xl font-bold text-slate-900">1,247</div>
-                    <div className="text-xs text-green-600">+12.5% today</div>
+                {/* QR Scans */}
+                <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-lg border border-purple-200 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="w-4 h-4 text-purple-600" />
+                    <span className="text-xs font-semibold text-slate-600">QR Scans</span>
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-lg">
-                    <div className="text-xs text-slate-600 mb-1">Conversions</div>
-                    <div className="text-2xl font-bold text-slate-900">89</div>
-                    <div className="text-xs text-green-600">7.1% rate</div>
+                  <div className="text-2xl font-bold text-purple-900 tabular-nums">
+                    {metrics.scans.toLocaleString()}
                   </div>
+                  <div className="text-xs text-purple-600 mt-1">{metrics.responseRate}% response</div>
                 </div>
 
-                {/* Chart placeholder */}
-                <div className="h-32 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center">
-                  <div className="text-sm text-slate-600">Attribution Dashboard</div>
+                {/* Response Rate */}
+                <div className="p-3 bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg border border-green-200 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target className="w-4 h-4 text-green-600" />
+                    <span className="text-xs font-semibold text-slate-600">Response Rate</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-900 tabular-nums">
+                    {metrics.responseRate}%
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">Industry avg: 3-5%</div>
+                </div>
+
+                {/* Conversions */}
+                <div className="p-3 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-lg border border-orange-200 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ArrowRight className="w-4 h-4 text-orange-600" />
+                    <span className="text-xs font-semibold text-slate-600">Conversions</span>
+                  </div>
+                  <div className="text-2xl font-bold text-orange-900 tabular-nums">
+                    {metrics.conversions}
+                  </div>
+                  <div className="text-xs text-orange-600 mt-1">7.0% conversion</div>
+                </div>
+              </div>
+
+              {/* Attribution Funnel Chart */}
+              <div className="mt-4">
+                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-2">
+                  Attribution Funnel
+                </p>
+                <div className="h-32 rounded-lg overflow-hidden">
+                  <MiniAttributionChart />
+                </div>
+              </div>
+
+              {/* ROI Indicator */}
+              <div className="mt-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-3 border border-green-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-slate-900">Campaign ROI:</span>
+                  <span className="text-xl font-bold text-green-600">412%</span>
                 </div>
               </div>
 
               {/* Floating "tracking badge" */}
-              <div className="absolute -top-4 -right-4 bg-orange-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg animate-pulse">
+              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
                 Live Tracking
               </div>
             </div>

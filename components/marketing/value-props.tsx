@@ -10,6 +10,8 @@
  * Phase 9.2.15 - Public Marketing Landing Page
  */
 
+'use client';
+
 import { Target, BarChart3, DollarSign, Link2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
@@ -41,6 +43,11 @@ const features = [
 ];
 
 export function ValueProps() {
+  const handleLearnMore = () => {
+    const demoSection = document.getElementById('demo');
+    demoSection?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section id="features" className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -86,8 +93,11 @@ export function ValueProps() {
                   {feature.body}
                 </p>
 
-                {/* Learn More Link (optional) */}
-                <button className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium text-sm flex items-center gap-1 group">
+                {/* Learn More Link */}
+                <button
+                  onClick={handleLearnMore}
+                  className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium text-sm flex items-center gap-1 group"
+                >
                   Learn more
                   <svg
                     className="w-4 h-4 group-hover:translate-x-1 transition-transform"
