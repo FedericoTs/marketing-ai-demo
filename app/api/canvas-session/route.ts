@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCanvasSession } from '@/lib/database/canvas-queries';
+import { getCanvasSession } from '@/lib/database/canvas-supabase-queries';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 export async function GET(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const session = getCanvasSession(sessionId);
+    const session = await getCanvasSession(sessionId);
 
     if (!session) {
       return NextResponse.json(

@@ -54,7 +54,7 @@ This master plan contains:
   - AI-powered audience recommendations
   - Complete database schema, API routes, UI components
   - **Reference Guide**: `docs/DATA_AXLE_INTEGRATION_GUIDE.md` (API documentation, filter DSL, production code)
-- **Database Patterns**: See `DATABASE_PATTERNS.md` for SQLite/Supabase query patterns (legacy reference only)
+- **Database Patterns**: See `docs/archive/DATABASE_PATTERNS.md` for historical SQLite patterns (archived - now using Supabase exclusively)
 
 ## Progress Tracking
 
@@ -98,7 +98,7 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
 - **Turbopack** for fast development
 - **AI APIs**: OpenAI GPT-4 (copywriting, background generation), ElevenLabs (voice AI)
 - **Batch Processing**: BullMQ + Redis for scalable campaign generation
-- **Database**: SQLite with better-sqlite3 for production-ready persistence
+- **Database**: Supabase PostgreSQL with Row-Level Security for multi-tenant data isolation
 - **Image Processing**: Puppeteer + Canvas for high-quality DM rendering
 
 ## Core Features
@@ -243,7 +243,7 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
   - Auto-refresh every 30 seconds
   - Page views, QR scans, button clicks, form submissions
   - Time-based activity grouping
-- **Database Integration**: SQLite with comprehensive tracking tables
+- **Database Integration**: Supabase PostgreSQL with comprehensive tracking tables and RLS policies
 - **Call Tracking Integration**: ElevenLabs call metrics displayed in dashboard
 
 ### 4b. Landing Page Manager (NEW - Phase 9.2.13 - Nov 21, 2025)
@@ -560,9 +560,8 @@ See `BUGFIX_SEPARATE_VARIABLE_MAPPINGS.md` for complete documentation of:
 npm install openai @anthropic-ai/sdk @elevenlabs/elevenlabs-js
 # Note: Uses ElevenLabs JS SDK for both API calls and ConvAI widget
 
-# Database (Phase 2 & 3)
-npm install better-sqlite3
-npm install --save-dev @types/better-sqlite3
+# Database (Supabase)
+npm install @supabase/supabase-js @supabase/ssr
 
 # QR Code Generation
 npm install qrcode @types/qrcode

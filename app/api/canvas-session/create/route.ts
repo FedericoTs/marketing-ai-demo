@@ -1,9 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCanvasSession } from '@/lib/database/canvas-queries';
+import { createCanvasSession } from '@/lib/database/canvas-supabase-queries';
+import { createClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated user's organization
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        errorResponse('Unauthorized', 'UNAUTHORIZED'),
+        { status: 401 }
+      );
+    }
+
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      return NextResponse.json(
+        errorResponse('Profile not found', 'PROFILE_NOT_FOUND'),
+        { status: 404 }
+      );
+    }
+
     const body = await request.json();
 
     const {
@@ -39,7 +64,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionId = createCanvasSession({
+    const sessionId = await createCanvasSession({
       campaignId,
       backgroundImage,
       qrCodeDataUrl,
@@ -60,7 +85,7 @@ export async function POST(request: NextRequest) {
       canvasHeight,
       phoneNumber,
       dmTemplateId, // NEW: Pass template ID to session
-    });
+    }, profile.organization_id);
 
     console.log(`✅ Canvas session created: ${sessionId}`);
 
