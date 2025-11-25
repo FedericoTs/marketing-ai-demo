@@ -5,9 +5,21 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServerClient, createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, createServerClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/admin';
 
 export async function GET(request: Request) {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const organizationId = searchParams.get('organizationId');
@@ -15,29 +27,13 @@ export async function GET(request: Request) {
     const supabase = await createServerClient();
     const serviceSupabase = createServiceClient();
 
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is admin/owner
+    // Get user's organization
+    const { data: { user } } = await supabase.auth.getUser();
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('role, organization_id')
-      .eq('id', user.id)
+      .select('organization_id')
+      .eq('id', user!.id)
       .single();
-
-    if (!userProfile || userProfile.role !== 'owner') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 403 }
-      );
-    }
 
     // Get feature flags (use service client to bypass RLS for admin access)
     const { data: org, error: orgError } = await serviceSupabase
@@ -68,6 +64,17 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
+  try {
     const body = await request.json();
     const { organizationId, flagName, enabled, reason } = body;
 
@@ -81,29 +88,13 @@ export async function PUT(request: Request) {
     const supabase = await createServerClient();
     const serviceSupabase = createServiceClient();
 
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is admin/owner
+    // Get current user info
+    const { data: { user } } = await supabase.auth.getUser();
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('role, full_name')
-      .eq('id', user.id)
+      .select('full_name')
+      .eq('id', user!.id)
       .single();
-
-    if (!userProfile || userProfile.role !== 'owner') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 403 }
-      );
-    }
 
     // Validate flag name
     const validFlags = [

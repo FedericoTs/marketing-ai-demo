@@ -7,6 +7,9 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "test": "jest --watchAll=false",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --watchAll=false",
     "worker": "tsx lib/queue/batch-worker.ts",
     "migrate:batch": "tsx lib/database/init-batch-tables.ts"
   },
@@ -83,6 +86,9 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/archiver": "^6.0.3",
     "@types/fabric": "^5.3.10",
     "@types/file-saver": "^2.0.7",
@@ -97,6 +103,8 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18",
     "tsx": "^4.20.6",

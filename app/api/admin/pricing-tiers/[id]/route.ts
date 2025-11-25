@@ -17,7 +17,15 @@ export async function PUT(
   try {
     // Verify admin access
     await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
 
+  try {
     const { id } = params;
     const body = await request.json();
     const {
@@ -127,14 +135,6 @@ export async function PUT(
 
   } catch (error: any) {
     console.error('Error updating pricing tier:', error);
-
-    if (error.message === 'Admin access required') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     return NextResponse.json(
       { error: 'Failed to update pricing tier', message: error.message },
       { status: 500 }
@@ -149,7 +149,15 @@ export async function DELETE(
   try {
     // Verify admin access
     await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
 
+  try {
     const { id } = params;
     const supabase = createServiceClient();
 
@@ -186,14 +194,6 @@ export async function DELETE(
 
   } catch (error: any) {
     console.error('Error deleting pricing tier:', error);
-
-    if (error.message === 'Admin access required') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     return NextResponse.json(
       { error: 'Failed to delete pricing tier', message: error.message },
       { status: 500 }

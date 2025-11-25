@@ -4,36 +4,23 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServerClient, createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/admin';
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createServerClient();
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
+  try {
     const serviceSupabase = createServiceClient();
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is admin/owner
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!userProfile || userProfile.role !== 'owner') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 403 }
-      );
-    }
 
     // Get all organizations with feature flags (use service client to bypass RLS)
     const { data: organizations, error: orgsError } = await serviceSupabase

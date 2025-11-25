@@ -13,7 +13,15 @@ export async function GET(request: Request) {
   try {
     // Verify admin access
     await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
 
+  try {
     const supabase = createServiceClient();
 
     // Fetch all users from auth.users joined with user_profiles
@@ -53,14 +61,6 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Error fetching users:', error);
-
-    if (error.message === 'Admin access required') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     return NextResponse.json(
       { error: 'Failed to fetch users', message: error.message },
       { status: 500 }

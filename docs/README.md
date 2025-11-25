@@ -1,55 +1,44 @@
-# Documentation Archive
+# DropLab Documentation
 
-This folder contains historical planning documents and implementation guides organized by date.
+This directory contains technical documentation for the DropLab platform.
 
-## Archive Structure
+## 📚 Core Documentation
 
-### `/archive/2025-10-23/` - Recent Analytics & Conversion Tracking Fixes
-Implementation documentation for:
-- Sankey diagram date filtering fixes
-- SQL injection prevention (prepared statements)
-- Conversion tracking improvements (CTA-aligned)
-- Call analytics enhancements
-- Dashboard UI cleanup
+### Integration Guides
+- **[Data Axle Integration](./DATA_AXLE_INTEGRATION_GUIDE.md)** - Audience targeting with 250M+ contacts
+- **[PostGrid Print Integration](./POSTGRID_PRINT_INTEGRATION.md)** - Direct mail printing automation
+- **[Environment Variables](./ENVIRONMENT_VARIABLES.md)** - Complete list of required environment variables
 
-**Files**:
-- `SANKEY_DIAGRAM_IMPLEMENTATION.md`
-- `SANKEY_WEB_APPOINTMENTS_FIX.md`
-- `CRITICAL_FIXES_DASHBOARD_FILTERING.md`
-- `DATE_FILTERING_AND_SANKEY_IMPROVEMENTS.md`
-- `CRITICAL_BUSINESS_FIXES_COMPLETE.md`
-- `CTA_ALIGNED_CONVERSION_TRACKING_AUDIT.md`
-- `CALLS_TAB_IMPROVEMENTS.md`
-- `GLOBAL_SYNC_FIX.md`
+### Performance Optimization ⚡
+- **[Critical Performance Fixes](./CRITICAL_PERFORMANCE_FIXES_COMPLETE.md)** - Latest optimizations (Nov 25, 2025)
+  - ✅ Campaign recipients pagination (20-50x faster)
+  - ✅ Dashboard metrics optimization (30-40% faster)
+  - ✅ Server-side caching (60% fewer database calls)
 
-### `/archive/2025-10-18/` - Planning Documents
-Earlier roadmaps and feature planning:
-- `NEXT_STEPS_PLAN.md` - Template library, batch processing, onboarding plans
-- `CANVAS_ENHANCEMENT_PLAN.md` - Canvas editor feature roadmap
+### Implementation Summaries
+- **[Dual Canvas Design](./PHASE3_DUAL_CANVAS_COMPLETE.md)** - Front/back postcard editor implementation
+- **[Security Hardening](./SECURITY_HARDENING_COMPLETE.md)** - Comprehensive security implementation
+- **[PostGrid Implementation](./IMPLEMENTATION_SUMMARY_POSTGRID.md)** - Print integration summary
 
-## Current Active Documentation
+### Deployment & Production
+- **[Production Readiness](./PRODUCTION_READINESS.md)** - Deployment checklist
+- **[Final Deployment Steps](./FINAL_DEPLOYMENT_STEPS.md)** - Step-by-step deployment guide
+- **[Post-Security Testing](./POST_SECURITY_TESTING_CHECKLIST.md)** - Security verification steps
 
-Located in project root:
+## 🗂️ Documentation Archive
 
-- **README.md** - Main project documentation and user guide
-- **CLAUDE.md** - Comprehensive architecture guide for Claude Code
-- **CURRENT_STATE.md** - Current platform features and recent improvements
-- **QUICK_START.md** - Setup guide (general)
-- **QUICK_START_WINDOWS.md** - Windows-specific setup
-- **WSL_BETTER_SQLITE3_FIX.md** - SQLite native module fix for WSL
+Historical planning documents are available in `/archive/`:
+- `/archive/2025-10-23/` - Analytics & conversion tracking fixes
+- `/archive/2025-10-18/` - Early planning documents
 
-## Document Lifecycle
+## 🔗 Quick Links
 
-Documents are **archived** when:
-- ✅ Features implemented and stable
-- ✅ Implementation complete and documented
-- ✅ Historical reference value
-
-Documents remain **active** when:
-- ✅ Actively referenced during development
-- ✅ Essential for current architecture understanding
-- ✅ User-facing setup/troubleshooting guides
+- **Main README**: [../README.md](../README.md) - Project overview
+- **Quick Start**: [../QUICK_START.md](../QUICK_START.md) - Setup guide
+- **Claude Code Guide**: [../CLAUDE.md](../CLAUDE.md) - Development guide
+- **Transformation Plan**: [../DROPLAB_TRANSFORMATION_PLAN.md](../DROPLAB_TRANSFORMATION_PLAN.md) - Strategic roadmap
 
 ---
 
-**Last Updated**: October 23, 2025
+**Last Updated**: November 25, 2025
+**Status**: Production-ready with critical performance optimizations

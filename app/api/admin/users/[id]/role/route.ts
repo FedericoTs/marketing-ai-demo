@@ -16,7 +16,15 @@ export async function PUT(
   try {
     // Verify admin access
     await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
 
+  try {
     const { id: targetUserId } = params;
     const body = await request.json();
     const { platform_role } = body;
@@ -83,14 +91,6 @@ export async function PUT(
     });
   } catch (error: any) {
     console.error('Error updating user role:', error);
-
-    if (error.message === 'Admin access required') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     return NextResponse.json(
       { error: 'Failed to update user role', message: error.message },
       { status: 500 }

@@ -10,6 +10,7 @@
 
 import { NextResponse } from 'next/server';
 import { ApiResponse } from './api-response';
+import { trackError, type ErrorContext } from './error-tracking';
 
 /**
  * Create a successful JSON response
@@ -81,7 +82,10 @@ export function apiError(
 /**
  * Handle errors in API routes with appropriate status codes
  *
+ * Enhanced with error tracking (Phase 2)
+ *
  * @param error - The error that occurred
+ * @param context - Optional error context (route, userId, etc.)
  * @returns NextResponse with error details
  *
  * @example
@@ -92,15 +96,30 @@ export function apiError(
  *     const result = await createCampaign(data);
  *     return apiSuccess(result);
  *   } catch (error) {
- *     return handleApiError(error);
+ *     return handleApiError(error, { route: '/api/campaigns' });
  *   }
  * }
  * ```
  */
-export function handleApiError(error: unknown): NextResponse<ApiResponse> {
+export function handleApiError(
+  error: unknown,
+  context?: ErrorContext
+): NextResponse<ApiResponse> {
   console.error('[API Error]', error);
 
   if (error instanceof Error) {
+    // Determine severity based on error type
+    const is4xx = error.message.includes('not found') ||
+                  error.message.includes('validation') ||
+                  error.message.includes('duplicate');
+    const severity = is4xx ? 'warning' : 'error';
+
+    // Track error with context
+    trackError(error, severity, {
+      ...context,
+      apiRoute: true,
+    });
+
     // Check for specific error types
     if (error.message.includes('not found')) {
       return apiError(error.message, 404, 'NOT_FOUND');
@@ -116,7 +135,13 @@ export function handleApiError(error: unknown): NextResponse<ApiResponse> {
     return apiError(error.message, 500, 'INTERNAL_ERROR');
   }
 
-  // Unknown error type
+  // Unknown error type - track as fatal
+  trackError(new Error('Unknown error type'), 'fatal', {
+    ...context,
+    apiRoute: true,
+    originalError: String(error),
+  });
+
   return apiError('An unexpected error occurred', 500, 'UNKNOWN_ERROR');
 }
 

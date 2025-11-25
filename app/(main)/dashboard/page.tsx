@@ -20,6 +20,7 @@ import { CampaignPerformanceCards } from '@/components/dashboard/campaign-perfor
 import { RecentCampaignsTable } from '@/components/dashboard/recent-campaigns-table';
 import { PerformanceInsights } from '@/components/dashboard/performance-insights';
 import { toast } from 'sonner';
+import { cachedFetch } from '@/lib/utils/cache';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -67,28 +68,31 @@ export default function DashboardPage() {
 
         setProfile(profileData as UserProfile);
 
-        // Get organization
-        const { data: orgData, error: orgError } = await supabase
-          .from('organizations')
-          .select('*')
-          .eq('id', profileData.organization_id)
-          .single();
+        // OPTIMIZATION: Fetch organization, team count, and metrics in PARALLEL
+        const [orgResult, teamResult] = await Promise.all([
+          // Get organization
+          supabase
+            .from('organizations')
+            .select('*')
+            .eq('id', profileData.organization_id)
+            .single(),
 
-        if (orgError) {
-          console.error('Organization error:', orgError);
+          // Get team member count
+          supabase
+            .from('user_profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('organization_id', profileData.organization_id),
+        ]);
+
+        if (orgResult.error) {
+          console.error('Organization error:', orgResult.error);
         } else {
-          setOrganization(orgData as Organization);
+          setOrganization(orgResult.data as Organization);
         }
 
-        // Get team member count
-        const { count } = await supabase
-          .from('user_profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('organization_id', profileData.organization_id);
+        setTeamCount(teamResult.count || 0);
 
-        setTeamCount(count || 0);
-
-        // Fetch dashboard metrics
+        // Fetch dashboard metrics (already async, no need to await)
         fetchDashboardMetrics();
 
       } catch (error) {
@@ -100,14 +104,31 @@ export default function DashboardPage() {
 
     async function fetchDashboardMetrics() {
       try {
-        const response = await fetch('/api/dashboard/metrics');
-        const data = await response.json();
+        // OPTIMIZATION: Use browser-native caching (30 second TTL)
+        // This makes repeat visits to dashboard instant
+        // REVERSIBILITY: Remove cachedFetch and use regular fetch to revert
+        const data = await cachedFetch(
+          '/api/dashboard/metrics',
+          undefined,
+          'dashboard-metrics',
+          30000 // 30 seconds cache
+        );
 
         if (data.success) {
           setDashboardMetrics(data.data);
         }
       } catch (error) {
         console.error('Error loading dashboard metrics:', error);
+        // Fallback: try regular fetch if cache fails
+        try {
+          const response = await fetch('/api/dashboard/metrics');
+          const fallbackData = await response.json();
+          if (fallbackData.success) {
+            setDashboardMetrics(fallbackData.data);
+          }
+        } catch (fallbackError) {
+          console.error('Fallback fetch also failed:', fallbackError);
+        }
       } finally {
         setMetricsLoading(false);
       }

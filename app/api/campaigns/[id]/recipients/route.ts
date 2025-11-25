@@ -4,20 +4,46 @@ import { createServiceClient } from '@/lib/supabase/server'
 
 /**
  * GET /api/campaigns/[id]/recipients
- * Fetch all campaign recipients with PDF URLs and landing page links
+ * Fetch campaign recipients with PDF URLs and landing page links
+ *
+ * OPTIMIZATION (Nov 25, 2025): Added pagination to prevent loading 1000+ rows
+ * Query params:
+ * - limit: Number of recipients per page (default: 50, max: 200)
+ * - offset: Starting offset (default: 0)
+ *
+ * REVERSIBILITY: Remove limit/offset params to load all recipients
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id
+    const { id: campaignId } = await params
+    const { searchParams } = new URL(request.url)
 
-    console.log(`📋 [GET /api/campaigns/${campaignId}/recipients] Fetching recipients...`)
+    // OPTIMIZATION: Pagination parameters (default 50 per page)
+    const limit = Math.min(
+      parseInt(searchParams.get('limit') || '50'),
+      200 // Max 200 to prevent abuse
+    )
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    console.log(`📋 [GET /api/campaigns/${campaignId}/recipients] Fetching recipients (limit: ${limit}, offset: ${offset})...`)
 
     // Fetch campaign recipients with associated recipient data
     const supabase = createServiceClient()
 
+    // OPTIMIZATION: Get total count first (fast with existing index)
+    const { count: totalCount, error: countError } = await supabase
+      .from('campaign_recipients')
+      .select('id', { count: 'exact', head: true })
+      .eq('campaign_id', campaignId)
+
+    if (countError) {
+      throw new Error(`Count query error: ${countError.message}`)
+    }
+
+    // OPTIMIZATION: Fetch only requested page with LIMIT/OFFSET
     const { data: campaignRecipients, error } = await supabase
       .from('campaign_recipients')
       .select(`
@@ -44,6 +70,7 @@ export async function GET(
       `)
       .eq('campaign_id', campaignId)
       .order('created_at', { ascending: true })
+      .range(offset, offset + limit - 1)  // OPTIMIZATION: Pagination
 
     if (error) {
       throw new Error(`Database query error: ${error.message}`)
@@ -65,12 +92,15 @@ export async function GET(
       createdAt: cr.created_at,
     }))
 
-    console.log(`✅ [GET /api/campaigns/${campaignId}/recipients] Found ${recipients.length} recipients`)
+    console.log(`✅ [GET /api/campaigns/${campaignId}/recipients] Found ${recipients.length}/${totalCount} recipients`)
 
     return NextResponse.json({
       success: true,
       recipients,
-      total: recipients.length,
+      total: totalCount || 0,  // Total count across all pages
+      limit,                   // Current page size
+      offset,                  // Current offset
+      hasMore: offset + limit < (totalCount || 0),  // Whether there are more pages
     })
   } catch (error) {
     console.error('❌ [GET /api/campaigns/[id]/recipients] Error:', error)

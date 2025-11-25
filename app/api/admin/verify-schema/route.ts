@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/admin';
 
 // Create admin client with service role key
 function createAdminClient() {
@@ -31,6 +32,19 @@ interface TableCheck {
 }
 
 export async function GET() {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isUnauthorized = error.message?.includes('UNAUTHORIZED');
+    const isForbidden = error.message?.includes('FORBIDDEN');
+
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
   const supabase = createAdminClient();
   const results: TableCheck[] = [];
 

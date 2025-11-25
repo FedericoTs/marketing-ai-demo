@@ -1,13 +1,45 @@
 /**
  * Next.js Middleware
- * Handles Supabase authentication for protected routes
+ * Handles:
+ * 1. Rate limiting (optional, feature-flagged)
+ * 2. Supabase authentication for protected routes
  */
 
-import { type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { checkRateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  // PHASE 4: Rate Limiting (optional, feature-flagged)
+  // Check rate limit before auth to prevent abuse
+  const rateLimitResult = checkRateLimit(request);
+
+  if (rateLimitResult.limited) {
+    // Return 429 Too Many Requests with rate limit headers
+    return new NextResponse(
+      JSON.stringify({
+        success: false,
+        message: rateLimitResult.message,
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          ...rateLimitResult.headers,
+        },
+      }
+    );
+  }
+
+  // Continue with auth middleware
+  const response = await updateSession(request);
+
+  // Add rate limit headers to successful responses
+  Object.entries(rateLimitResult.headers).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+
+  return response;
 }
 
 export const config = {

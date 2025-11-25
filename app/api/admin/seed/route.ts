@@ -12,6 +12,7 @@ import {
   createUserProfile,
   createAdminClient
 } from '@/lib/database/supabase-queries';
+import { requireAdmin } from '@/lib/auth/admin';
 
 // Seed data configuration
 const SEED_DATA = {
@@ -61,6 +62,17 @@ const SEED_DATA = {
 };
 
 export async function POST(req: NextRequest) {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
   try {
     const supabase = createAdminClient();
     const results = {
@@ -209,6 +221,17 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE() {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
   try {
     const supabase = createAdminClient();
 

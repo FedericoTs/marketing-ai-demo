@@ -2,12 +2,24 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { requireAdmin } from '@/lib/auth/admin';
 
 /**
  * Admin endpoint to apply migration 023
  * This executes the SQL directly using service role permissions
  */
 export async function POST() {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
   try {
     console.log('🔄 Starting migration 023 application...');
 
@@ -118,6 +130,17 @@ export async function POST() {
 
 // Also support GET for simple testing
 export async function GET() {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
   return NextResponse.json({
     endpoint: '/api/admin/apply-migration-023',
     method: 'POST',

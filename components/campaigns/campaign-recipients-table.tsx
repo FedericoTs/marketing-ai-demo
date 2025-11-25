@@ -35,36 +35,53 @@ export function CampaignRecipientsTable({
   const [recipients, setRecipients] = useState<Recipient[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(0)
 
   useEffect(() => {
-    fetchRecipients()
+    fetchRecipients(true) // true = reset to first page
   }, [campaignId])
 
-  const fetchRecipients = async () => {
+  const fetchRecipients = async (reset = false) => {
     try {
-      setLoading(true)
+      if (reset) {
+        setLoading(true)
+        setRecipients([])
+      } else {
+        setLoadingMore(true)
+      }
       setError(null)
 
-      const response = await fetch(`/api/campaigns/${campaignId}/recipients`)
+      // OPTIMIZATION: Use pagination (50 recipients per page)
+      const offset = reset ? 0 : recipients.length
+      const limit = 50
+      const response = await fetch(
+        `/api/campaigns/${campaignId}/recipients?limit=${limit}&offset=${offset}`
+      )
       const data = await response.json()
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch recipients')
       }
 
-      setRecipients(data.recipients)
+      // Append new recipients (or reset if first page)
+      setRecipients(prev => reset ? data.recipients : [...prev, ...data.recipients])
+      setTotal(data.total)
+      setHasMore(data.hasMore)
 
       if (onLoad) {
-        onLoad(data.recipients.length)
+        onLoad(data.total)
       }
 
-      console.log(`✅ Loaded ${data.recipients.length} recipients`)
+      console.log(`✅ Loaded ${data.recipients.length} recipients (${offset + data.recipients.length}/${data.total})`)
     } catch (err) {
       console.error('❌ Error fetching recipients:', err)
       setError(err instanceof Error ? err.message : 'Failed to load recipients')
       toast.error('Failed to load recipient list')
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
@@ -250,14 +267,36 @@ export function CampaignRecipientsTable({
           </table>
         </div>
 
-        {/* Summary Footer */}
-        <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between text-sm text-slate-600">
-          <div>
-            Showing {recipients.length} of {totalRecipients} total recipients
+        {/* Summary Footer with Load More */}
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <div className="flex items-center justify-between text-sm text-slate-600 mb-3">
+            <div>
+              Showing {recipients.length} of {total} total recipients
+            </div>
+            <Button variant="outline" size="sm" onClick={() => fetchRecipients(true)}>
+              Refresh
+            </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchRecipients}>
-            Refresh
-          </Button>
+
+          {/* Load More Button */}
+          {hasMore && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchRecipients(false)}
+              disabled={loadingMore}
+              className="w-full"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                  Loading more...
+                </>
+              ) : (
+                <>Load More ({total - recipients.length} remaining)</>
+              )}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

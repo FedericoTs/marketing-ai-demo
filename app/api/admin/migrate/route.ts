@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { requireAdmin } from '@/lib/auth/admin';
 
 // Create admin client with service role key (bypasses RLS)
 function createAdminClient() {
@@ -36,6 +37,17 @@ interface MigrationResult {
 }
 
 export async function POST(req: NextRequest) {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
   try {
     const body = await req.json();
     const { migrations, all, dryRun } = body;
@@ -197,6 +209,17 @@ function getMigrationName(num: string): string {
 
 // GET endpoint to list available migrations
 export async function GET() {
+  try {
+    // Require admin authentication
+    await requireAdmin();
+  } catch (error: any) {
+    const isForbidden = error.message?.includes('FORBIDDEN');
+    return NextResponse.json(
+      { error: error.message || 'Authentication required' },
+      { status: isForbidden ? 403 : 401 }
+    );
+  }
+
   try {
     const migrationsDir = path.join(process.cwd(), 'supabase', 'migrations');
 

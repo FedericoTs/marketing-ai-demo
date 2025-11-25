@@ -45,6 +45,9 @@ export async function GET() {
 
     const organizationId = profile.organization_id;
 
+    // Get campaign IDs ONCE (optimization: avoid N+1 queries)
+    const campaignIds = await getCampaignIds(supabase, organizationId);
+
     // Parallel queries for performance
     const [
       campaignsResult,
@@ -52,24 +55,33 @@ export async function GET() {
       conversionsResult,
       templatesResult,
     ] = await Promise.all([
-      // Get all campaigns with recipient counts
+      // OPTIMIZATION (Nov 25): LIMIT 5 since we only show 5 recent campaigns
+      // Get only 5 most recent campaigns (not all)
       supabase
         .from('campaigns')
         .select('id, name, status, total_recipients, created_at, sent_at, template_id')
         .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(5),  // OPTIMIZATION: Only load 5
 
       // Get all events for response rate calculation
+      // OPTIMIZATION: Limit to recent events (last 10,000) to prevent excessive data transfer
+      // For most dashboards, this captures all relevant data while preventing OOM issues
       supabase
         .from('events')
-        .select('id, campaign_id, event_type, created_at')
-        .in('campaign_id', await getCampaignIds(supabase, organizationId)),
+        .select('id, campaign_id, event_type, created_at, region, city')
+        .in('campaign_id', campaignIds)
+        .order('created_at', { ascending: false })
+        .limit(10000),
 
       // Get all conversions for ROI calculation
+      // OPTIMIZATION: Limit to recent conversions (last 5,000)
       supabase
         .from('conversions')
         .select('id, campaign_id, conversion_type, conversion_value, created_at')
-        .in('campaign_id', await getCampaignIds(supabase, organizationId)),
+        .in('campaign_id', campaignIds)
+        .order('created_at', { ascending: false })
+        .limit(5000),
 
       // Get templates for top performer
       supabase
@@ -83,10 +95,17 @@ export async function GET() {
     const conversions = conversionsResult.data || [];
     const templates = templatesResult.data || [];
 
-    // Calculate metrics
-    const totalCampaigns = campaigns.length;
-    const sentCampaigns = campaigns.filter((c) => c.status === 'sent' || c.status === 'completed');
-    const activeCampaigns = campaigns.filter((c) => c.status === 'sending' || c.status === 'scheduled');
+    // OPTIMIZATION (Nov 25): Get ALL campaign stats separately (for overview metrics)
+    // We only loaded 5 campaigns above for the table, but need totals for all campaigns
+    const { data: allCampaigns } = await supabase
+      .from('campaigns')
+      .select('id, status, total_recipients')
+      .eq('organization_id', organizationId);
+
+    // Calculate metrics from ALL campaigns (not just recent 5)
+    const totalCampaigns = allCampaigns?.length || 0;
+    const sentCampaigns = allCampaigns?.filter((c) => c.status === 'sent' || c.status === 'completed') || [];
+    const activeCampaigns = allCampaigns?.filter((c) => c.status === 'sending' || c.status === 'scheduled') || [];
 
     // Calculate response rate (events / total recipients)
     const totalRecipients = sentCampaigns.reduce((sum, c) => sum + c.total_recipients, 0);

@@ -79,12 +79,85 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
  * Verify admin access or throw 403 error
  * Use in API routes to protect admin-only endpoints
  */
-export async function requireAdmin(): Promise<void> {
-  const isAdmin = await isCurrentUserAdmin();
+export async function requireAdmin(): Promise<{
+  userId: string;
+  email: string;
+  role: string;
+}> {
+  const supabase = await createServerClient();
+
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error('UNAUTHORIZED: Authentication required');
+  }
+
+  // Get user profile with platform role
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('platform_role')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error('UNAUTHORIZED: User profile not found');
+  }
+
+  const isAdmin = profile.platform_role === 'admin' || profile.platform_role === 'super_admin';
 
   if (!isAdmin) {
-    throw new Error('Admin access required');
+    throw new Error('FORBIDDEN: Platform admin role required. Contact support@droplab.com for access.');
   }
+
+  return {
+    userId: user.id,
+    email: user.email || '',
+    role: profile.platform_role
+  };
+}
+
+/**
+ * Admin authentication middleware wrapper
+ * Use in API routes to protect admin endpoints
+ *
+ * @example
+ * export const GET = withAdminAuth(async (req, { userId, email }) => {
+ *   return NextResponse.json({ data: 'admin only' });
+ * });
+ */
+export function withAdminAuth(
+  handler: (
+    req: Request,
+    context: { userId: string; email: string; role: string }
+  ) => Promise<Response>
+) {
+  return async (req: Request) => {
+    try {
+      const authContext = await requireAdmin();
+      return await handler(req, authContext);
+    } catch (error: any) {
+      const isUnauthorized = error.message.includes('UNAUTHORIZED');
+      const isForbidden = error.message.includes('FORBIDDEN');
+
+      // Log unauthorized access attempts
+      if (isUnauthorized || isForbidden) {
+        console.error('[Admin Auth] Unauthorized access attempt:', {
+          error: error.message,
+          path: new URL(req.url).pathname,
+          ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        });
+      }
+
+      return Response.json(
+        {
+          error: error.message,
+          code: isForbidden ? 'FORBIDDEN' : 'UNAUTHORIZED',
+        },
+        { status: isForbidden ? 403 : 401 }
+      );
+    }
+  };
 }
 
 /**
