@@ -11,15 +11,15 @@ import { createClient } from "@/lib/supabase/client";
 
 // DropLab Direct Mail Platform - Simplified Navigation (Phase 1-2)
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home, section: "main" },
-  { name: "Design Templates", href: "/templates", icon: Library, section: "main" },
-  { name: "Audiences", href: "/audiences", icon: Target, section: "main" },
-  { name: "Campaigns", href: "/campaigns", icon: Send, section: "main" },
-  { name: "Landing Pages", href: "/landing-pages", icon: Globe, section: "main" },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, section: "main" },
-  { name: "Team", href: "/team", icon: Users, section: "main" },
-  { name: "Admin", href: "/admin", icon: Shield, section: "main", adminOnly: true },
-  { name: "Settings", href: "/settings", icon: Settings, section: "main" },
+  { name: "Dashboard", href: "/dashboard", icon: Home, section: "main", tourId: "dashboard-link" },
+  { name: "Design Templates", href: "/templates", icon: Library, section: "main", tourId: "templates-link" },
+  { name: "Audiences", href: "/audiences", icon: Target, section: "main", tourId: "audiences-link" },
+  { name: "Campaigns", href: "/campaigns", icon: Send, section: "main", tourId: "campaigns-link" },
+  { name: "Landing Pages", href: "/landing-pages", icon: Globe, section: "main", tourId: "landing-pages-link" },
+  { name: "Analytics", href: "/analytics", icon: BarChart3, section: "main", tourId: "analytics-link" },
+  { name: "Team", href: "/team", icon: Users, section: "main", tourId: "team-link" },
+  { name: "Admin", href: "/admin", icon: Shield, section: "main", adminOnly: true, tourId: "admin-link" },
+  { name: "Settings", href: "/settings", icon: Settings, section: "main", tourId: "settings-link" },
 ];
 
 const sections = [
@@ -227,6 +227,7 @@ export function Sidebar({ isOpen, onClose, hideButton = false, alwaysCollapsible
                         key={item.name}
                         href={item.href}
                         onClick={closeMobileMenu}
+                        data-tour={(item as any).tourId}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                           isActive

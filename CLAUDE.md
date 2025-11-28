@@ -196,6 +196,165 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
 - ❌ "Coming Soon" cards (AI Copywriting, DM Creative, Data Axle)
 - ❌ "Phase 1 Completion Status" card
 
+### 1b. Onboarding Tour System (NEW - Nov 28, 2025)
+
+**Purpose**: Interactive guided walkthrough for new users to learn platform features, navigation, and workflows. Auto-starts on first login with smart version tracking.
+
+**Architecture**:
+
+**Tour System Components**:
+- `lib/tour/tour-config.ts` - Tour configuration (steps, content, buttons) - edit here to modify tour
+- `lib/tour/tour-types.ts` - TypeScript interfaces for tour data structures
+- `lib/tour/tour-context.tsx` - React Context for tour state management
+- `lib/tour/use-tour-state.ts` - Custom hook with tour logic and API calls
+- `components/onboarding/tour-provider.tsx` - Context provider with auto-start logic
+- `components/onboarding/onboarding-tour.tsx` - Tour UI components (modals, tooltips, spotlight)
+- `app/api/tour/progress/route.ts` - GET/POST endpoints for tour progress persistence
+- `app/api/tour/reset/route.ts` - Reset tour progress for testing
+- `supabase/migrations/20251126_add_onboarding_columns.sql` - Database schema for tour tracking
+
+**Key Features**:
+
+1. **Two Tour Step Types**:
+   - **Modal Steps**: Centered dialog overlays for introductions and completions
+   - **Spotlight Steps**: Highlight specific UI elements with tooltip guidance
+
+2. **Smart Tour Behavior**:
+   - Auto-starts on first login for new users (version '0.0')
+   - Version-based triggering: Shows tour again when `tour_version` incremented in config
+   - Skip functionality: Users can dismiss tour permanently
+   - Back/Next navigation: Full step traversal control
+   - Progress persistence: Current step saved to database via RLS-protected API
+
+3. **Tour Configuration** (`lib/tour/tour-config.ts`):
+   ```typescript
+   export const tourConfig: TourConfig = {
+     enabled: true,               // Global tour on/off switch
+     version: '1.0',              // Increment to retrigger tour for all users
+     showProgress: true,          // Show "Step X of Y" indicator
+     allowSkip: true,             // Show "Skip Tour" button
+     allowBack: true,             // Show "Back" button
+     autoStartForNewUsers: true,  // Auto-start for version '0.0' users
+     triggerOnFirstLogin: true,   // Only show on first login
+
+     steps: [
+       {
+         id: 'welcome',
+         type: 'modal',
+         title: 'Welcome to DropLab! 🎉',
+         content: `Tour introduction with **bold** markdown support`,
+         primaryButton: { text: 'Start Tour', action: 'next' },
+         secondaryButton: { text: 'Skip Tour', action: 'skip' },
+       },
+       {
+         id: 'dashboard',
+         type: 'spotlight',
+         target: '[data-tour="dashboard-link"]',  // CSS selector
+         title: 'Your Performance Hub',
+         content: `Dashboard description with **bold** text`,
+         placement: 'right',  // Tooltip placement: top|right|bottom|left
+         primaryButton: { text: 'Next', action: 'next' },
+         secondaryButton: { text: 'Back', action: 'back' },
+       },
+       // ... more steps
+     ],
+   };
+   ```
+
+4. **Database Schema** (user_profiles table):
+   ```sql
+   - onboarding_completed: boolean (tour finished)
+   - onboarding_current_step: integer (last viewed step index)
+   - onboarding_skipped: boolean (user dismissed tour)
+   - tour_version: text (last seen tour version, default '0.0')
+   - tour_completed_at: timestamptz (completion timestamp)
+   ```
+
+5. **Tour Triggers** (`lib/tour/use-tour-state.ts:shouldShowTour()`):
+   ```typescript
+   // Show tour if:
+   - User has NOT completed tour (onboarding_completed = false)
+   - User has NOT skipped tour (onboarding_skipped = false)
+   - User version !== current config version (tour_version !== getTourVersion())
+   ```
+
+6. **UI Features**:
+   - **Markdown Support**: `**text**` renders as bold in all tour content
+   - **Inline Logo**: Welcome modal shows DropLab logo inline with text
+   - **Button Styling**: "Next →" and "← Back" buttons with Lucide React icons
+   - **Spotlight Effect**: Dark overlay with highlighted UI element cutout
+   - **Tooltip Positioning**: Smart placement to keep tooltip in viewport
+   - **Confetti Animation**: Celebration effect on completion step (optional)
+   - **Prevent Multiple Starts**: useRef guards against React StrictMode double-mounting
+
+7. **API Routes**:
+   - `GET /api/tour/progress` - Fetch user's tour progress (with cache-busting)
+   - `POST /api/tour/progress` - Update progress (next, skip, complete actions)
+   - `POST /api/tour/reset` - Reset tour for current user (admin/testing)
+
+8. **Integration with Main App** (`app/(main)/layout.tsx`):
+   ```typescript
+   // Tour only shows for approved users (not pending)
+   return approvalStatus === 'approved' ? (
+     <TourProviderWrapper>{children}</TourProviderWrapper>
+   ) : (
+     <PendingApprovalScreen />
+   );
+   ```
+
+9. **Data Tour Attributes** (UI components):
+   ```tsx
+   // Add to sidebar links for spotlight targeting
+   <Link href="/dashboard" data-tour="dashboard-link">
+     Dashboard
+   </Link>
+   ```
+
+**Tour Flow Example**:
+1. User signs up → `tour_version` = '0.0' (default)
+2. User logs in → `shouldShowTour()` returns `true`
+3. Tour auto-starts after 1-second delay
+4. User navigates through steps:
+   - Welcome modal → "Start Tour" → Dashboard spotlight → Templates spotlight → etc.
+5. Final step → "Complete Tour" → `onboarding_completed` = `true`, `tour_completed_at` = now
+6. Next login → Tour does NOT show (already completed)
+7. Admin increments `tour_version` to '2.0' in config
+8. Next login → Tour shows again for ALL users (new version)
+
+**Critical Fixes Applied**:
+- **React 19 Compatibility**: Custom tour (no react-joyride library)
+- **Turbopack JSX Parsing**: Separate context file to avoid parser bugs
+- **Next.js 15 Caching**: `export const dynamic = 'force-dynamic'` + cache-busting timestamps
+- **Multiple Tour Starts**: useRef prevents double-mounting from React StrictMode
+- **Markdown Rendering**: Custom parser with `/(\*\*[^*]+\*\*)/g` regex for bold text
+- **API Caching**: Cache-Control headers + `?_t=${Date.now()}` query params
+
+**Configuration Guide**:
+- **Add Step**: Copy existing step in `tour-config.ts`, modify content
+- **Remove Step**: Delete step object from `steps` array
+- **Reorder Steps**: Drag step objects up/down in array
+- **Disable Tour**: Set `enabled: false` in config
+- **Retrigger Tour**: Increment `version` (e.g., '1.0' → '1.1')
+- **Test Tour**: Call `POST /api/tour/reset` to reset current user
+
+**Files Modified**:
+- `app/(main)/layout.tsx` - Added TourProviderWrapper
+- `app/globals.css` - Added confetti animation styles
+- `components/sidebar.tsx` - Added data-tour attributes to links
+- `components/ui/dialog.tsx` - Enhanced for tour modal styling
+
+**Testing**:
+```bash
+# Reset tour for current logged-in user
+POST /api/tour/reset
+
+# Reset tour for all users via SQL
+UPDATE user_profiles
+SET tour_version = '0.0',
+    onboarding_completed = false,
+    onboarding_skipped = false;
+```
+
 ### 2. Copywriting Tab (Enhanced - Phase 1)
 - Input: Marketing idea/message/campaign
 - Output: Multiple AI-generated campaign variations with:

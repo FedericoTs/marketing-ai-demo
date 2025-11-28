@@ -8,6 +8,8 @@ import { Loader2, Clock, Mail, Shield } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+import { TourProviderWrapper } from '@/components/onboarding/tour-provider';
+
 export default function MainLayout({
   children,
 }: {
@@ -263,5 +265,7 @@ export default function MainLayout({
   }
 
   // Approved - show normal app
-  return <>{children}</>;
+  
+  return <TourProviderWrapper>{children}</TourProviderWrapper>;
+  
 }
