@@ -21,8 +21,10 @@ export async function GET(
       );
     }
 
-    // Parse page_data JSON
-    const parsedData = JSON.parse(landingPage.page_data);
+    // Parse page_config (may be object from stub or JSON string from real DB)
+    const parsedData = typeof landingPage.page_config === 'string'
+      ? JSON.parse(landingPage.page_config)
+      : (landingPage.page_config || {});
 
     // Add campaign_id to the response so the redirect can work
     return NextResponse.json(

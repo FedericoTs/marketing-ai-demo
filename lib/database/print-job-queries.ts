@@ -83,6 +83,7 @@ export interface UpdatePrintJobParams {
   errorMessage?: string
   failedRecipients?: any[]
   postgridResponse?: any
+  webhookEvents?: any[]
   submittedAt?: string
   processingStartedAt?: string
   completedAt?: string
@@ -333,12 +334,13 @@ export async function getPrintJobStats(organizationId: string): Promise<{
     totalRecipients: jobs.reduce((sum, job) => sum + job.total_recipients, 0),
     totalSpent: jobs.reduce((sum, job) => sum + (job.actual_total_cost || 0), 0),
     successRate: 0,
-    jobsByStatus: {} as Record<PrintJobStatus, number>,
+    jobsByStatus: {} as Record<string, number>,
   }
 
   // Count by status
   jobs.forEach((job) => {
-    stats.jobsByStatus[job.status] = (stats.jobsByStatus[job.status] || 0) + 1
+    const status = job.status as string
+    stats.jobsByStatus[status] = (stats.jobsByStatus[status] || 0) + 1
   })
 
   // Calculate success rate

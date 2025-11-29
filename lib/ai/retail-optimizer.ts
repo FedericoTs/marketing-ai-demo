@@ -93,7 +93,7 @@ export async function optimizeCampaignDeployment(
     const context = {
       highPerformingStores: highPerformers.slice(0, storeCount),
       topRegions: regionalPerf.slice(0, 3),
-      keyInsights: correlations.map((c) => c.description),
+      keyInsights: correlations.map((c: { description?: string }) => c.description),
       campaignInfo: {
         name: request.campaignName,
         message: request.message,
@@ -124,7 +124,7 @@ TOP PERFORMING REGIONS:
 ${regionalPerf.slice(0, 3).map((r) => `- ${r.region}: ${r.conversionRate.toFixed(1)}% conversion rate`).join('\n')}
 
 KEY INSIGHTS:
-${correlations.map((c) => `- ${c.description}`).join('\n')}
+${correlations.map((c: { description?: string }) => `- ${c.description}`).join('\n')}
 
 TASK:
 Select the top ${storeCount} stores for this campaign and provide:
@@ -270,9 +270,9 @@ DATA:
 - Low Performers: ${clusters.find((c) => c.cluster === 'low')?.storeCount || 0} stores
 
 CORRELATIONS:
-${correlations.map((c) => `- ${c.description}`).join('\n')}
+${correlations.map((c: { description?: string }) => `- ${c.description}`).join('\n')}
 
-BEST DAY: ${timePatterns.sort((a, b) => b.conversionRate - a.conversionRate)[0]?.period}
+BEST DAY: ${timePatterns.sort((a: { conversionRate: number }, b: { conversionRate: number }) => b.conversionRate - a.conversionRate)[0]?.period}
 
 Generate insights as JSON array:
 [

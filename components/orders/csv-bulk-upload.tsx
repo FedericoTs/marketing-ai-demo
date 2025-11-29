@@ -42,9 +42,10 @@ interface CSVBulkUploadProps {
     quantity: number,
     assignments?: Map<string, { campaignId: string; quantity: number; notes?: string }>
   ) => void;
+  defaultCampaignId?: string;
 }
 
-export function CSVBulkUpload({ campaigns, onAddStores }: CSVBulkUploadProps) {
+export function CSVBulkUpload({ campaigns, onAddStores, defaultCampaignId }: CSVBulkUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [uploading, setUploading] = useState(false);

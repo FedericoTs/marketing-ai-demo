@@ -115,9 +115,8 @@ export async function POST(request: NextRequest) {
     if (!billingCheck.hasAccess) {
       return NextResponse.json(
         errorResponse(
-          billingCheck.error || 'Payment required',
-          'PAYMENT_REQUIRED',
-          { billingStatus: billingCheck.billingStatus }
+          `${billingCheck.error || 'Payment required'} (Status: ${billingCheck.billingStatus})`,
+          'PAYMENT_REQUIRED'
         ),
         { status: 402 } // 402 Payment Required
       );

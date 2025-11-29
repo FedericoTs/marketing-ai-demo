@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
       amount_paid: invoice.amount_paid,
       currency: invoice.currency,
       status: invoice.status, // 'draft', 'open', 'paid', 'void', 'uncollectible'
-      paid: invoice.paid,
+      paid: invoice.status === 'paid',
       invoice_pdf: invoice.invoice_pdf, // PDF download URL
       hosted_invoice_url: invoice.hosted_invoice_url, // Stripe-hosted page
       billing_reason: invoice.billing_reason, // 'subscription_create', 'subscription_cycle', etc.

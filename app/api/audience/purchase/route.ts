@@ -143,10 +143,9 @@ export async function POST(request: Request) {
       try {
         const dataAxleClient = getDataAxleClient({
           apiKey,
-          baseUrl: process.env.DATA_AXLE_BASE_URL,
+          baseURL: process.env.DATA_AXLE_BASE_URL,
         });
-        const response = await dataAxleClient.purchaseContacts(filters, maxContacts);
-        contacts = response.contacts;
+        contacts = await dataAxleClient.purchaseContacts(filters, maxContacts);
         console.log(`[Data Axle] Purchased ${contacts.length} contacts`);
       } catch (error: any) {
         console.error('[Data Axle] Purchase error:', error);
@@ -341,7 +340,7 @@ function generateMockContacts(count: number, filters: AudienceFilters): any[] {
   const contacts = [];
   const firstNames = ['John', 'Jane', 'Michael', 'Emily', 'David', 'Sarah', 'Robert', 'Lisa', 'James', 'Mary'];
   const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
-  const states = filters.geography?.states || ['CA', 'TX', 'NY', 'FL'];
+  const states = filters.state ? [filters.state] : ['CA', 'TX', 'NY', 'FL'];
   const cities = ['Los Angeles', 'Houston', 'New York', 'Miami', 'San Francisco', 'Austin', 'Brooklyn', 'Orlando'];
 
   for (let i = 0; i < count; i++) {
@@ -360,9 +359,9 @@ function generateMockContacts(count: number, filters: AudienceFilters): any[] {
       city,
       state,
       zipCode: String(Math.floor(Math.random() * 90000) + 10000),
-      age: filters.demographics?.ageRange?.min || 30 + Math.floor(Math.random() * 30),
-      gender: Math.random() > 0.5 ? 'M' : 'F',
-      income: filters.financial?.incomeRange?.min || 50000 + Math.floor(Math.random() * 100000),
+      age: filters.ageMin || 30 + Math.floor(Math.random() * 30),
+      gender: filters.gender || (Math.random() > 0.5 ? 'M' : 'F'),
+      income: filters.incomeMin || 50000 + Math.floor(Math.random() * 100000),
       homeValue: Math.floor(Math.random() * 500000) + 200000,
     });
   }

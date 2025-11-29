@@ -63,7 +63,9 @@ const STATUS_CONFIG = {
     icon: AlertCircle,
     color: 'text-red-600 bg-red-100',
   },
-};
+} as const;
+
+type StatusKey = keyof typeof STATUS_CONFIG;
 
 export default function CampaignsPage() {
   const router = useRouter();
@@ -274,7 +276,7 @@ export default function CampaignsPage() {
                           onStatusChange={async (newStatus) => {
                             try {
                               await handleStatusChange(campaign.id, newStatus);
-                              const statusLabel = STATUS_CONFIG[newStatus]?.label || newStatus;
+                              const statusLabel = STATUS_CONFIG[newStatus as StatusKey]?.label || newStatus;
                               toast.success(`"${campaign.name}" moved to ${statusLabel}`);
                             } catch (error) {
                               toast.error(`Failed to update "${campaign.name}"`);

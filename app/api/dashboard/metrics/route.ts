@@ -99,7 +99,7 @@ export async function GET() {
     // We only loaded 5 campaigns above for the table, but need totals for all campaigns
     const { data: allCampaigns } = await supabase
       .from('campaigns')
-      .select('id, status, total_recipients')
+      .select('id, status, total_recipients, template_id')
       .eq('organization_id', organizationId);
 
     // Calculate metrics from ALL campaigns (not just recent 5)

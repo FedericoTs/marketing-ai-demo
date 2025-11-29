@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSettings } from "@/lib/contexts/settings-context";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ interface BrandKitData {
   _timestamp?: number; // Force re-render on subsequent analyses
 }
 
-export default function SettingsPage() {
+function SettingsContent() {
   const searchParams = useSearchParams();
   const { settings, updateSettings, isLoaded } = useSettings();
   const [formData, setFormData] = useState(settings);
@@ -568,5 +568,13 @@ export default function SettingsPage() {
         </Tabs>
       </form>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }

@@ -13,11 +13,12 @@ import { getActivityLog, getPlanById } from '@/lib/database/planning-queries';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if plan exists
-    const plan = getPlanById(params.id);
+    const plan = getPlanById(id);
     if (!plan) {
       return NextResponse.json(
         { success: false, error: 'Plan not found' },
@@ -25,7 +26,7 @@ export async function GET(
       );
     }
 
-    const activity = getActivityLog(params.id);
+    const activity = getActivityLog(id);
 
     return NextResponse.json({
       success: true,

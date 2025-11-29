@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Check, FileText, Calendar, ClipboardList, Package, Mail } from 'lucide-react';
+import { Check, FileText, Calendar, ClipboardList, Package, Mail, Palette } from 'lucide-react';
 import type { LandingPageTemplateType } from '@/lib/database/types';
 
 interface LandingPageTemplateCardProps {
@@ -50,6 +50,12 @@ const TEMPLATE_METADATA: Record<
     description: 'Simple contact information',
     icon: Mail,
     features: ['Name/email fields', 'Message textarea', 'Submit button'],
+  },
+  custom: {
+    name: 'Custom Template',
+    description: 'Fully customizable layout',
+    icon: Palette,
+    features: ['Custom branding', 'Flexible layout', 'Any content type'],
   },
 };
 

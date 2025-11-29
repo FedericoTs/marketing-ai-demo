@@ -11,10 +11,10 @@ import { successResponse, errorResponse } from '@/lib/utils/api-response';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = params.id;
+    const { id: orderId } = await params;
 
     console.log('🔁 [Duplicate Order API] Duplicating order:', orderId);
 

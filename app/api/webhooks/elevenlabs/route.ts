@@ -210,7 +210,7 @@ function convertWebhookToCall(payload: ElevenLabsWebhookPayload): {
     start_time: startedAt,
     end_time: endedAt,
     call_successful: payload.call_successful === 'success',
-    raw_data: payload,
+    raw_data: payload as unknown as Record<string, unknown>,
     organization_id: undefined, // No org context in webhook - sync job will fill this
     campaign_id: undefined,
     recipient_id: undefined,

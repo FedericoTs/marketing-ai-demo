@@ -311,17 +311,18 @@ export async function processCampaignBatch(
           // Legacy field names (for backwards compatibility)
           name: recipient.first_name,
           lastname: recipient.last_name,
-          address: recipient.address_line1 || recipient.address,
+          address: recipient.address_line1 || '',
           city: recipient.city,
           zip: recipient.zip_code,
 
           // Database schema field names (for variable mappings)
+          // Convert null to undefined for type compatibility
           first_name: recipient.first_name,
           last_name: recipient.last_name,
-          email: recipient.email,
-          phone: recipient.phone,
-          address_line1: recipient.address_line1 || recipient.address,
-          address_line2: recipient.address_line2,
+          email: recipient.email ?? undefined,
+          phone: recipient.phone ?? undefined,
+          address_line1: recipient.address_line1 || '',
+          address_line2: recipient.address_line2 ?? undefined,
           state: recipient.state,
           zip_code: recipient.zip_code,
           country: recipient.country,

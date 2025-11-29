@@ -12,9 +12,10 @@
  */
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/supabase';
 
-let serviceClient: ReturnType<typeof createSupabaseClient<Database>> | null = null;
+// Using `any` type until full Database types are generated from Supabase schema
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let serviceClient: ReturnType<typeof createSupabaseClient<any>> | null = null;
 
 /**
  * Create Supabase client with service role key (bypasses RLS)
@@ -42,7 +43,7 @@ export function createServiceClient() {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
   }
 
-  serviceClient = createSupabaseClient<Database>(supabaseUrl, supabaseServiceKey, {
+  serviceClient = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

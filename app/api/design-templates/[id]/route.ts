@@ -12,10 +12,11 @@ import { getFormat } from '@/lib/design/print-formats';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const template = await getTemplateById(params.id);
+    const { id } = await params;
+    const template = await getTemplateById(id);
 
     if (!template) {
       return NextResponse.json(
@@ -47,9 +48,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // If format_type is being updated, update dimensions too
@@ -61,9 +63,9 @@ export async function PUT(
       body.canvas_height = format.heightPixels;
     }
 
-    console.log('📝 Updating design template:', params.id);
+    console.log('📝 Updating design template:', id);
 
-    const template = await updateTemplate(params.id, body);
+    const template = await updateTemplate(id, body);
 
     console.log('✅ Template updated:', template.id);
 
@@ -89,12 +91,13 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('🗑️ Soft deleting design template:', params.id);
+    const { id } = await params;
+    console.log('🗑️ Soft deleting design template:', id);
 
-    const template = await softDeleteTemplate(params.id);
+    const template = await softDeleteTemplate(id);
 
     console.log('✅ Template soft deleted:', template.id);
 

@@ -321,7 +321,7 @@ function StoreRow({
 
   // Determine performance badge based on comparison to plan average
   const confidenceRatio = planAverage.avgConfidence > 0
-    ? item.ai_confidence / planAverage.avgConfidence
+    ? (item.ai_confidence ?? 0) / planAverage.avgConfidence
     : 1;
 
   const performanceBadge = confidenceRatio >= 1.2 ? {

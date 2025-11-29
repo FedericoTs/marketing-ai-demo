@@ -36,10 +36,18 @@ export async function GET(request: Request) {
       .single();
 
     // Get feature flags (use service client to bypass RLS for admin access)
+    const orgId = organizationId || userProfile?.organization_id;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization ID not found' },
+        { status: 400 }
+      );
+    }
+
     const { data: org, error: orgError } = await serviceSupabase
       .from('organizations')
       .select('id, name, feature_flags')
-      .eq('id', organizationId || userProfile.organization_id)
+      .eq('id', orgId)
       .single();
 
     if (orgError || !org) {
@@ -90,10 +98,17 @@ export async function PUT(request: Request) {
 
     // Get current user info
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      );
+    }
+
     const { data: userProfile } = await supabase
       .from('user_profiles')
       .select('full_name')
-      .eq('id', user!.id)
+      .eq('id', user.id)
       .single();
 
     // Validate flag name
@@ -120,7 +135,7 @@ export async function PUT(request: Request) {
         flag_name: flagName,
         new_value: enabled,
         changed_by_user_id: user.id,
-        change_reason: reason || `Feature flag ${enabled ? 'enabled' : 'disabled'} by ${userProfile.full_name}`,
+        change_reason: reason || `Feature flag ${enabled ? 'enabled' : 'disabled'} by ${userProfile?.full_name || 'Admin'}`,
       }
     );
 

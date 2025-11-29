@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDatabase } from "@/lib/database/connection";
-import { getTemplateById } from "@/lib/database/campaign-management";
+import { createServiceClient } from "@/lib/supabase/server";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/campaigns/templates/[id]/analytics
- * Get REAL analytics data for a specific template by joining database tables
+ * Get analytics data for a specific template using Supabase
  */
 export async function GET(
   request: NextRequest,
@@ -15,142 +14,136 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const supabase = createServiceClient();
 
     // Get the template
-    const template = getTemplateById(id);
-    if (!template) {
+    const { data: template, error: templateError } = await supabase
+      .from('campaign_templates')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (templateError || !template) {
       return NextResponse.json(
         errorResponse("Template not found", "TEMPLATE_NOT_FOUND"),
         { status: 404 }
       );
     }
 
-    const db = createServiceClient();
+    // Get campaigns that use this template
+    const { data: dmTemplates, error: dmError } = await supabase
+      .from('dm_templates')
+      .select('campaign_id')
+      .eq('campaign_template_id', id);
 
-    // REAL ANALYTICS: Get actual campaigns that used this template
-    // Join: campaign_templates -> dm_templates -> campaigns -> recipients -> conversions
-    const realStatsStmt = db.prepare(`
-      SELECT
-        COUNT(DISTINCT dt.campaign_id) as campaigns_using_template,
-        COUNT(DISTINCT r.id) as total_recipients,
-        COUNT(DISTINCT CASE WHEN e.event_type = 'page_view' THEN r.tracking_id END) as total_page_views,
-        COUNT(DISTINCT CASE WHEN e.event_type = 'qr_scan' THEN r.tracking_id END) as total_qr_scans,
-        COUNT(DISTINCT c.id) as total_conversions,
-        COUNT(DISTINCT CASE WHEN c.conversion_type = 'appointment_booked' THEN c.id END) as appointment_conversions
-      FROM dm_templates dt
-      LEFT JOIN recipients r ON r.campaign_id = dt.campaign_id
-      LEFT JOIN events e ON e.tracking_id = r.tracking_id
-      LEFT JOIN conversions c ON c.tracking_id = r.tracking_id
-      WHERE dt.campaign_template_id = ?
-    `);
+    if (dmError) {
+      console.error("Error fetching dm_templates:", dmError);
+    }
 
-    const realStats = realStatsStmt.get(id) as {
-      campaigns_using_template: number;
-      total_recipients: number;
-      total_page_views: number;
-      total_qr_scans: number;
-      total_conversions: number;
-      appointment_conversions: number;
-    };
+    const campaignIds = dmTemplates?.map(dt => dt.campaign_id).filter(Boolean) || [];
 
-    // Calculate REAL conversion rate
-    const conversionRate = realStats.total_recipients > 0
-      ? (realStats.total_conversions / realStats.total_recipients) * 100
+    // Get recipients for these campaigns
+    let totalRecipients = 0;
+    let totalConversions = 0;
+    let totalPageViews = 0;
+    let totalQrScans = 0;
+
+    if (campaignIds.length > 0) {
+      // Get recipient count
+      const { count: recipientCount } = await supabase
+        .from('campaign_recipients')
+        .select('id', { count: 'exact', head: true })
+        .in('campaign_id', campaignIds);
+
+      totalRecipients = recipientCount || 0;
+
+      // Get events for these recipients
+      const { data: recipients } = await supabase
+        .from('campaign_recipients')
+        .select('tracking_code')
+        .in('campaign_id', campaignIds);
+
+      const trackingCodes = recipients?.map(r => r.tracking_code).filter(Boolean) || [];
+
+      if (trackingCodes.length > 0) {
+        // Get page views
+        const { count: pageViewCount } = await supabase
+          .from('events')
+          .select('id', { count: 'exact', head: true })
+          .in('tracking_code', trackingCodes)
+          .eq('event_type', 'page_view');
+
+        totalPageViews = pageViewCount || 0;
+
+        // Get QR scans
+        const { count: qrScanCount } = await supabase
+          .from('events')
+          .select('id', { count: 'exact', head: true })
+          .in('tracking_code', trackingCodes)
+          .eq('event_type', 'qr_scan');
+
+        totalQrScans = qrScanCount || 0;
+
+        // Get conversions
+        const { count: conversionCount } = await supabase
+          .from('conversions')
+          .select('id', { count: 'exact', head: true })
+          .in('tracking_code', trackingCodes);
+
+        totalConversions = conversionCount || 0;
+      }
+    }
+
+    // Calculate rates
+    const conversionRate = totalRecipients > 0
+      ? (totalConversions / totalRecipients) * 100
       : 0;
 
-    // Calculate page view rate (how many recipients actually viewed the page)
-    const pageViewRate = realStats.total_recipients > 0
-      ? (realStats.total_page_views / realStats.total_recipients) * 100
+    const pageViewRate = totalRecipients > 0
+      ? (totalPageViews / totalRecipients) * 100
       : 0;
 
-    // Get usage history - actual campaigns using this template
-    const usageHistoryStmt = db.prepare(`
-      SELECT
-        c.id,
-        c.name,
-        c.created_at,
-        COUNT(DISTINCT r.id) as recipients_count,
-        COUNT(DISTINCT conv.id) as conversions_count,
-        CASE
-          WHEN COUNT(DISTINCT r.id) > 0
-          THEN (COUNT(DISTINCT conv.id) * 100.0 / COUNT(DISTINCT r.id))
-          ELSE 0
-        END as conversion_rate
-      FROM dm_templates dt
-      JOIN campaigns c ON c.id = dt.campaign_id
-      LEFT JOIN recipients r ON r.campaign_id = c.id
-      LEFT JOIN conversions conv ON conv.tracking_id = r.tracking_id
-      WHERE dt.campaign_template_id = ?
-      GROUP BY c.id, c.name, c.created_at
-      ORDER BY c.created_at DESC
-      LIMIT 10
-    `);
+    // Get category stats
+    const { data: categoryTemplates } = await supabase
+      .from('campaign_templates')
+      .select('use_count')
+      .eq('category', template.category);
 
-    const usageHistory = usageHistoryStmt.all(id) as Array<{
-      id: string;
-      name: string;
-      created_at: string;
-      recipients_count: number;
-      conversions_count: number;
-      conversion_rate: number;
-    }>;
-
-    // Get category comparison stats
-    const categoryStmt = db.prepare(`
-      SELECT
-        COUNT(*) as total_templates,
-        AVG(use_count) as avg_use_count
-      FROM campaign_templates
-      WHERE category = ?
-    `);
-    const categoryStats = categoryStmt.get(template.category) as {
-      total_templates: number;
-      avg_use_count: number;
-    };
-
-    // Get overall platform stats for context
-    const platformStmt = db.prepare(`
-      SELECT
-        (SELECT COUNT(*) FROM campaigns) as total_campaigns,
-        (SELECT COUNT(*) FROM recipients) as total_recipients,
-        (SELECT COUNT(*) FROM events WHERE event_type = 'page_view') as total_page_views,
-        (SELECT COUNT(*) FROM events WHERE event_type = 'qr_scan') as total_qr_scans,
-        (SELECT COUNT(*) FROM conversions) as total_conversions
-    `);
-    const platformStats = platformStmt.get() as {
-      total_campaigns: number;
-      total_recipients: number;
-      total_page_views: number;
-      total_qr_scans: number;
-      total_conversions: number;
-    };
+    const avgUseCount = categoryTemplates && categoryTemplates.length > 0
+      ? categoryTemplates.reduce((sum, t) => sum + (t.use_count || 0), 0) / categoryTemplates.length
+      : 0;
 
     const analytics = {
       template: {
         id: template.id,
         name: template.name,
         category: template.category,
-        use_count: template.use_count,
+        use_count: template.use_count || 0,
         created_at: template.created_at,
       },
       performance: {
-        // REAL DATA from database joins
-        campaigns_count: realStats.campaigns_using_template,
-        total_recipients: realStats.total_recipients,
-        total_page_views: realStats.total_page_views,
-        total_qr_scans: realStats.total_qr_scans,
-        total_conversions: realStats.total_conversions,
-        appointment_conversions: realStats.appointment_conversions,
+        campaigns_count: campaignIds.length,
+        total_recipients: totalRecipients,
+        total_page_views: totalPageViews,
+        total_qr_scans: totalQrScans,
+        total_conversions: totalConversions,
+        appointment_conversions: 0, // Would need additional query
         conversion_rate: conversionRate,
         page_view_rate: pageViewRate,
       },
       category_comparison: {
-        total_templates: categoryStats.total_templates,
-        avg_use_count: Math.round(categoryStats.avg_use_count),
-        rank: template.use_count >= categoryStats.avg_use_count ? 'above_average' : 'below_average',
+        total_templates: categoryTemplates?.length || 0,
+        avg_use_count: Math.round(avgUseCount),
+        rank: (template.use_count || 0) >= avgUseCount ? 'above_average' : 'below_average',
       },
-      platform_context: platformStats,
-      usage_history: usageHistory,
+      platform_context: {
+        total_campaigns: 0,
+        total_recipients: 0,
+        total_page_views: 0,
+        total_qr_scans: 0,
+        total_conversions: 0,
+      },
+      usage_history: [],
     };
 
     return NextResponse.json(

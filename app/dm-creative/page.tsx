@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { DMBuilder } from "@/components/dm-creative/dm-builder";
 import { CSVUploader } from "@/components/dm-creative/csv-uploader";
 import { BatchResults } from "@/components/dm-creative/batch-results";
@@ -10,10 +10,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { QrCode, MapPin, BarChart3 } from "lucide-react";
+import { QrCode, MapPin, BarChart3, Loader2 } from "lucide-react";
 import { useIndustryModule } from "@/lib/contexts/industry-module-context";
 
-export default function DMCreativePage() {
+function DMCreativeContent() {
   const [batchDMs, setBatchDMs] = useState<DirectMailData[]>([]);
   const [batchMessage, setBatchMessage] = useState("");
   const industryModule = useIndustryModule();
@@ -143,5 +143,13 @@ export default function DMCreativePage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function DMCreativePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <DMCreativeContent />
+    </Suspense>
   );
 }

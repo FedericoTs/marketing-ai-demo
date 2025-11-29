@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { getConversionTypeForTemplate } from '@/lib/template-conversion-mapper';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       campaign_id: string;
       tracking_id?: string;
       mode: 'personalized' | 'generic';
-      templateId?: string; // ✅ NEW: Template ID for CTA-aligned tracking
+      templateId?: string; // Template ID for CTA-aligned tracking
       formData: {
         name: string;
         email: string;
@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = createServiceClient();
+    const supabase = createServiceClient();
     const submissionId = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
     const now = new Date().toISOString();
 
-    // ✅ CRITICAL: Determine conversion type based on template CTA
+    // Determine conversion type based on template CTA
     // This enables accurate analytics differentiation between:
     // - Appointments ('appointment_booked')
     // - Downloads ('download')
@@ -57,17 +57,19 @@ export async function POST(request: NextRequest) {
 
     if (mode === 'personalized' && tracking_id) {
       // Personalized submission - create conversion record
-      db.prepare(`
-        INSERT INTO conversions (
-          id, tracking_id, conversion_type, conversion_data, created_at
-        ) VALUES (?, ?, ?, ?, ?)
-      `).run(
-        submissionId,
-        tracking_id,
-        conversionType,  // ✅ NOW DYNAMIC based on CTA!
-        JSON.stringify(formData),
-        now
-      );
+      const { error } = await supabase
+        .from('conversions')
+        .insert({
+          id: submissionId,
+          tracking_id,
+          conversion_type: conversionType,
+          conversion_data: formData,
+          created_at: now
+        });
+
+      if (error) {
+        throw new Error(`Failed to record conversion: ${error.message}`);
+      }
 
       console.log(`✅ Personalized ${conversionType} recorded for tracking_id: ${tracking_id}`);
     } else {

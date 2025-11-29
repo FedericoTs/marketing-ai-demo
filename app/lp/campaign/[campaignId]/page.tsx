@@ -61,6 +61,7 @@ export default async function CampaignLandingPage({ params, searchParams }: Page
     if (recipient) {
       recipientData = {
         id: recipient.id,
+        campaign_id: recipient.campaign_id || campaignId,
         name: recipient.first_name,
         lastname: recipient.last_name,
         firstName: recipient.first_name,
@@ -83,14 +84,16 @@ export default async function CampaignLandingPage({ params, searchParams }: Page
   // 4. Build config from landing page data or campaign fallback
   const landingPage = landingPages[0]; // Use first landing page if available
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pageConfig = landingPage?.page_config as any;
   const config = landingPage
     ? {
-        title: landingPage.page_config?.title || campaign.name,
-        message: landingPage.page_config?.message || campaign.description || 'Welcome to our campaign!',
+        title: pageConfig?.headline || pageConfig?.title || campaign.name,
+        message: pageConfig?.subheadline || pageConfig?.message || campaign.description || 'Welcome to our campaign!',
         companyName: campaign.name,
-        formFields: landingPage.page_config?.formFields || ['name', 'email', 'phone'],
-        ctaText: landingPage.page_config?.ctaText || 'Submit',
-        thankYouMessage: landingPage.page_config?.thankYouMessage || 'Thank you!',
+        formFields: pageConfig?.form_fields || pageConfig?.formFields || ['name', 'email', 'phone'],
+        ctaText: pageConfig?.cta_text || pageConfig?.ctaText || 'Submit',
+        thankYouMessage: pageConfig?.thankYouMessage || 'Thank you!',
         fallbackMessage: 'Welcome! Please fill out the form below.',
       }
     : {

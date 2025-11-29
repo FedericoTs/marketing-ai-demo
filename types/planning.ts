@@ -279,6 +279,11 @@ export interface PlanSummaryView extends CampaignPlan {
 }
 
 /**
+ * Alias for backwards compatibility
+ */
+export type PlanSummary = PlanSummaryView;
+
+/**
  * Plan Item with Store Details View
  * ----------------------------------
  * Plan item + full store context

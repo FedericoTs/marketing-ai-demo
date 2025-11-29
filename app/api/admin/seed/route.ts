@@ -89,11 +89,13 @@ export async function POST(req: NextRequest) {
           .from('organizations')
           .select('id, name, slug')
           .eq('slug', orgData.slug)
-          .single();
+          .single() as { data: { id: string; name: string; slug: string } | null };
 
         if (existing) {
           results.organizations.push({
-            ...existing,
+            id: existing.id,
+            name: existing.name,
+            slug: existing.slug,
             status: 'already_exists'
           });
           console.log(`Organization ${orgData.name} already exists`);
@@ -239,7 +241,7 @@ export async function DELETE() {
     const { data: orgs } = await supabase
       .from('organizations')
       .select('id, slug')
-      .in('slug', ['acme-corp', 'techstart', 'local-bakery']);
+      .in('slug', ['acme-corp', 'techstart', 'local-bakery']) as { data: { id: string; slug: string }[] | null };
 
     if (!orgs || orgs.length === 0) {
       return NextResponse.json({
@@ -252,7 +254,7 @@ export async function DELETE() {
     const { data: profiles } = await supabase
       .from('user_profiles')
       .select('id')
-      .in('organization_id', orgs.map(o => o.id));
+      .in('organization_id', orgs.map(o => o.id)) as { data: { id: string }[] | null };
 
     // Delete auth users
     if (profiles) {

@@ -93,7 +93,7 @@ export default async function LandingPagePreview({ params, searchParams }: Previ
   }
 
   // Fetch brand profile for full brand kit inheritance (colors, fonts, logo)
-  const brandProfile = getBrandProfile(campaign.company_name);
+  const brandProfile = campaign.company_name ? getBrandProfile(campaign.company_name) : undefined;
 
   // Priority: 1. User customization (from modal, which uses brand kit as default) > 2. Brand Kit > 3. Template defaults
   // The customization modal already applies brand kit colors, so user customization has brand kit baked in

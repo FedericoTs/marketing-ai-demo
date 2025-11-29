@@ -128,9 +128,11 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
       return;
     }
 
-    // Get subscription ID
+    // Get subscription ID (Stripe v20 types don't include subscription on Invoice)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const invoiceData = invoice as any;
     const subscriptionId =
-      typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+      typeof invoiceData.subscription === 'string' ? invoiceData.subscription : invoiceData.subscription?.id;
 
     if (!subscriptionId) {
       console.error('[Webhook] No subscription ID in invoice');

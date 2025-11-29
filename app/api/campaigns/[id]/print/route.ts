@@ -61,12 +61,12 @@ export async function POST(
     // ==================== STEP 1: Validate Campaign ====================
     const campaign = await getCampaignById(campaignId, organizationId)
     if (!campaign) {
-      return NextResponse.json(errorResponse('Campaign not found', 404), { status: 404 })
+      return NextResponse.json(errorResponse('Campaign not found', 'NOT_FOUND'), { status: 404 })
     }
 
     if (campaign.status !== 'completed') {
       return NextResponse.json(
-        errorResponse('Campaign must be completed (PDFs generated) before printing', 400),
+        errorResponse('Campaign must be completed (PDFs generated) before printing', 'BAD_REQUEST'),
         { status: 400 }
       )
     }
@@ -80,7 +80,7 @@ export async function POST(
 
     if (recipientsError || !recipients || recipients.length === 0) {
       return NextResponse.json(
-        errorResponse('No recipients found with generated PDFs', 400),
+        errorResponse('No recipients found with generated PDFs', 'NO_RECIPIENTS'),
         { status: 400 }
       )
     }
@@ -123,7 +123,7 @@ export async function POST(
 
     if (orgError || !org) {
       console.error('❌ [Print] Organization not found:', orgError)
-      return NextResponse.json(errorResponse('Organization not found', 404), { status: 404 })
+      return NextResponse.json(errorResponse('Organization not found', 'ORG_NOT_FOUND'), { status: 404 })
     }
 
     console.log(`💳 [Print] Organization found: ${org.id}, Credits: $${org.credits}`)
@@ -133,7 +133,7 @@ export async function POST(
       return NextResponse.json(
         errorResponse(
           `Insufficient credits. Need $${creditsNeeded.toFixed(2)}, have $${org.credits.toFixed(2)}`,
-          400
+          'INSUFFICIENT_CREDITS'
         ),
         { status: 400 }
       )
@@ -206,7 +206,20 @@ export async function POST(
         const pdfBuffer = Buffer.from(await pdfData.arrayBuffer())
 
         // Submit to PostGrid
-        const recipientData = recipient.recipients
+        // Type assertion for the joined recipient data
+        const recipientData = (Array.isArray(recipient.recipients)
+          ? recipient.recipients[0]
+          : recipient.recipients) as {
+            first_name: string;
+            last_name: string;
+            address_line1: string;
+            address_line2?: string;
+            city: string;
+            state: string;
+            zip_code: string;
+            country?: string;
+          }
+
         const postcardResponse = await postgridClient.createPostcard({
           to: {
             firstName: recipientData.first_name,
@@ -352,7 +365,7 @@ export async function POST(
     console.error('❌ [Print] Fatal error:', error)
 
     return NextResponse.json(
-      errorResponse(error instanceof Error ? error.message : 'Unknown error', 500),
+      errorResponse(error instanceof Error ? error.message : 'Unknown error', 'INTERNAL_ERROR'),
       { status: 500 }
     )
   }
@@ -370,7 +383,7 @@ export async function GET(
     const organizationId = searchParams.get('organizationId')
 
     if (!organizationId) {
-      return NextResponse.json(errorResponse('organizationId required', 400), { status: 400 })
+      return NextResponse.json(errorResponse('organizationId required', 'MISSING_ORG_ID'), { status: 400 })
     }
 
     const supabase = createServiceClient()
@@ -382,13 +395,13 @@ export async function GET(
       .order('created_at', { ascending: false })
 
     if (error) {
-      return NextResponse.json(errorResponse(error.message, 500), { status: 500 })
+      return NextResponse.json(errorResponse(error.message, 'DATABASE_ERROR'), { status: 500 })
     }
 
     return NextResponse.json(successResponse({ printJobs }))
   } catch (error) {
     return NextResponse.json(
-      errorResponse(error instanceof Error ? error.message : 'Unknown error', 500),
+      errorResponse(error instanceof Error ? error.message : 'Unknown error', 'INTERNAL_ERROR'),
       { status: 500 }
     )
   }

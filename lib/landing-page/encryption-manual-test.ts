@@ -1,4 +1,4 @@
-import { encryptRecipientId, decryptRecipientId, isTokenValid } from '../encryption';
+import { encryptRecipientId, decryptRecipientId, isTokenValid } from './encryption';
 
 /**
  * Encryption System Tests

@@ -112,9 +112,9 @@ export default function DashboardPage() {
           undefined,
           'dashboard-metrics',
           30000 // 30 seconds cache
-        );
+        ) as { success: boolean; data?: typeof dashboardMetrics };
 
-        if (data.success) {
+        if (data.success && data.data) {
           setDashboardMetrics(data.data);
         }
       } catch (error) {

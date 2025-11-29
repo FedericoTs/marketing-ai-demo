@@ -30,7 +30,7 @@ export function getStripeClient(): Stripe {
     }
 
     stripeInstance = new Stripe(secretKey, {
-      apiVersion: '2024-11-20.acacia', // Latest stable API version
+      apiVersion: '2025-11-17.clover', // Latest stable API version
       typescript: true,
       appInfo: {
         name: 'DropLab Platform',

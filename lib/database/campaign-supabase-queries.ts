@@ -787,7 +787,14 @@ export async function getCampaignAnalytics(campaignId: string): Promise<{
     throw new Error(`Failed to fetch campaign analytics: ${error.message}`);
   }
 
-  return data;
+  return data as {
+    total_recipients: number;
+    total_events: number;
+    total_conversions: number;
+    qr_scans: number;
+    page_views: number;
+    conversion_rate: number;
+  };
 }
 
 /**

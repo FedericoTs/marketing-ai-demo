@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
@@ -17,61 +17,45 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 [Bulk Stores API] GET request', { region, state, city, isActive });
 
-    const db = createServiceClient();
+    const supabase = createServiceClient();
 
-    // Build WHERE clause dynamically
-    const whereClauses: string[] = [];
-    const params: any[] = [];
+    // Build query with filters
+    let query = supabase
+      .from('retail_stores')
+      .select('id, store_number, name, city, state, region, address', { count: 'exact' });
 
     if (isActive) {
-      whereClauses.push('is_active = 1');
+      query = query.eq('is_active', true);
     }
 
     if (region && region !== 'all') {
-      whereClauses.push('region = ?');
-      params.push(region);
+      query = query.eq('region', region);
     }
 
     if (state && state !== 'all') {
-      whereClauses.push('state = ?');
-      params.push(state);
+      query = query.eq('state', state);
     }
 
     if (city && city !== 'all') {
-      whereClauses.push('city = ?');
-      params.push(city);
+      query = query.eq('city', city);
     }
 
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const { data: stores, count, error } = await query
+      .order('region', { ascending: true })
+      .order('state', { ascending: true })
+      .order('city', { ascending: true })
+      .order('store_number', { ascending: true });
 
-    // Get matching stores
-    const query = `
-      SELECT id, store_number, name, city, state, region, address
-      FROM retail_stores
-      ${whereClause}
-      ORDER BY region, state, city, store_number
-    `;
+    if (error) {
+      throw new Error(`Failed to fetch stores: ${error.message}`);
+    }
 
-    const stores = db.prepare(query).all(...params) as Array<{
-      id: string;
-      store_number: string;
-      name: string;
-      city: string | null;
-      state: string | null;
-      region: string | null;
-      address: string | null;
-    }>;
-
-    // Get total count
-    const countQuery = `SELECT COUNT(*) as count FROM retail_stores ${whereClause}`;
-    const countResult = db.prepare(countQuery).get(...params) as { count: number };
-
-    console.log(`✅ [Bulk Stores API] Found ${stores.length} stores matching filters`);
+    console.log(`✅ [Bulk Stores API] Found ${stores?.length || 0} stores matching filters`);
 
     return NextResponse.json(
       successResponse({
-        stores,
-        count: countResult.count,
+        stores: stores || [],
+        count: count || 0,
         filters: { region, state, city, isActive },
       })
     );
@@ -83,4 +67,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(errorResponse(errorMessage, 'FETCH_ERROR'), { status: 500 });
   }
 }
-

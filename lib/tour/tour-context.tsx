@@ -10,6 +10,7 @@ type TourContextType = {
   totalSteps: number;
   canGoBack: boolean;
   canGoNext: boolean;
+  showProgress: boolean;
   start: () => void;
   next: () => Promise<void>;
   back: () => void;

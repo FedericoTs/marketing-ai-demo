@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,7 +75,7 @@ interface OrderItem {
   confirmed?: boolean; // Track if user explicitly confirmed this item
 }
 
-export default function NewOrderPage() {
+function NewOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -917,5 +917,13 @@ export default function NewOrderPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function NewOrderPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto py-8 flex items-center justify-center min-h-[400px]"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>}>
+      <NewOrderContent />
+    </Suspense>
   );
 }

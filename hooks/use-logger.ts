@@ -132,16 +132,16 @@ export function useRenderLogger(
 
       if (duration > threshold) {
         logger.warn('Slow render detected', {
-          duration: `${duration}ms`,
-          threshold: `${threshold}ms`,
+          renderDuration: `${duration}ms`,
+          renderThreshold: `${threshold}ms`,
         });
       } else {
         logger.debug('Render complete', {
-          duration: `${duration}ms`,
+          renderDuration: `${duration}ms`,
         });
       }
     });
-  });
+  }, [logger, threshold]);
 }
 
 /**

@@ -15,8 +15,7 @@ import type {
   DesignTemplate,
   DesignTemplateInsert,
   DesignAsset,
-  DesignAssetInsert,
-  Database
+  DesignAssetInsert
 } from './types';
 
 // ============================================================================
@@ -28,7 +27,7 @@ import type {
  * USE WITH CAUTION - Only for server-side admin operations
  */
 export function createAdminClient() {
-  return createClient<Database>(
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -45,7 +44,7 @@ export function createAdminClient() {
  * Use for all user-facing operations
  */
 export function createUserClient() {
-  return createClient<Database>(
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
@@ -60,7 +59,7 @@ export async function createOrganization(data: OrganizationInsert) {
 
   const { data: org, error } = await supabase
     .from('organizations')
-    .insert(data)
+    .insert(data as any)
     .select()
     .single();
 
@@ -105,7 +104,7 @@ export async function updateOrganization(id: string, updates: OrganizationUpdate
 
   const { data, error } = await supabase
     .from('organizations')
-    .update(updates)
+    .update(updates as any)
     .eq('id', id)
     .select()
     .single();
@@ -152,7 +151,7 @@ export async function createUserProfile(data: UserProfileInsert) {
 
   const { data: profile, error } = await supabase
     .from('user_profiles')
-    .insert(data)
+    .insert(data as any)
     .select()
     .single();
 
@@ -223,7 +222,7 @@ export async function updateUserProfile(userId: string, updates: UserProfileUpda
 
   const { data, error } = await supabase
     .from('user_profiles')
-    .update(updates)
+    .update(updates as any)
     .eq('id', userId)
     .select()
     .single();
@@ -388,7 +387,7 @@ export async function updateUserPermissions(
 
   const { data, error } = await supabase
     .from('user_profiles')
-    .update(permissions)
+    .update(permissions as any)
     .eq('id', userId)
     .select()
     .single();
@@ -406,7 +405,7 @@ export async function createTemplate(data: DesignTemplateInsert) {
 
   const { data: template, error } = await supabase
     .from('design_templates')
-    .insert(data)
+    .insert(data as any)
     .select()
     .single();
 
@@ -479,7 +478,7 @@ export async function updateTemplate(id: string, updates: Partial<DesignTemplate
 
   const { data, error } = await supabase
     .from('design_templates')
-    .update(updates)
+    .update(updates as any)
     .eq('id', id)
     .select()
     .single();
@@ -514,7 +513,7 @@ export async function createAsset(data: DesignAssetInsert) {
 
   const { data: asset, error } = await supabase
     .from('design_assets')
-    .insert(data)
+    .insert(data as any)
     .select()
     .single();
 

@@ -25,7 +25,7 @@ async function processPayment(paymentIntentId: string) {
 
   // Initialize Stripe
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2024-11-20.acacia',
+    apiVersion: '2025-11-17.clover',
   });
 
   try {
@@ -42,13 +42,13 @@ async function processPayment(paymentIntentId: string) {
 
     // 2. Get Invoice from Payment Intent
     console.log('\n[Manual Webhook] Step 2: Retrieving invoice...');
-    const invoiceId = paymentIntent.invoice as string;
+    const invoiceId = (paymentIntent as any).invoice as string;
 
     if (!invoiceId) {
       throw new Error('No invoice associated with this payment intent');
     }
 
-    const invoice = await stripe.invoices.retrieve(invoiceId);
+    const invoice = await stripe.invoices.retrieve(invoiceId) as any;
     console.log('[Manual Webhook] Invoice:', invoice.id);
     console.log('[Manual Webhook] Customer:', invoice.customer);
     console.log('[Manual Webhook] Subscription:', invoice.subscription);

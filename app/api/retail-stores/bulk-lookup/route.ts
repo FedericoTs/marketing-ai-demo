@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
@@ -21,35 +21,34 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 [Bulk Lookup API] Looking up', storeNumbers.length, 'stores');
 
-    const db = createServiceClient();
+    const supabase = createServiceClient();
 
-    // Build IN clause with placeholders
-    const placeholders = storeNumbers.map(() => '?').join(',');
-    const query = `
-      SELECT id, store_number, name, city, state, region, address
-      FROM retail_stores
-      WHERE store_number IN (${placeholders})
-        AND is_active = 1
-      ORDER BY store_number
-    `;
+    const { data: stores, error } = await supabase
+      .from('retail_stores')
+      .select('id, store_number, name, city, state, region, address')
+      .in('store_number', storeNumbers)
+      .eq('is_active', true)
+      .order('store_number', { ascending: true });
 
-    const stores = db.prepare(query).all(...storeNumbers);
+    if (error) {
+      throw new Error(`Failed to lookup stores: ${error.message}`);
+    }
 
-    console.log(`✅ [Bulk Lookup API] Found ${stores.length} stores`);
+    console.log(`✅ [Bulk Lookup API] Found ${stores?.length || 0} stores`);
 
     // Return matched stores and identify not found
     const foundStoreNumbers = new Set(
-      (stores as Array<{ store_number: string }>).map((s) => s.store_number)
+      (stores || []).map((s) => s.store_number)
     );
-    const notFound = storeNumbers.filter((num) => !foundStoreNumbers.has(num));
+    const notFound = storeNumbers.filter((num: string) => !foundStoreNumbers.has(num));
 
     return NextResponse.json(
       successResponse({
-        stores,
+        stores: stores || [],
         notFound,
         summary: {
           requested: storeNumbers.length,
-          found: stores.length,
+          found: stores?.length || 0,
           notFound: notFound.length,
         },
       })

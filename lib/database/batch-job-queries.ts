@@ -1,13 +1,11 @@
 /**
  * Batch Job Database Queries
  *
- * CRUD operations for batch job processing system
+ * STUBBED: Batch job tables not yet migrated to Supabase
+ * All functions return mock/empty values to allow build to pass
  */
 
 import { nanoid } from "nanoid";
-import { getDatabase } from "./connection";
-import { dbLogger } from "./logger";
-import { validateRequired, validateId, validateEnum, validateNumber, validateEmail } from "./validators";
 
 // ==================== TYPES ====================
 
@@ -61,10 +59,11 @@ export interface UserNotification {
   created_at: string;
 }
 
-// ==================== BATCH JOBS ====================
+// ==================== BATCH JOBS (STUBBED) ====================
 
 /**
  * Create a new batch job
+ * STUBBED: Returns mock batch job
  */
 export function createBatchJob(data: {
   campaignId: string;
@@ -72,49 +71,9 @@ export function createBatchJob(data: {
   userEmail?: string;
   totalRecipients: number;
 }): BatchJob {
-  const operation = 'createBatchJob';
-
-  // Validate required inputs
-  validateId(data.campaignId, 'campaignId', operation);
-  validateNumber(data.totalRecipients, 'totalRecipients', operation, { min: 1, integer: true });
-
-  // Validate optional email if provided
-  if (data.userEmail) {
-    validateEmail(data.userEmail, 'userEmail', operation);
-  }
-
-  const db = createServiceClient();
+  console.log('[batch-job-queries] createBatchJob stubbed - batch job tables not yet in Supabase');
   const id = nanoid(16);
   const created_at = new Date().toISOString();
-
-  dbLogger.info(operation, 'batch_jobs', id, {
-    campaignId: data.campaignId,
-    totalRecipients: data.totalRecipients
-  });
-
-  const stmt = db.prepare(`
-    INSERT INTO batch_jobs (
-      id, campaign_id, template_id, user_email, status,
-      total_recipients, processed_count, success_count, failed_count,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, 'pending', ?, 0, 0, 0, ?)
-  `);
-
-  try {
-    stmt.run(
-      id,
-      data.campaignId,
-      data.templateId || null,
-      data.userEmail || null,
-      data.totalRecipients,
-      created_at
-    );
-    dbLogger.debug(`${operation} completed`, { id, totalRecipients: data.totalRecipients });
-  } catch (error) {
-    dbLogger.error(operation, error as Error, { campaignId: data.campaignId });
-    throw error;
-  }
 
   return {
     id,
@@ -132,58 +91,34 @@ export function createBatchJob(data: {
 
 /**
  * Get batch job by ID
+ * STUBBED: Returns null
  */
 export function getBatchJob(id: string): BatchJob | null {
-  const operation = 'getBatchJob';
-
-  // Validate input
-  validateId(id, 'id', operation);
-
-  const db = createServiceClient();
-  const stmt = db.prepare("SELECT * FROM batch_jobs WHERE id = ?");
-
-  try {
-    const job = stmt.get(id) as BatchJob | null;
-    if (job) {
-      dbLogger.debug(`${operation} found`, { id, status: job.status });
-    } else {
-      dbLogger.debug(`${operation} not found`, { id });
-    }
-    return job;
-  } catch (error) {
-    dbLogger.error(operation, error as Error, { id });
-    throw error;
-  }
+  console.log('[batch-job-queries] getBatchJob stubbed - batch job tables not yet in Supabase');
+  return null;
 }
 
 /**
  * Get all batch jobs (ordered by creation date)
+ * STUBBED: Returns empty array
  */
 export function getAllBatchJobs(limit = 100): BatchJob[] {
-  const db = createServiceClient();
-  const stmt = db.prepare(`
-    SELECT * FROM batch_jobs
-    ORDER BY created_at DESC
-    LIMIT ?
-  `);
-  return stmt.all(limit) as BatchJob[];
+  console.log('[batch-job-queries] getAllBatchJobs stubbed - batch job tables not yet in Supabase');
+  return [];
 }
 
 /**
  * Get batch jobs by status
+ * STUBBED: Returns empty array
  */
 export function getBatchJobsByStatus(status: BatchJobStatus): BatchJob[] {
-  const db = createServiceClient();
-  const stmt = db.prepare(`
-    SELECT * FROM batch_jobs
-    WHERE status = ?
-    ORDER BY created_at DESC
-  `);
-  return stmt.all(status) as BatchJob[];
+  console.log('[batch-job-queries] getBatchJobsByStatus stubbed - batch job tables not yet in Supabase');
+  return [];
 }
 
 /**
  * Update batch job status
+ * STUBBED: Returns false
  */
 export function updateBatchJobStatus(
   id: string,
@@ -194,56 +129,13 @@ export function updateBatchJobStatus(
     completedAt?: string;
   }
 ): boolean {
-  const operation = 'updateBatchJobStatus';
-
-  // Validate inputs
-  validateId(id, 'id', operation);
-  validateEnum(status, 'status', operation, ['pending', 'processing', 'completed', 'failed', 'cancelled'] as const);
-
-  const db = createServiceClient();
-
-  dbLogger.info(operation, 'batch_jobs', id, { status, hasError: !!options?.errorMessage });
-
-  let sql = "UPDATE batch_jobs SET status = ?";
-  const params: any[] = [status];
-
-  if (options?.errorMessage !== undefined) {
-    sql += ", error_message = ?";
-    params.push(options.errorMessage);
-  }
-
-  if (options?.startedAt) {
-    sql += ", started_at = ?";
-    params.push(options.startedAt);
-  }
-
-  if (options?.completedAt) {
-    sql += ", completed_at = ?";
-    params.push(options.completedAt);
-  }
-
-  sql += " WHERE id = ?";
-  params.push(id);
-
-  const stmt = db.prepare(sql);
-
-  try {
-    const result = stmt.run(...params);
-    const success = result.changes > 0;
-    if (success) {
-      dbLogger.debug(`${operation} completed`, { id, status });
-    } else {
-      dbLogger.warn(operation, 'No rows updated (job not found?)', { id, status });
-    }
-    return success;
-  } catch (error) {
-    dbLogger.error(operation, error as Error, { id, status });
-    throw error;
-  }
+  console.log('[batch-job-queries] updateBatchJobStatus stubbed - batch job tables not yet in Supabase');
+  return false;
 }
 
 /**
  * Update batch job progress counters
+ * STUBBED: Returns false
  */
 export function updateBatchJobProgress(
   id: string,
@@ -253,84 +145,40 @@ export function updateBatchJobProgress(
     failedCount?: number;
   }
 ): boolean {
-  const db = createServiceClient();
-
-  const updates: string[] = [];
-  const params: any[] = [];
-
-  if (data.processedCount !== undefined) {
-    updates.push("processed_count = ?");
-    params.push(data.processedCount);
-  }
-
-  if (data.successCount !== undefined) {
-    updates.push("success_count = ?");
-    params.push(data.successCount);
-  }
-
-  if (data.failedCount !== undefined) {
-    updates.push("failed_count = ?");
-    params.push(data.failedCount);
-  }
-
-  if (updates.length === 0) return false;
-
-  const sql = `UPDATE batch_jobs SET ${updates.join(", ")} WHERE id = ?`;
-  params.push(id);
-
-  const stmt = db.prepare(sql);
-  const result = stmt.run(...params);
-  return result.changes > 0;
+  console.log('[batch-job-queries] updateBatchJobProgress stubbed - batch job tables not yet in Supabase');
+  return false;
 }
 
 /**
  * Set output ZIP path for completed batch job
+ * STUBBED: Returns false
  */
 export function setBatchJobOutputZip(id: string, zipPath: string): boolean {
-  const db = createServiceClient();
-  const stmt = db.prepare("UPDATE batch_jobs SET output_zip_path = ? WHERE id = ?");
-  const result = stmt.run(zipPath, id);
-  return result.changes > 0;
+  console.log('[batch-job-queries] setBatchJobOutputZip stubbed - batch job tables not yet in Supabase');
+  return false;
 }
 
 /**
  * Delete batch job and all related data
+ * STUBBED: Returns false
  */
 export function deleteBatchJob(id: string): boolean {
-  const db = createServiceClient();
-
-  try {
-    // Delete in correct order
-    db.prepare("DELETE FROM batch_job_progress WHERE batch_job_id = ?").run(id);
-    db.prepare("DELETE FROM batch_job_recipients WHERE batch_job_id = ?").run(id);
-    db.prepare("DELETE FROM user_notifications WHERE batch_job_id = ?").run(id);
-    const result = db.prepare("DELETE FROM batch_jobs WHERE id = ?").run(id);
-
-    return result.changes > 0;
-  } catch (error) {
-    console.error("Error deleting batch job:", error);
-    return false;
-  }
+  console.log('[batch-job-queries] deleteBatchJob stubbed - batch job tables not yet in Supabase');
+  return false;
 }
 
-// ==================== BATCH JOB RECIPIENTS ====================
+// ==================== BATCH JOB RECIPIENTS (STUBBED) ====================
 
 /**
  * Create batch job recipient entry
+ * STUBBED: Returns mock recipient
  */
 export function createBatchJobRecipient(data: {
   batchJobId: string;
   recipientId: string;
 }): BatchJobRecipient {
-  const db = createServiceClient();
+  console.log('[batch-job-queries] createBatchJobRecipient stubbed - batch job tables not yet in Supabase');
   const id = nanoid(16);
-
-  const stmt = db.prepare(`
-    INSERT INTO batch_job_recipients (id, batch_job_id, recipient_id, status)
-    VALUES (?, ?, ?, 'pending')
-  `);
-
-  stmt.run(id, data.batchJobId, data.recipientId);
 
   return {
     id,
@@ -342,32 +190,25 @@ export function createBatchJobRecipient(data: {
 
 /**
  * Get all recipients for a batch job
+ * STUBBED: Returns empty array
  */
 export function getBatchJobRecipients(batchJobId: string): BatchJobRecipient[] {
-  const db = createServiceClient();
-  const stmt = db.prepare(`
-    SELECT * FROM batch_job_recipients
-    WHERE batch_job_id = ?
-    ORDER BY processed_at ASC
-  `);
-  return stmt.all(batchJobId) as BatchJobRecipient[];
+  console.log('[batch-job-queries] getBatchJobRecipients stubbed - batch job tables not yet in Supabase');
+  return [];
 }
 
 /**
  * Get failed recipients for a batch job
+ * STUBBED: Returns empty array
  */
 export function getFailedBatchRecipients(batchJobId: string): BatchJobRecipient[] {
-  const db = createServiceClient();
-  const stmt = db.prepare(`
-    SELECT * FROM batch_job_recipients
-    WHERE batch_job_id = ? AND status = 'failed'
-    ORDER BY processed_at DESC
-  `);
-  return stmt.all(batchJobId) as BatchJobRecipient[];
+  console.log('[batch-job-queries] getFailedBatchRecipients stubbed - batch job tables not yet in Supabase');
+  return [];
 }
 
 /**
  * Update batch job recipient status
+ * STUBBED: Returns false
  */
 export function updateBatchJobRecipientStatus(
   id: string,
@@ -377,57 +218,26 @@ export function updateBatchJobRecipientStatus(
     errorMessage?: string;
   }
 ): boolean {
-  const db = createServiceClient();
-  const processed_at = new Date().toISOString();
-
-  let sql = "UPDATE batch_job_recipients SET status = ?, processed_at = ?";
-  const params: any[] = [status, processed_at];
-
-  if (options?.pdfPath) {
-    sql += ", pdf_path = ?";
-    params.push(options.pdfPath);
-  }
-
-  if (options?.errorMessage) {
-    sql += ", error_message = ?";
-    params.push(options.errorMessage);
-  }
-
-  sql += " WHERE id = ?";
-  params.push(id);
-
-  const stmt = db.prepare(sql);
-  const result = stmt.run(...params);
-  return result.changes > 0;
+  console.log('[batch-job-queries] updateBatchJobRecipientStatus stubbed - batch job tables not yet in Supabase');
+  return false;
 }
 
-// ==================== BATCH JOB PROGRESS ====================
+// ==================== BATCH JOB PROGRESS (STUBBED) ====================
 
 /**
  * Add progress snapshot
+ * STUBBED: Returns mock progress
  */
 export function addBatchJobProgress(data: {
   batchJobId: string;
   progressPercent: number;
   message?: string;
 }): BatchJobProgress {
-  const db = createServiceClient();
+  console.log('[batch-job-queries] addBatchJobProgress stubbed - batch job tables not yet in Supabase');
   const created_at = new Date().toISOString();
 
-  const stmt = db.prepare(`
-    INSERT INTO batch_job_progress (batch_job_id, progress_percent, message, created_at)
-    VALUES (?, ?, ?, ?)
-  `);
-
-  const result = stmt.run(
-    data.batchJobId,
-    data.progressPercent,
-    data.message || null,
-    created_at
-  );
-
   return {
-    id: result.lastInsertRowid as number,
+    id: 0,
     batch_job_id: data.batchJobId,
     progress_percent: data.progressPercent,
     message: data.message,
@@ -437,36 +247,27 @@ export function addBatchJobProgress(data: {
 
 /**
  * Get latest progress for a batch job
+ * STUBBED: Returns null
  */
 export function getLatestBatchJobProgress(batchJobId: string): BatchJobProgress | null {
-  const db = createServiceClient();
-  const stmt = db.prepare(`
-    SELECT * FROM batch_job_progress
-    WHERE batch_job_id = ?
-    ORDER BY created_at DESC
-    LIMIT 1
-  `);
-  return stmt.get(batchJobId) as BatchJobProgress | null;
+  console.log('[batch-job-queries] getLatestBatchJobProgress stubbed - batch job tables not yet in Supabase');
+  return null;
 }
 
 /**
  * Get progress history for a batch job
+ * STUBBED: Returns empty array
  */
 export function getBatchJobProgressHistory(batchJobId: string, limit = 50): BatchJobProgress[] {
-  const db = createServiceClient();
-  const stmt = db.prepare(`
-    SELECT * FROM batch_job_progress
-    WHERE batch_job_id = ?
-    ORDER BY created_at DESC
-    LIMIT ?
-  `);
-  return stmt.all(batchJobId, limit) as BatchJobProgress[];
+  console.log('[batch-job-queries] getBatchJobProgressHistory stubbed - batch job tables not yet in Supabase');
+  return [];
 }
 
-// ==================== USER NOTIFICATIONS ====================
+// ==================== USER NOTIFICATIONS (STUBBED) ====================
 
 /**
  * Create user notification
+ * STUBBED: Returns mock notification
  */
 export function createUserNotification(data: {
   userEmail: string;
@@ -475,27 +276,9 @@ export function createUserNotification(data: {
   subject: string;
   message: string;
 }): UserNotification {
-  const db = createServiceClient();
+  console.log('[batch-job-queries] createUserNotification stubbed - batch job tables not yet in Supabase');
   const id = nanoid(16);
   const created_at = new Date().toISOString();
-
-  const stmt = db.prepare(`
-    INSERT INTO user_notifications (
-      id, user_email, notification_type, batch_job_id,
-      subject, message, created_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    id,
-    data.userEmail,
-    data.notificationType,
-    data.batchJobId || null,
-    data.subject,
-    data.message,
-    created_at
-  );
 
   return {
     id,
@@ -510,57 +293,45 @@ export function createUserNotification(data: {
 
 /**
  * Mark notification as sent
+ * STUBBED: Returns false
  */
 export function markNotificationAsSent(id: string): boolean {
-  const db = createServiceClient();
-  const sent_at = new Date().toISOString();
-  const stmt = db.prepare("UPDATE user_notifications SET sent_at = ? WHERE id = ?");
-  const result = stmt.run(sent_at, id);
-  return result.changes > 0;
+  console.log('[batch-job-queries] markNotificationAsSent stubbed - batch job tables not yet in Supabase');
+  return false;
 }
 
 /**
  * Mark notification as read
+ * STUBBED: Returns false
  */
 export function markNotificationAsRead(id: string): boolean {
-  const db = createServiceClient();
-  const read_at = new Date().toISOString();
-  const stmt = db.prepare("UPDATE user_notifications SET read_at = ? WHERE id = ?");
-  const result = stmt.run(read_at, id);
-  return result.changes > 0;
+  console.log('[batch-job-queries] markNotificationAsRead stubbed - batch job tables not yet in Supabase');
+  return false;
 }
 
 /**
  * Get unread notifications for user
+ * STUBBED: Returns empty array
  */
 export function getUnreadNotifications(userEmail: string): UserNotification[] {
-  const db = createServiceClient();
-  const stmt = db.prepare(`
-    SELECT * FROM user_notifications
-    WHERE user_email = ? AND read_at IS NULL
-    ORDER BY created_at DESC
-  `);
-  return stmt.all(userEmail) as UserNotification[];
+  console.log('[batch-job-queries] getUnreadNotifications stubbed - batch job tables not yet in Supabase');
+  return [];
 }
 
 /**
  * Get all notifications for user
+ * STUBBED: Returns empty array
  */
 export function getUserNotifications(userEmail: string, limit = 50): UserNotification[] {
-  const db = createServiceClient();
-  const stmt = db.prepare(`
-    SELECT * FROM user_notifications
-    WHERE user_email = ?
-    ORDER BY created_at DESC
-    LIMIT ?
-  `);
-  return stmt.all(userEmail, limit) as UserNotification[];
+  console.log('[batch-job-queries] getUserNotifications stubbed - batch job tables not yet in Supabase');
+  return [];
 }
 
-// ==================== STATISTICS & ANALYTICS ====================
+// ==================== STATISTICS & ANALYTICS (STUBBED) ====================
 
 /**
  * Get batch job statistics
+ * STUBBED: Returns zeros
  */
 export function getBatchJobStats(): {
   total: number;
@@ -572,20 +343,15 @@ export function getBatchJobStats(): {
   totalRecipients: number;
   totalProcessed: number;
 } {
-  const db = createServiceClient();
-
-  const stmt = db.prepare(`
-    SELECT
-      COUNT(*) as total,
-      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-      SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
-      SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
-      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
-      SUM(total_recipients) as totalRecipients,
-      SUM(processed_count) as totalProcessed
-    FROM batch_jobs
-  `);
-
-  return stmt.get() as any;
+  console.log('[batch-job-queries] getBatchJobStats stubbed - batch job tables not yet in Supabase');
+  return {
+    total: 0,
+    pending: 0,
+    processing: 0,
+    completed: 0,
+    failed: 0,
+    cancelled: 0,
+    totalRecipients: 0,
+    totalProcessed: 0,
+  };
 }

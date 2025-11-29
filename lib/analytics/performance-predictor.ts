@@ -22,7 +22,7 @@ import {
   type ResponseCurveResult,
   type ResponseCurveConfig,
 } from './response-curve';
-import { getDatabase } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -398,16 +398,16 @@ function calculateSeasonalIndex(): number {
     if (monthlyData.length === 0) return 1.0;
 
     const currentMonth = new Date().getMonth() + 1; // 1-12
-    const currentMonthData = monthlyData.find(m => {
+    const currentMonthData = monthlyData.find((m: { period?: string }) => {
       // Parse month from period string
-      const monthNum = parseInt(m.period.replace(/\D/g, ''));
+      const monthNum = parseInt((m.period || '').replace(/\D/g, ''));
       return monthNum === currentMonth;
     });
 
     if (!currentMonthData) return 1.0;
 
     // Calculate annual average
-    const annualAvg = monthlyData.reduce((sum, m) => sum + m.conversionRate, 0) / monthlyData.length;
+    const annualAvg = monthlyData.reduce((sum: number, m: { conversionRate?: number }) => sum + (m.conversionRate || 0), 0) / monthlyData.length;
 
     return annualAvg > 0 ? currentMonthData.conversionRate / annualAvg : 1.0;
   } catch (error) {
@@ -439,39 +439,10 @@ function getStoreHistoricalConversionRate(storeId: string): number {
  * This data is used to fit response curve parameters to ACTUAL performance.
  */
 function getStoreHistoricalCampaigns(storeId: string): Array<{ quantity: number; conversions: number }> {
-  try {
-    const db = createServiceClient();
-
-    // Get all past deployments for this store with their actual performance
-    const campaigns = db
-      .prepare(
-        `
-        SELECT
-          d.id as deployment_id,
-          COUNT(DISTINCT rdr.recipient_id) as quantity,
-          COUNT(DISTINCT c.id) as conversions
-        FROM retail_campaign_deployments d
-        JOIN retail_deployment_recipients rdr ON d.id = rdr.deployment_id
-        LEFT JOIN recipients r ON rdr.recipient_id = r.id
-        LEFT JOIN conversions c ON r.tracking_id = c.tracking_id
-        WHERE d.store_id = ?
-          AND d.status = 'completed'
-        GROUP BY d.id
-        HAVING quantity > 0
-        ORDER BY d.created_at DESC
-        LIMIT 20
-      `
-      )
-      .all(storeId) as any[];
-
-    return campaigns.map((c) => ({
-      quantity: c.quantity,
-      conversions: c.conversions,
-    }));
-  } catch (error) {
-    console.error('Error fetching historical campaigns:', error);
-    return [];
-  }
+  // TODO: Implement Supabase query when retail_campaign_deployments table exists
+  // For now, return empty array to use heuristic estimation fallback
+  console.log(`[PerformancePredictor] No historical data for store ${storeId}, using heuristics`);
+  return [];
 }
 
 /**

@@ -59,7 +59,6 @@ export function LandingPageConfigComponent({
           <Switch
             checked={enabled}
             onCheckedChange={onEnabledChange}
-            className="data-[state=checked]:bg-blue-600"
           />
         </div>
       </CardHeader>

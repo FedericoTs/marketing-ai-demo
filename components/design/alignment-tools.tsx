@@ -201,7 +201,7 @@ export function AlignmentTools({ canvas, onUpdate }: AlignmentToolsProps) {
   };
 
   // Duplicate
-  const duplicateObject = () => {
+  const duplicateObject = async () => {
     if (!canvas) return;
 
     const objects = getSelectedObjects();
@@ -210,18 +210,17 @@ export function AlignmentTools({ canvas, onUpdate }: AlignmentToolsProps) {
       return;
     }
 
-    objects.forEach((obj) => {
-      obj.clone((cloned: FabricObject) => {
-        cloned.set({
-          left: (cloned.left || 0) + 10,
-          top: (cloned.top || 0) + 10,
-        });
-        canvas.add(cloned);
-        canvas.setActiveObject(cloned);
-        canvas.renderAll();
-        onUpdate();
+    for (const obj of objects) {
+      const cloned = await obj.clone();
+      cloned.set({
+        left: (cloned.left || 0) + 10,
+        top: (cloned.top || 0) + 10,
       });
-    });
+      canvas.add(cloned);
+      canvas.setActiveObject(cloned);
+      canvas.renderAll();
+      onUpdate();
+    }
 
     toast.success('Object duplicated');
   };

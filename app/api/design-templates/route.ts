@@ -158,8 +158,9 @@ export async function POST(request: NextRequest) {
     // Use admin client to bypass RLS for server-side operations
     const supabaseAdmin = createAdminClient();
 
-    const { data: template, error } = await supabaseAdmin
-      .from('design_templates')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: template, error } = await (supabaseAdmin
+      .from('design_templates') as any)
       .insert(templateData)
       .select()
       .single();

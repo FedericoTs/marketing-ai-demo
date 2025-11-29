@@ -91,10 +91,17 @@ export function IndustryModuleProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Safe default context for when IndustryModuleProvider is not present
+const defaultContextValue: IndustryModuleContextType = {
+  settings: defaultIndustryModuleSettings,
+  updateSettings: () => console.warn('IndustryModuleProvider not found - updateSettings is a no-op'),
+  isModuleEnabled: () => false,
+  getModuleType: () => null,
+  isFeatureEnabled: () => false,
+};
+
 export function useIndustryModule() {
   const context = useContext(IndustryModuleContext);
-  if (context === undefined) {
-    throw new Error('useIndustryModule must be used within an IndustryModuleProvider');
-  }
-  return context;
+  // Return safe default if no provider (makes the hook safe to use anywhere)
+  return context ?? defaultContextValue;
 }

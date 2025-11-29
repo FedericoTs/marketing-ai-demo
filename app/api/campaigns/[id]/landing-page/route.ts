@@ -6,6 +6,7 @@ import {
   getCampaign,
   type CampaignLandingPageConfig,
 } from '@/lib/database/campaign-landing-page-queries';
+import { createServiceClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
@@ -40,21 +41,26 @@ export async function GET(
       console.log('⚠️ [Landing Page API] Campaign-level landing page not found, checking recipient-specific landing pages...');
 
       // Fallback: Check if there are recipient-specific landing pages for this campaign
-      const { getDatabase } = require('@/lib/database/connection');
-      const db = createServiceClient();
+      const supabase = createServiceClient();
 
-      const recipientLandingPage = db.prepare(`
-        SELECT id, tracking_id, campaign_id, recipient_id, page_data, landing_page_url, created_at
-        FROM landing_pages
-        WHERE campaign_id = ?
-        LIMIT 1
-      `).get(campaignId) as any;
+      const { data: recipientLandingPage, error } = await supabase
+        .from('landing_pages')
+        .select('id, tracking_id, campaign_id, recipient_id, page_data, landing_page_url, created_at')
+        .eq('campaign_id', campaignId)
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ [Landing Page API] Error fetching recipient landing page:', error);
+      }
 
       if (recipientLandingPage) {
         console.log('✅ [Landing Page API] Found recipient-specific landing page:', recipientLandingPage.id);
 
         // Convert recipient landing page to campaign landing page format
-        const pageData = JSON.parse(recipientLandingPage.page_data);
+        const pageData = typeof recipientLandingPage.page_data === 'string'
+          ? JSON.parse(recipientLandingPage.page_data)
+          : recipientLandingPage.page_data;
         const config = {
           title: `${pageData.companyName || 'Campaign'} - Landing Page`,
           message: pageData.message || '',
@@ -159,13 +165,20 @@ export async function POST(
     }
 
     // Create landing page
-    const landingPage = upsertCampaignLandingPage(campaignId, config, templateId);
+    const result = await upsertCampaignLandingPage(campaignId, config, templateId);
+
+    if (!result.success || !result.data) {
+      return NextResponse.json(
+        errorResponse(result.error || 'Failed to create landing page', 'CREATE_ERROR'),
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       successResponse(
         {
-          ...landingPage,
-          page_config: JSON.parse(landingPage.page_config),
+          ...result.data,
+          page_config: JSON.parse(result.data.page_config),
         },
         'Landing page created successfully'
       ),
@@ -224,17 +237,24 @@ export async function PATCH(
     const updatedConfig = { ...existingConfig, ...config };
 
     // Update landing page
-    const landingPage = upsertCampaignLandingPage(
+    const result = await upsertCampaignLandingPage(
       campaignId,
       updatedConfig,
       templateId !== undefined ? templateId : existing.campaign_template_id || undefined
     );
 
+    if (!result.success || !result.data) {
+      return NextResponse.json(
+        errorResponse(result.error || 'Failed to update landing page', 'UPDATE_ERROR'),
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       successResponse(
         {
-          ...landingPage,
-          page_config: JSON.parse(landingPage.page_config),
+          ...result.data,
+          page_config: JSON.parse(result.data.page_config),
         },
         'Landing page updated successfully'
       )

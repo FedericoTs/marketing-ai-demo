@@ -121,11 +121,24 @@ export async function POST(request: NextRequest) {
     // Get app URL from environment
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
+    // Ensure customerId is valid before creating session
+    if (!customerId) {
+      console.error('[Purchase Credits] Customer ID is missing after creation');
+      return NextResponse.json(
+        { error: 'Failed to set up payment account. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    // At this point, customerId is guaranteed to be a string
+    const validCustomerId: string = customerId;
+
     // Create Checkout Session for ONE-TIME PAYMENT
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: 'payment', // ⚡ ONE-TIME PAYMENT (not subscription)
-      payment_method_types: ['card'],
+    // Using type assertion to handle Stripe SDK v20 type strictness
+    const sessionParams = {
+      customer: validCustomerId,
+      mode: 'payment' as const, // ⚡ ONE-TIME PAYMENT (not subscription)
+      payment_method_types: ['card'] as const,
       line_items: [
         {
           price_data: {
@@ -146,7 +159,7 @@ export async function POST(request: NextRequest) {
         amount: amount.toString(), // Store for webhook
         type: 'credits', // ⚡ CRITICAL: Distinguish from subscription payments
         user_id: user.id,
-        user_email: user.email,
+        user_email: user.email || '',
       },
       success_url: `${appUrl}/settings?purchase=success&amount=${amount}`,
       cancel_url: `${appUrl}/settings?purchase=canceled`,
@@ -156,7 +169,9 @@ export async function POST(request: NextRequest) {
           message: `Complete purchase to add $${amount.toLocaleString()} credits to your account`,
         },
       },
-    });
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const session = await stripe.checkout.sessions.create(sessionParams as any);
 
     console.log('[Purchase Credits] ✅ Checkout session created:', session.id);
     console.log('[Purchase Credits] Redirect URL:', session.url);

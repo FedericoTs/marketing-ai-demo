@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
@@ -14,77 +14,63 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 [Bulk Stores Filters API] POST request', { region, state });
 
-    const db = createServiceClient();
-
-    // Build WHERE clause for cascading filters
-    const whereClauses: string[] = ['is_active = 1'];
-    const params: any[] = [];
-
-    if (region && region !== 'all') {
-      whereClauses.push('region = ?');
-      params.push(region);
-    }
-
-    if (state && state !== 'all') {
-      whereClauses.push('state = ?');
-      params.push(state);
-    }
-
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const supabase = createServiceClient();
 
     // Get unique regions
-    const regionsQuery = `
-      SELECT DISTINCT region
-      FROM retail_stores
-      WHERE region IS NOT NULL AND is_active = 1
-      ORDER BY region ASC
-    `;
-    const regions = (db.prepare(regionsQuery).all() as Array<{ region: string }>).map(
-      (r) => r.region
-    );
+    const { data: regionsData, error: regionsError } = await supabase
+      .from('retail_stores')
+      .select('region')
+      .eq('is_active', true)
+      .not('region', 'is', null)
+      .order('region', { ascending: true });
 
-    // Get unique states (filtered by region if selected)
-    let statesQuery = `
-      SELECT DISTINCT state
-      FROM retail_stores
-      WHERE state IS NOT NULL AND is_active = 1
-    `;
-    let statesParams: any[] = [];
-
-    if (region && region !== 'all') {
-      statesQuery += ' AND region = ?';
-      statesParams.push(region);
+    if (regionsError) {
+      throw new Error(`Failed to fetch regions: ${regionsError.message}`);
     }
 
-    statesQuery += ' ORDER BY state ASC';
+    const regions = [...new Set(regionsData?.map(r => r.region).filter(Boolean) || [])];
 
-    const states = (
-      db.prepare(statesQuery).all(...statesParams) as Array<{ state: string }>
-    ).map((s) => s.state);
-
-    // Get unique cities (filtered by region and state if selected)
-    let citiesQuery = `
-      SELECT DISTINCT city
-      FROM retail_stores
-      WHERE city IS NOT NULL AND is_active = 1
-    `;
-    let citiesParams: any[] = [];
+    // Get unique states (filtered by region if selected)
+    let statesQuery = supabase
+      .from('retail_stores')
+      .select('state')
+      .eq('is_active', true)
+      .not('state', 'is', null);
 
     if (region && region !== 'all') {
-      citiesQuery += ' AND region = ?';
-      citiesParams.push(region);
+      statesQuery = statesQuery.eq('region', region);
+    }
+
+    const { data: statesData, error: statesError } = await statesQuery.order('state', { ascending: true });
+
+    if (statesError) {
+      throw new Error(`Failed to fetch states: ${statesError.message}`);
+    }
+
+    const states = [...new Set(statesData?.map(s => s.state).filter(Boolean) || [])];
+
+    // Get unique cities (filtered by region and state if selected)
+    let citiesQuery = supabase
+      .from('retail_stores')
+      .select('city')
+      .eq('is_active', true)
+      .not('city', 'is', null);
+
+    if (region && region !== 'all') {
+      citiesQuery = citiesQuery.eq('region', region);
     }
 
     if (state && state !== 'all') {
-      citiesQuery += ' AND state = ?';
-      citiesParams.push(state);
+      citiesQuery = citiesQuery.eq('state', state);
     }
 
-    citiesQuery += ' ORDER BY city ASC';
+    const { data: citiesData, error: citiesError } = await citiesQuery.order('city', { ascending: true });
 
-    const cities = (db.prepare(citiesQuery).all(...citiesParams) as Array<{ city: string }>).map(
-      (c) => c.city
-    );
+    if (citiesError) {
+      throw new Error(`Failed to fetch cities: ${citiesError.message}`);
+    }
+
+    const cities = [...new Set(citiesData?.map(c => c.city).filter(Boolean) || [])];
 
     console.log(`✅ [Bulk Stores Filters API] Filters:`, {
       regions: regions.length,

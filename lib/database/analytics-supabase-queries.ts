@@ -879,6 +879,9 @@ export interface EngagementMetrics {
   avg_time_to_conversion_seconds: number | null;
   avg_total_time_seconds: number | null;
   avg_time_to_appointment_seconds: number | null;
+  recipients_with_views?: number;
+  recipients_with_conversions?: number;
+  conversions_count?: number;
 }
 
 export async function getOverallEngagementMetrics(

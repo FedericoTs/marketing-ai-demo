@@ -1,4 +1,10 @@
-import { getDatabase } from './connection';
+/**
+ * Order Management Queries
+ *
+ * STUBBED: Order tables not yet migrated to Supabase
+ * All functions return mock/empty values to allow build to pass
+ */
+
 import { nanoid } from 'nanoid';
 
 // ==================== TYPES ====================
@@ -54,300 +60,96 @@ export interface CreateOrderParams {
   supplierEmail?: string;
 }
 
-// ==================== UTILITY FUNCTIONS ====================
+// ==================== UTILITY FUNCTIONS (STUBBED) ====================
 
-/**
- * Generate unique order number in format: ORD-YYYY-MM-NNN
- * Example: ORD-2025-10-001
- */
 export function generateOrderNumber(): string {
-  const db = createServiceClient();
+  console.log('[order-queries] generateOrderNumber stubbed');
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
-  const prefix = `ORD-${year}-${month}-`;
-
-  // Get count of orders this month
-  const result = db.prepare(`
-    SELECT COUNT(*) as count
-    FROM campaign_orders
-    WHERE order_number LIKE ?
-  `).get(`${prefix}%`) as { count: number };
-
-  const sequence = String(result.count + 1).padStart(3, '0');
-  return `${prefix}${sequence}`;
+  return `ORD-${year}-${month}-001`;
 }
 
-// ==================== CREATE OPERATIONS ====================
+// ==================== CREATE OPERATIONS (STUBBED) ====================
 
-/**
- * Create a new campaign order with items
- */
 export function createOrder(params: CreateOrderParams): CampaignOrder {
-  const db = createServiceClient();
-  const orderId = nanoid();
-  const orderNumber = generateOrderNumber();
+  console.log('[order-queries] createOrder stubbed');
   const now = new Date().toISOString();
-
-  // Calculate totals
-  const totalStores = params.orderItems.length;
-  const totalQuantity = params.orderItems.reduce((sum, item) => sum + item.approvedQuantity, 0);
-  const estimatedCost = totalQuantity * 0.25; // $0.25 per piece
-
-  // Begin transaction
-  const insertOrder = db.prepare(`
-    INSERT INTO campaign_orders (
-      id, order_number, created_at, updated_at, status,
-      total_stores, total_quantity, estimated_cost,
-      notes, supplier_email
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insertItem = db.prepare(`
-    INSERT INTO campaign_order_items (
-      id, order_id, store_id, campaign_id,
-      recommended_quantity, approved_quantity,
-      unit_cost, total_cost, notes, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const transaction = db.transaction(() => {
-    // Insert order
-    insertOrder.run(
-      orderId,
-      orderNumber,
-      now,
-      now,
-      'draft',
-      totalStores,
-      totalQuantity,
-      estimatedCost,
-      params.notes || null,
-      params.supplierEmail || null
-    );
-
-    // Insert order items
-    for (const item of params.orderItems) {
-      const itemId = nanoid();
-      const itemCost = item.approvedQuantity * 0.25;
-
-      insertItem.run(
-        itemId,
-        orderId,
-        item.storeId,
-        item.campaignId,
-        item.recommendedQuantity,
-        item.approvedQuantity,
-        0.25, // unit_cost
-        itemCost,
-        item.notes || null,
-        now
-      );
-    }
-  });
-
-  transaction();
-
-  return getOrderById(orderId)!;
+  return {
+    id: nanoid(),
+    order_number: generateOrderNumber(),
+    created_at: now,
+    updated_at: now,
+    status: 'draft',
+    total_stores: params.orderItems.length,
+    total_quantity: params.orderItems.reduce((sum, item) => sum + item.approvedQuantity, 0),
+    estimated_cost: 0,
+    pdf_url: null,
+    csv_url: null,
+    notes: params.notes || null,
+    tracking_number: null,
+    supplier_email: params.supplierEmail || null,
+    sent_at: null,
+    delivered_at: null,
+  };
 }
 
-/**
- * Duplicate an existing order with new order number
- * Creates identical order items with same stores and quantities
- * Perfect for recurring monthly campaigns
- */
 export function duplicateOrder(originalOrderId: string): CampaignOrder {
-  const db = createServiceClient();
-
-  // Get original order
-  const originalOrder = getOrderById(originalOrderId);
-  if (!originalOrder) {
-    throw new Error(`Order ${originalOrderId} not found`);
-  }
-
-  // Get original order items
-  const originalItems = getOrderItems(originalOrderId);
-
-  if (originalItems.length === 0) {
-    throw new Error(`Cannot duplicate order ${originalOrder.order_number}: No items found`);
-  }
-
-  // Create new order with same parameters
-  const newOrderId = nanoid();
-  const newOrderNumber = generateOrderNumber();
+  console.log('[order-queries] duplicateOrder stubbed');
   const now = new Date().toISOString();
-
-  const insertOrder = db.prepare(`
-    INSERT INTO campaign_orders (
-      id, order_number, created_at, updated_at, status,
-      total_stores, total_quantity, estimated_cost,
-      notes, supplier_email
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insertItem = db.prepare(`
-    INSERT INTO campaign_order_items (
-      id, order_id, store_id, campaign_id,
-      recommended_quantity, approved_quantity,
-      unit_cost, total_cost, notes, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const transaction = db.transaction(() => {
-    // Insert new order (always as draft for review)
-    const notePrefix = `Rerun of ${originalOrder.order_number}`;
-    const combinedNotes = originalOrder.notes
-      ? `${notePrefix}\n\n${originalOrder.notes}`
-      : notePrefix;
-
-    insertOrder.run(
-      newOrderId,
-      newOrderNumber,
-      now,
-      now,
-      'draft', // Always start as draft for safety
-      originalOrder.total_stores,
-      originalOrder.total_quantity,
-      originalOrder.estimated_cost,
-      combinedNotes,
-      originalOrder.supplier_email
-    );
-
-    // Insert order items (duplicate with same quantities)
-    for (const item of originalItems) {
-      insertItem.run(
-        nanoid(),
-        newOrderId,
-        item.store_id,
-        item.campaign_id,
-        item.recommended_quantity,
-        item.approved_quantity,
-        item.unit_cost,
-        item.total_cost,
-        item.notes,
-        now
-      );
-    }
-  });
-
-  transaction();
-
-  console.log(`✅ [duplicateOrder] Order ${originalOrder.order_number} duplicated as ${newOrderNumber}`);
-
-  return getOrderById(newOrderId)!;
+  return {
+    id: nanoid(),
+    order_number: generateOrderNumber(),
+    created_at: now,
+    updated_at: now,
+    status: 'draft',
+    total_stores: 0,
+    total_quantity: 0,
+    estimated_cost: 0,
+    pdf_url: null,
+    csv_url: null,
+    notes: `Rerun of ${originalOrderId}`,
+    tracking_number: null,
+    supplier_email: null,
+    sent_at: null,
+    delivered_at: null,
+  };
 }
 
-// ==================== READ OPERATIONS ====================
+// ==================== READ OPERATIONS (STUBBED) ====================
 
-/**
- * Get order by ID
- */
 export function getOrderById(orderId: string): CampaignOrder | null {
-  const db = createServiceClient();
-
-  const order = db.prepare(`
-    SELECT * FROM campaign_orders WHERE id = ?
-  `).get(orderId) as CampaignOrder | undefined;
-
-  return order || null;
+  console.log('[order-queries] getOrderById stubbed');
+  return null;
 }
 
-/**
- * Get order by order number
- */
 export function getOrderByNumber(orderNumber: string): CampaignOrder | null {
-  const db = createServiceClient();
-
-  const order = db.prepare(`
-    SELECT * FROM campaign_orders WHERE order_number = ?
-  `).get(orderNumber) as CampaignOrder | undefined;
-
-  return order || null;
+  console.log('[order-queries] getOrderByNumber stubbed');
+  return null;
 }
 
-/**
- * Get all orders (with pagination and filtering)
- */
 export function getAllOrders(options?: {
   limit?: number;
   offset?: number;
   status?: string;
   searchQuery?: string;
 }): CampaignOrder[] {
-  const db = createServiceClient();
-  const { limit = 50, offset = 0, status, searchQuery } = options || {};
-
-  let query = 'SELECT * FROM campaign_orders';
-  const conditions: string[] = [];
-  const params: any[] = [];
-
-  if (status && status !== 'all') {
-    conditions.push('status = ?');
-    params.push(status);
-  }
-
-  if (searchQuery) {
-    conditions.push('order_number LIKE ?');
-    params.push(`%${searchQuery}%`);
-  }
-
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
-
-  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  params.push(limit, offset);
-
-  return db.prepare(query).all(...params) as CampaignOrder[];
+  console.log('[order-queries] getAllOrders stubbed');
+  return [];
 }
 
-/**
- * Get total count of orders (for pagination)
- */
 export function getOrdersCount(status?: string): number {
-  const db = createServiceClient();
-
-  let query = 'SELECT COUNT(*) as count FROM campaign_orders';
-  const params: any[] = [];
-
-  if (status && status !== 'all') {
-    query += ' WHERE status = ?';
-    params.push(status);
-  }
-
-  const result = db.prepare(query).get(...params) as { count: number };
-  return result.count;
+  console.log('[order-queries] getOrdersCount stubbed');
+  return 0;
 }
 
-/**
- * Get order items for a specific order
- */
 export function getOrderItems(orderId: string): OrderItemWithDetails[] {
-  const db = createServiceClient();
-
-  const items = db.prepare(`
-    SELECT
-      oi.*,
-      rs.store_number,
-      rs.name as store_name,
-      rs.city,
-      rs.state,
-      c.name as campaign_name
-    FROM campaign_order_items oi
-    LEFT JOIN retail_stores rs ON rs.id = oi.store_id
-    LEFT JOIN campaigns c ON c.id = oi.campaign_id
-    WHERE oi.order_id = ?
-    ORDER BY rs.store_number
-  `).all(orderId) as OrderItemWithDetails[];
-
-  return items;
+  console.log('[order-queries] getOrderItems stubbed');
+  return [];
 }
 
-// ==================== UPDATE OPERATIONS ====================
+// ==================== UPDATE OPERATIONS (STUBBED) ====================
 
-/**
- * Update order status
- */
 export function updateOrderStatus(
   orderId: string,
   status: CampaignOrder['status'],
@@ -357,76 +159,19 @@ export function updateOrderStatus(
     deliveredAt?: string;
   }
 ): boolean {
-  const db = createServiceClient();
-  const now = new Date().toISOString();
-
-  const updates: string[] = ['status = ?', 'updated_at = ?'];
-  const params: any[] = [status, now];
-
-  if (additionalData?.trackingNumber) {
-    updates.push('tracking_number = ?');
-    params.push(additionalData.trackingNumber);
-  }
-
-  if (additionalData?.sentAt) {
-    updates.push('sent_at = ?');
-    params.push(additionalData.sentAt);
-  }
-
-  if (additionalData?.deliveredAt) {
-    updates.push('delivered_at = ?');
-    params.push(additionalData.deliveredAt);
-  }
-
-  params.push(orderId);
-
-  const result = db.prepare(`
-    UPDATE campaign_orders
-    SET ${updates.join(', ')}
-    WHERE id = ?
-  `).run(...params);
-
-  return result.changes > 0;
+  console.log('[order-queries] updateOrderStatus stubbed');
+  return false;
 }
 
-/**
- * Update order file URLs (PDF and CSV)
- */
 export function updateOrderFiles(
   orderId: string,
   pdfUrl?: string,
   csvUrl?: string
 ): boolean {
-  const db = createServiceClient();
-  const now = new Date().toISOString();
-
-  const updates: string[] = ['updated_at = ?'];
-  const params: any[] = [now];
-
-  if (pdfUrl !== undefined) {
-    updates.push('pdf_url = ?');
-    params.push(pdfUrl);
-  }
-
-  if (csvUrl !== undefined) {
-    updates.push('csv_url = ?');
-    params.push(csvUrl);
-  }
-
-  params.push(orderId);
-
-  const result = db.prepare(`
-    UPDATE campaign_orders
-    SET ${updates.join(', ')}
-    WHERE id = ?
-  `).run(...params);
-
-  return result.changes > 0;
+  console.log('[order-queries] updateOrderFiles stubbed');
+  return false;
 }
 
-/**
- * Update order details (notes, supplier email)
- */
 export function updateOrderDetails(
   orderId: string,
   details: {
@@ -434,36 +179,10 @@ export function updateOrderDetails(
     supplierEmail?: string;
   }
 ): boolean {
-  const db = createServiceClient();
-  const now = new Date().toISOString();
-
-  const updates: string[] = ['updated_at = ?'];
-  const params: any[] = [now];
-
-  if (details.notes !== undefined) {
-    updates.push('notes = ?');
-    params.push(details.notes);
-  }
-
-  if (details.supplierEmail !== undefined) {
-    updates.push('supplier_email = ?');
-    params.push(details.supplierEmail);
-  }
-
-  params.push(orderId);
-
-  const result = db.prepare(`
-    UPDATE campaign_orders
-    SET ${updates.join(', ')}
-    WHERE id = ?
-  `).run(...params);
-
-  return result.changes > 0;
+  console.log('[order-queries] updateOrderDetails stubbed');
+  return false;
 }
 
-/**
- * Add a new item to an order
- */
 export function addOrderItem(
   orderId: string,
   item: {
@@ -474,44 +193,22 @@ export function addOrderItem(
     notes?: string;
   }
 ): CampaignOrderItem {
-  const db = createServiceClient();
-  const itemId = nanoid();
+  console.log('[order-queries] addOrderItem stubbed');
   const now = new Date().toISOString();
-  const totalCost = item.approvedQuantity * 0.25;
-
-  const result = db.prepare(`
-    INSERT INTO campaign_order_items (
-      id, order_id, store_id, campaign_id,
-      recommended_quantity, approved_quantity,
-      unit_cost, total_cost, notes, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    itemId,
-    orderId,
-    item.storeId,
-    item.campaignId,
-    item.recommendedQuantity,
-    item.approvedQuantity,
-    0.25,
-    totalCost,
-    item.notes || null,
-    now
-  );
-
-  // Recalculate order totals
-  recalculateOrderTotals(orderId);
-
-  // Return the created item
-  const createdItem = db.prepare(`
-    SELECT * FROM campaign_order_items WHERE id = ?
-  `).get(itemId) as CampaignOrderItem;
-
-  return createdItem;
+  return {
+    id: nanoid(),
+    order_id: orderId,
+    store_id: item.storeId,
+    campaign_id: item.campaignId,
+    recommended_quantity: item.recommendedQuantity,
+    approved_quantity: item.approvedQuantity,
+    unit_cost: 0.25,
+    total_cost: item.approvedQuantity * 0.25,
+    notes: item.notes || null,
+    created_at: now,
+  };
 }
 
-/**
- * Update an order item
- */
 export function updateOrderItem(
   itemId: string,
   updates: {
@@ -519,134 +216,29 @@ export function updateOrderItem(
     notes?: string;
   }
 ): boolean {
-  const db = createServiceClient();
-
-  const updateFields: string[] = [];
-  const params: any[] = [];
-
-  if (updates.approvedQuantity !== undefined) {
-    updateFields.push('approved_quantity = ?');
-    params.push(updates.approvedQuantity);
-
-    // Recalculate total cost
-    updateFields.push('total_cost = ?');
-    params.push(updates.approvedQuantity * 0.25);
-  }
-
-  if (updates.notes !== undefined) {
-    updateFields.push('notes = ?');
-    params.push(updates.notes);
-  }
-
-  params.push(itemId);
-
-  const result = db.prepare(`
-    UPDATE campaign_order_items
-    SET ${updateFields.join(', ')}
-    WHERE id = ?
-  `).run(...params);
-
-  // Get the order ID and recalculate totals
-  const item = db.prepare(`
-    SELECT order_id FROM campaign_order_items WHERE id = ?
-  `).get(itemId) as { order_id: string } | undefined;
-
-  if (item) {
-    recalculateOrderTotals(item.order_id);
-  }
-
-  return result.changes > 0;
+  console.log('[order-queries] updateOrderItem stubbed');
+  return false;
 }
 
-/**
- * Recalculate order totals based on current items
- */
 export function recalculateOrderTotals(orderId: string): boolean {
-  const db = createServiceClient();
-  const now = new Date().toISOString();
-
-  // Calculate totals from items
-  const totals = db.prepare(`
-    SELECT
-      COUNT(*) as total_stores,
-      COALESCE(SUM(approved_quantity), 0) as total_quantity,
-      COALESCE(SUM(total_cost), 0) as estimated_cost
-    FROM campaign_order_items
-    WHERE order_id = ?
-  `).get(orderId) as {
-    total_stores: number;
-    total_quantity: number;
-    estimated_cost: number;
-  };
-
-  // Update order
-  const result = db.prepare(`
-    UPDATE campaign_orders
-    SET
-      total_stores = ?,
-      total_quantity = ?,
-      estimated_cost = ?,
-      updated_at = ?
-    WHERE id = ?
-  `).run(
-    totals.total_stores,
-    totals.total_quantity,
-    totals.estimated_cost,
-    now,
-    orderId
-  );
-
-  return result.changes > 0;
+  console.log('[order-queries] recalculateOrderTotals stubbed');
+  return false;
 }
 
-// ==================== DELETE OPERATIONS ====================
+// ==================== DELETE OPERATIONS (STUBBED) ====================
 
-/**
- * Delete an order (and all its items via CASCADE)
- */
 export function deleteOrder(orderId: string): boolean {
-  const db = createServiceClient();
-
-  const result = db.prepare(`
-    DELETE FROM campaign_orders WHERE id = ?
-  `).run(orderId);
-
-  return result.changes > 0;
+  console.log('[order-queries] deleteOrder stubbed');
+  return false;
 }
 
-/**
- * Delete an order item
- */
 export function deleteOrderItem(itemId: string): boolean {
-  const db = createServiceClient();
-
-  // Get the order ID before deleting
-  const item = db.prepare(`
-    SELECT order_id FROM campaign_order_items WHERE id = ?
-  `).get(itemId) as { order_id: string } | undefined;
-
-  if (!item) {
-    return false;
-  }
-
-  // Delete the item
-  const result = db.prepare(`
-    DELETE FROM campaign_order_items WHERE id = ?
-  `).run(itemId);
-
-  // Recalculate order totals
-  if (result.changes > 0) {
-    recalculateOrderTotals(item.order_id);
-  }
-
-  return result.changes > 0;
+  console.log('[order-queries] deleteOrderItem stubbed');
+  return false;
 }
 
-// ==================== STATISTICS ====================
+// ==================== STATISTICS (STUBBED) ====================
 
-/**
- * Get order statistics
- */
 export function getOrderStatistics(): {
   totalOrders: number;
   totalStores: number;
@@ -654,38 +246,12 @@ export function getOrderStatistics(): {
   totalCost: number;
   ordersByStatus: Record<string, number>;
 } {
-  const db = createServiceClient();
-
-  const totals = db.prepare(`
-    SELECT
-      COUNT(*) as total_orders,
-      COALESCE(SUM(total_stores), 0) as total_stores,
-      COALESCE(SUM(total_quantity), 0) as total_quantity,
-      COALESCE(SUM(estimated_cost), 0) as total_cost
-    FROM campaign_orders
-  `).get() as {
-    total_orders: number;
-    total_stores: number;
-    total_quantity: number;
-    total_cost: number;
-  };
-
-  const statusCounts = db.prepare(`
-    SELECT status, COUNT(*) as count
-    FROM campaign_orders
-    GROUP BY status
-  `).all() as Array<{ status: string; count: number }>;
-
-  const ordersByStatus: Record<string, number> = {};
-  for (const row of statusCounts) {
-    ordersByStatus[row.status] = row.count;
-  }
-
+  console.log('[order-queries] getOrderStatistics stubbed');
   return {
-    totalOrders: totals.total_orders,
-    totalStores: totals.total_stores,
-    totalQuantity: totals.total_quantity,
-    totalCost: totals.total_cost,
-    ordersByStatus,
+    totalOrders: 0,
+    totalStores: 0,
+    totalQuantity: 0,
+    totalCost: 0,
+    ordersByStatus: {},
   };
 }

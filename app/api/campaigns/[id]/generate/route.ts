@@ -60,7 +60,7 @@ export async function POST(
 
       // Return existing results
       const supabase = await import('@/lib/supabase/server').then(m => m.createServiceClient())
-      const { data: recipients } = await supabase.default
+      const { data: recipients } = await supabase
         .from('campaign_recipients')
         .select('id')
         .eq('campaign_id', campaignId)
@@ -87,8 +87,7 @@ export async function POST(
       return NextResponse.json(
         errorResponse(
           `Generation failed: ${result.failureCount} of ${result.totalRecipients} recipients failed`,
-          'GENERATION_FAILED',
-          { result }
+          'GENERATION_FAILED'
         ),
         { status: 500 }
       )
@@ -126,10 +125,10 @@ export async function POST(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const campaignId = params.id
+    const { id: campaignId } = await params
 
     // TODO: Implement progress tracking
     // For now, return campaign status from database

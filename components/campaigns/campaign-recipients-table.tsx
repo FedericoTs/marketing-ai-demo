@@ -137,7 +137,7 @@ export function CampaignRecipientsTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchRecipients}
+              onClick={() => fetchRecipients()}
               className="mt-4"
             >
               Retry

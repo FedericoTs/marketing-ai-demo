@@ -170,10 +170,11 @@ export class PostGridClient {
       formData.append('from[countryCode]', request.from.countryCode || 'US')
     }
 
-    // PDF file
-    const pdfBlob = Buffer.isBuffer(request.pdf)
-      ? new Blob([request.pdf], { type: 'application/pdf' })
-      : new Blob([Buffer.from(request.pdf, 'base64')], { type: 'application/pdf' })
+    // PDF file - convert Buffer to Uint8Array for Blob compatibility
+    const pdfBuffer = Buffer.isBuffer(request.pdf)
+      ? request.pdf
+      : Buffer.from(request.pdf, 'base64')
+    const pdfBlob = new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' })
 
     formData.append('pdf', pdfBlob, 'postcard.pdf')
 
@@ -347,7 +348,7 @@ export class PostGridClient {
 
     const headers: Record<string, string> = {
       'x-api-key': this.apiKey,
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
     }
 
     // Remove Content-Type if FormData (browser sets it automatically with boundary)

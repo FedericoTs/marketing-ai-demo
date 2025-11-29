@@ -28,11 +28,10 @@ export default function CampaignCreatePage() {
     // Landing Page Configuration (Optional)
     includeLandingPage: false,
     landingPageConfig: {
-      template_type: 'default',
       headline: '',
       subheadline: '',
-      ctaText: '',
-      ctaUrl: '',
+      cta_text: '',
+      cta_url: '',
       primary_color: '#3B82F6',
       secondary_color: '#8B5CF6',
       background_color: '#FFFFFF',

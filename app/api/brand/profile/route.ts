@@ -27,11 +27,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Parse JSON strings
+    // Parse arrays (already arrays from stub, may be JSON strings from real DB)
     const parsedProfile = {
       ...profile,
-      keyPhrases: profile.key_phrases ? JSON.parse(profile.key_phrases) : [],
-      values: profile.brand_values ? JSON.parse(profile.brand_values) : [],
+      keyPhrases: Array.isArray(profile.key_phrases)
+        ? profile.key_phrases
+        : (profile.key_phrases ? JSON.parse(profile.key_phrases as unknown as string) : []),
+      values: Array.isArray(profile.brand_values)
+        ? profile.brand_values
+        : (profile.brand_values ? JSON.parse(profile.brand_values as unknown as string) : []),
     };
 
     return NextResponse.json(
@@ -69,20 +73,24 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = saveBrandProfile({
-      companyName,
-      brandVoice,
+      company_name: companyName,
+      brand_voice: brandVoice,
       tone,
-      keyPhrases,
-      values,
-      targetAudience,
+      key_phrases: keyPhrases,
+      brand_values: values,
+      target_audience: targetAudience,
       industry,
     });
 
-    // Parse JSON strings for response
+    // Parse arrays (already arrays from stub, may be JSON strings from real DB)
     const parsedProfile = {
       ...profile,
-      keyPhrases: profile.key_phrases ? JSON.parse(profile.key_phrases) : [],
-      values: profile.brand_values ? JSON.parse(profile.brand_values) : [],
+      keyPhrases: Array.isArray(profile.key_phrases)
+        ? profile.key_phrases
+        : (profile.key_phrases ? JSON.parse(profile.key_phrases as unknown as string) : []),
+      values: Array.isArray(profile.brand_values)
+        ? profile.brand_values
+        : (profile.brand_values ? JSON.parse(profile.brand_values as unknown as string) : []),
     };
 
     return NextResponse.json(

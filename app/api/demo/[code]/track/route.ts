@@ -12,10 +12,10 @@ import { trackDemoEvent } from '@/lib/demo/demo-queries';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = params;
+    const { code } = await params;
     const body = await request.json();
     const { event_type, event_data } = body;
 

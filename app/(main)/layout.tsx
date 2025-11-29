@@ -47,7 +47,11 @@ export default function MainLayout({
 
       if (!error && profile) {
         setApprovalStatus(profile.approval_status);
-        setOrganizationName(profile.organizations?.name || '');
+        // organizations is an array from Supabase join, get first item
+        const org = Array.isArray(profile.organizations)
+          ? profile.organizations[0]
+          : profile.organizations;
+        setOrganizationName(org?.name || '');
       } else {
         // If no profile exists, something went wrong during signup
         console.error('Failed to fetch user profile:', error);

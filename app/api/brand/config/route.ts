@@ -82,20 +82,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update brand kit
+    // Update brand kit (map camelCase to snake_case)
     const updatedProfile = updateBrandKit({
-      companyName,
-      logoUrl,
-      logoAssetId,
-      primaryColor,
-      secondaryColor,
-      accentColor,
-      backgroundColor,
-      textColor,
-      headingFont,
-      bodyFont,
-      landingPageTemplate,
-      websiteUrl,
+      company_name: companyName,
+      logo_url: logoUrl,
+      primary_color: primaryColor,
+      secondary_color: secondaryColor,
+      accent_color: accentColor,
+      heading_font: headingFont,
+      body_font: bodyFont,
+      landing_page_template: landingPageTemplate,
     });
 
     if (!updatedProfile) {

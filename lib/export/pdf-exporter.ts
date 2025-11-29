@@ -6,7 +6,7 @@ import { CampaignExportData } from "../database/tracking-queries";
  */
 export function generateCampaignPDF(data: CampaignExportData): jsPDF {
   const doc = new jsPDF();
-  const { campaign, recipients, metrics } = data;
+  const { campaign, recipients, summary } = data;
 
   let yPos = 20;
   const pageWidth = doc.internal.pageSize.width;
@@ -57,16 +57,12 @@ export function generateCampaignPDF(data: CampaignExportData): jsPDF {
   const col1X = margin;
   const col2X = pageWidth / 2 + 10;
 
-  doc.text(`Total Recipients: ${metrics.totalRecipients}`, col1X, yPos);
-  doc.text(`Unique Visitors: ${metrics.uniqueVisitors}`, col2X, yPos);
+  doc.text(`Total Recipients: ${summary.totalRecipients}`, col1X, yPos);
+  doc.text(`Total Events: ${summary.totalEvents}`, col2X, yPos);
   yPos += 6;
 
-  doc.text(`Total Page Views: ${metrics.totalPageViews}`, col1X, yPos);
-  doc.text(`Total Conversions: ${metrics.totalConversions}`, col2X, yPos);
-  yPos += 6;
-
-  doc.setFont("helvetica", "bold");
-  doc.text(`Conversion Rate: ${metrics.conversionRate}%`, col1X, yPos);
+  doc.text(`Total Conversions: ${summary.totalConversions}`, col1X, yPos);
+  doc.text(`Conversion Rate: ${summary.conversionRate.toFixed(1)}%`, col2X, yPos);
   yPos += 10;
 
   // Recipients Summary Section

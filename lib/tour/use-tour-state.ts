@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getActiveTourSteps, getTourVersion } from './tour-config';
+import { getActiveTourSteps, getTourVersion, tourConfig } from './tour-config';
 import type { TourStep, TourState, TourProgress } from './tour-types';
 
 export function useTourState() {
@@ -159,6 +159,7 @@ export function useTourState() {
     totalSteps: state.totalSteps,
     canGoBack: state.canGoBack,
     canGoNext: state.canGoNext,
+    showProgress: tourConfig.showProgress,
     start,
     next,
     back,

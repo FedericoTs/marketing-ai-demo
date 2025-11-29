@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Download, FileText, Upload, Sparkles } from "lucide-react";
+import { Download, FileText, Upload, Sparkles, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 
@@ -21,7 +21,7 @@ interface TemplateData {
   variableMappings?: string;
 }
 
-export default function DMResultsPage() {
+function DMResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const templateId = searchParams?.get("template");
@@ -247,5 +247,13 @@ export default function DMResultsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DMResultsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <DMResultsContent />
+    </Suspense>
   );
 }

@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!brandProfile) {
       // Create minimal profile if doesn't exist
       const { saveBrandProfile } = await import('@/lib/database/tracking-queries');
-      brandProfile = saveBrandProfile({ companyName });
+      brandProfile = saveBrandProfile({ company_name: companyName });
     }
 
     // Save logo as asset (no templateId - we track via logo_asset_id in brand_profiles)
@@ -74,11 +74,10 @@ export async function POST(request: NextRequest) {
     // Get public URL for the asset
     const logoUrl = getAssetPublicUrl(asset.id);
 
-    // Update brand profile with logo
+    // Update brand profile with logo (map to snake_case)
     const updatedProfile = updateBrandKit({
-      companyName,
-      logoUrl: logoUrl ?? undefined,
-      logoAssetId: asset.id,
+      company_name: companyName,
+      logo_url: logoUrl ?? undefined,
     });
 
     return NextResponse.json(

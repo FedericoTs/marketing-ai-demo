@@ -109,8 +109,9 @@ export async function POST(request: NextRequest) {
     // Verify the target user belongs to the same organization
     // Use admin client to bypass RLS for lookup
     const adminClient = createAdminClient();
-    const { data: targetUser, error: targetError } = await adminClient
-      .from('user_profiles')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: targetUser, error: targetError } = await (adminClient
+      .from('user_profiles') as any)
       .select('organization_id')
       .eq('id', userId)
       .single();
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (targetUser.organization_id !== profile.organization_id) {
+    if ((targetUser as { organization_id?: string }).organization_id !== profile.organization_id) {
       return NextResponse.json(
         errorResponse('User does not belong to your organization', 'FORBIDDEN'),
         { status: 403 }

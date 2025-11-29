@@ -328,7 +328,7 @@ async function verifyPDFGeneration(supabase: any, campaignId: string): Promise<v
     throw new Error(`Failed to fetch recipients: ${error.message}`)
   }
 
-  const pdfUrls = recipients.filter(r => r.personalized_pdf_url)
+  const pdfUrls = recipients.filter((r: any) => r.personalized_pdf_url)
 
   console.log(`📊 PDF Generation:`)
   console.log(`   Total recipients: ${recipients.length}`)
@@ -343,7 +343,7 @@ async function verifyPDFGeneration(supabase: any, campaignId: string): Promise<v
 
   // Sample PDF URLs
   console.log(`\n🔬 Sample PDF URLs:`)
-  pdfUrls.slice(0, 3).forEach((r, idx) => {
+  pdfUrls.slice(0, 3).forEach((r: any, idx: number) => {
     console.log(`   ${idx + 1}. ${r.personalized_pdf_url}`)
   })
 }

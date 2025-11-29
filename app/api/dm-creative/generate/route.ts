@@ -285,13 +285,12 @@ export async function POST(request: NextRequest) {
       console.log("✅ AI background image generated");
     }
 
-    // Save landing page data to database
+    // Save landing page data to database (map to snake_case)
     try {
       saveLandingPage({
-        trackingId,
-        campaignId: campaign.id,
-        recipientId: dbRecipient.id,
-        pageData: {
+        tracking_id: trackingId,
+        campaign_id: campaign.id,
+        page_config: {
           recipient: {
             name: recipient.name,
             lastname: recipient.lastname,
@@ -303,9 +302,14 @@ export async function POST(request: NextRequest) {
           },
           message,
           companyName: companyContext?.companyName || "Your Company",
+          landingPageUrl,
           createdAt: new Date().toISOString(),
         },
-        landingPageUrl,
+        recipient_data: {
+          id: dbRecipient.id,
+          name: recipient.name,
+          lastname: recipient.lastname,
+        },
       });
       console.log(`Landing page saved for tracking ID: ${trackingId}`);
     } catch (error) {

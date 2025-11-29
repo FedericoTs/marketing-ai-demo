@@ -92,10 +92,10 @@ async function preprocessCanvasJSON(canvasJSON: any): Promise<any> {
  */
 function createFabricHTML(
   templateJSON: any,
-  variableMappings: any,
-  recipientData: any,
   width: number,
-  height: number
+  height: number,
+  variableMappings?: any,
+  recipientData?: any
 ): string {
   return `
 <!DOCTYPE html>
@@ -144,7 +144,7 @@ function createFabricHTML(
           backgroundColor: '#ffffff'
         });
 
-        const templateJSON = ${JSON.stringify(canvasJSON)};
+        const templateJSON = ${JSON.stringify(templateJSON)};
 
         await new Promise((resolve, reject) => {
           canvas.loadFromJSON(templateJSON, () => {

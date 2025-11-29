@@ -946,7 +946,7 @@ export async function generateDMCreativeImageWithGemini(
         imageConfig: {
           aspectRatio: aspectRatioMap[size] || '1:1',
         },
-      },
+      } as any, // Type assertion for newer API properties not in SDK types
     });
 
     const response = await result.response;
@@ -983,7 +983,7 @@ export async function generateDMCreativeImageWithGemini(
         aspectRatio: aspectRatioMap[size],
         watermarked: true, // SynthID watermark always present
         upscaleReady: true, // Can be upscaled for print quality
-      },
+      } as any, // Extended metadata for Gemini
     };
 
   } catch (error) {

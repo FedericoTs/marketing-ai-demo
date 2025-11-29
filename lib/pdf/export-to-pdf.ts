@@ -360,7 +360,7 @@ export async function exportCanvasJSONToPDF(
         }
 
         // Export to PDF
-        const result = await exportCanvasToPDF(fabricCanvas, { format, fileName });
+        const result = await exportCanvasToPDF(fabricCanvas as any, { format, fileName });
 
         // Clean up off-screen canvas
         fabricCanvas.dispose();
@@ -531,7 +531,7 @@ export async function bundlePDFsToZip(
       // Progress during ZIP generation
       if (onProgress) {
         onProgress({
-          current: metadata.currentFile || 0,
+          current: Number(metadata.currentFile) || 0,
           total: items.length,
           percentage: Math.round(metadata.percent),
           stage: 'bundling'

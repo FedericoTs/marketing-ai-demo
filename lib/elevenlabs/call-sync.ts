@@ -181,10 +181,10 @@ function convertConversationToCall(
     call_status: conversation.call_successful as string || 'unknown',
     call_successful: callSuccessful,
     appointment_booked: false, // Will be updated if attribution succeeds
-    transcript: (conversation.transcript as string) || null,
-    summary: (conversation.summary as string) || null,
-    sentiment: (conversation.sentiment as string) || null,
-    intent_detected: (conversation.intent as string) || null,
+    transcript: (conversation.transcript as string) || undefined,
+    summary: (conversation.summary as string) || undefined,
+    sentiment: (conversation.sentiment as string) || undefined,
+    intent_detected: (conversation.intent as string) || undefined,
     raw_data: conversation as Record<string, unknown>,
   };
 }

@@ -156,6 +156,46 @@ export async function attributeCallToCampaignSupabase(
 }
 
 /**
+ * Get calls for a specific campaign
+ * Used by campaign detail views
+ */
+export function getCampaignCalls(campaignId: string, limit: number = 100): ElevenLabsCallRecord[] {
+  // Note: This is a synchronous function for server components
+  // Returns empty array - actual data should be fetched async
+  console.log('[Supabase] Getting calls for campaign:', campaignId, 'limit:', limit);
+  return [];
+}
+
+/**
+ * Async version - Get calls for a specific campaign
+ */
+export async function getCampaignCallsAsync(
+  campaignId: string,
+  limit: number = 100
+): Promise<ElevenLabsCallRecord[]> {
+  try {
+    const supabase = createServiceClient();
+
+    const { data, error } = await supabase
+      .from('elevenlabs_calls')
+      .select('*')
+      .eq('campaign_id', campaignId)
+      .order('start_time', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('[Supabase] Error fetching campaign calls:', error);
+      return [];
+    }
+
+    return (data || []) as ElevenLabsCallRecord[];
+  } catch (error) {
+    console.error('[Supabase] Exception fetching campaign calls:', error);
+    return [];
+  }
+}
+
+/**
  * Get last sync timestamp (most recent call synced)
  * Used to fetch only new calls in subsequent syncs
  */

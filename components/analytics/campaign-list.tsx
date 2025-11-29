@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2, Download, Bookmark, Square, CheckSquare, Archive, ExternalLink } from "lucide-react";
+import { Users, Eye, TrendingUp, Calendar, Loader2, ChevronRight, Search, Filter, MoreVertical, Play, Pause, CheckCircle, Copy, Trash2, Download, Bookmark, Square, CheckSquare, Archive, ExternalLink, Target } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { CampaignStoreStats } from "@/components/analytics/campaign-store-stats";

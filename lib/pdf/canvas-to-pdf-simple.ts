@@ -309,8 +309,9 @@ async function renderCanvasToImage(
     })
 
     // Forward page errors (JavaScript errors that don't go to console)
-    page.on('pageerror', error => {
-      console.error(`  [Browser] Error: ${error.message}`)
+    page.on('pageerror', (error) => {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      console.error(`  [Browser] Error: ${errorMsg}`)
     })
 
     await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 })

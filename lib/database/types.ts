@@ -112,6 +112,7 @@ export interface UserProfile {
   can_approve_designs: boolean; // Default: false
   can_manage_templates: boolean; // Default: true
   can_access_analytics: boolean; // Default: true
+  can_access_api: boolean; // Default: false
 
   // Preferences
   ui_preferences: Record<string, any>; // JSONB
@@ -143,6 +144,7 @@ export interface UserProfileInsert {
   can_approve_designs?: boolean;
   can_manage_templates?: boolean;
   can_access_analytics?: boolean;
+  can_access_api?: boolean;
   ui_preferences?: Record<string, any>;
   notification_preferences?: Record<string, any>;
 }
@@ -160,6 +162,7 @@ export interface UserProfileUpdate {
   can_approve_designs?: boolean;
   can_manage_templates?: boolean;
   can_access_analytics?: boolean;
+  can_access_api?: boolean;
   ui_preferences?: Record<string, any>;
   notification_preferences?: Record<string, any>;
   last_active_at?: string;
@@ -527,6 +530,13 @@ export interface Campaign {
   template_id: string | null; // UUID
   recipient_list_id: string | null; // UUID
 
+  // Optional joined template data (populated via Supabase joins)
+  template?: {
+    id: string;
+    name: string | null;
+    thumbnail_url: string | null;
+  } | null;
+
   // Design Snapshots (frozen at campaign creation)
   design_snapshot: Record<string, any>; // JSONB - Frozen Fabric.js canvas state
   variable_mappings_snapshot: Record<string, any>; // JSONB - Variable field mappings at send time
@@ -660,6 +670,9 @@ export type LandingPageTemplateType =
   | 'custom';
 
 export interface LandingPageConfig {
+  // Template type (for wizard configuration)
+  template_type?: LandingPageTemplateType;
+
   // Branding
   logo_url?: string;
   primary_color?: string;
@@ -672,6 +685,10 @@ export interface LandingPageConfig {
   cta_text?: string;
   cta_url?: string;
   image_url?: string;
+
+  // CamelCase aliases (for wizard component compatibility)
+  ctaUrl?: string;
+  ctaText?: string;
 
   // Form Fields (for templates with forms)
   form_fields?: Array<{

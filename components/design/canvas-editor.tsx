@@ -269,6 +269,7 @@ export function CanvasEditor({
         const frontJSON = typeof frontData === 'string' ? frontData : JSON.stringify(frontData);
         fabricFrontCanvas.loadFromJSON(frontJSON, () => {
           console.log('✅ Front canvas JSON loaded, rendering...');
+          if (!fabricFrontCanvas) return; // Guard for TypeScript
           fabricFrontCanvas.renderAll();
 
           // Apply variable mappings (try surfaces[0] first, fallback to old variableMappings)
@@ -361,6 +362,7 @@ export function CanvasEditor({
         const backJSON = typeof backData === 'string' ? backData : JSON.stringify(backData);
         fabricBackCanvas.loadFromJSON(backJSON, () => {
           console.log('✅ Back canvas JSON loaded, rendering...');
+          if (!fabricBackCanvas) return; // Guard for TypeScript
           fabricBackCanvas.renderAll();
 
           // Apply variable mappings to back canvas

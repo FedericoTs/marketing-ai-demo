@@ -84,7 +84,8 @@ export function WizardStepTemplate({ data, onChange }: WizardStepTemplateProps) 
       <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
         {filteredTemplates.map(template => {
           // Safely parse template data with fallback
-          let templateData = template.template_data;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let templateData: any = template.template_data;
           if (typeof template.template_data === 'string') {
             try {
               templateData = JSON.parse(template.template_data);

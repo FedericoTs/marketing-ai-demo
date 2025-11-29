@@ -72,15 +72,14 @@ Return ONLY a valid JSON object with these exact keys:
     // Parse the AI response
     const extracted = JSON.parse(analysis);
 
-    // Save to database
+    // Save to database (map camelCase to snake_case)
     const brandProfile = saveBrandProfile({
-      companyName,
-      brandVoice: extracted.brandVoice,
+      company_name: companyName,
+      brand_voice: extracted.brandVoice,
       tone: extracted.tone,
-      keyPhrases: extracted.keyPhrases,
-      values: extracted.values,
-      targetAudience: extracted.targetAudience,
-      sourceContent: content.substring(0, 500), // Store first 500 chars as reference
+      key_phrases: extracted.keyPhrases,
+      brand_values: extracted.values,
+      target_audience: extracted.targetAudience,
     });
 
     console.log(`Brand profile saved: ${brandProfile.id}`);

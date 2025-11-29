@@ -105,6 +105,7 @@ export function ShowExistingPDFsButton({
 
       {showPrintModal && pdfCount && pdfCount > 0 && (
         <PrintCampaignModal
+          isOpen={showPrintModal}
           campaignId={campaignId}
           organizationId={organizationId}
           totalRecipients={pdfCount}

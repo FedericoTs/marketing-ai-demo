@@ -375,7 +375,7 @@ export default function CampaignLandingPageClient({
           <CardContent className="pt-8 pb-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Name */}
-              {config.formFields.includes('name') && (
+              {config.formFields?.includes('name') && (
                 <div>
                   <Label htmlFor="name">
                     Full Name <span className="text-red-500">*</span>
@@ -393,7 +393,7 @@ export default function CampaignLandingPageClient({
               )}
 
               {/* Email */}
-              {config.formFields.includes('email') && (
+              {config.formFields?.includes('email') && (
                 <div>
                   <Label htmlFor="email">
                     Email <span className="text-red-500">*</span>
@@ -410,7 +410,7 @@ export default function CampaignLandingPageClient({
               )}
 
               {/* Phone */}
-              {config.formFields.includes('phone') && (
+              {config.formFields?.includes('phone') && (
                 <div>
                   <Label htmlFor="phone">
                     Phone Number <span className="text-red-500">*</span>
@@ -427,7 +427,7 @@ export default function CampaignLandingPageClient({
               )}
 
               {/* Preferred Date */}
-              {config.formFields.includes('preferredDate') && (
+              {config.formFields?.includes('preferredDate') && (
                 <div>
                   <Label htmlFor="preferredDate">Preferred Consultation Date</Label>
                   <Input

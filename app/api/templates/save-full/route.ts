@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCampaignTemplate } from "@/lib/database/campaign-management";
-import { createDMTemplate } from "@/lib/database/template-queries";
-import { getDatabase } from "@/lib/database/connection";
+import { createServiceClient } from "@/lib/supabase/server";
 import { successResponse, errorResponse } from "@/lib/utils/api-response";
 
 export async function POST(request: NextRequest) {
@@ -35,59 +33,73 @@ export async function POST(request: NextRequest) {
 
     console.log("💾 Creating full template (campaign + DM design)...");
 
-    // Use transaction for atomic save
-    const db = createServiceClient();
+    const supabase = createServiceClient();
+    const campaignTemplateId = `ct_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    const dmTemplateId = `dm_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    const now = new Date().toISOString();
 
-    try {
-      db.exec("BEGIN TRANSACTION");
-
-      // Step 1: Create campaign template (message/copy)
-      const campaignTemplate = createCampaignTemplate({
+    // Step 1: Create campaign template (message/copy)
+    const { error: campaignError } = await supabase
+      .from('campaign_templates')
+      .insert({
+        id: campaignTemplateId,
         name: campaignData.name,
-        description: campaignData.description,
+        description: campaignData.description || null,
         category: campaignData.category || "general",
-        templateData: {
+        template_data: {
           message: campaignData.message,
           targetAudience: campaignData.targetAudience,
           tone: campaignData.tone,
           industry: campaignData.industry,
         },
-        isSystemTemplate: false,
+        is_system_template: false,
+        use_count: 0,
+        created_at: now,
+        updated_at: now,
       });
 
-      console.log(`✅ Campaign template created: ${campaignTemplate.id}`);
-
-      // Step 2: Create DM template (design) linked to campaign template
-      const dmTemplateId = createDMTemplate({
-        campaignId: dmData.campaignId,
-        canvasSessionId: dmData.canvasSessionId,
-        name: dmData.name || campaignData.name,
-        canvasJSON: dmData.canvasJSON,
-        backgroundImage: dmData.backgroundImage,
-        canvasWidth: dmData.canvasWidth,
-        canvasHeight: dmData.canvasHeight,
-        previewImage: dmData.previewImage,
-        variableMappings: dmData.variableMappings,
-        campaignTemplateId: campaignTemplate.id, // Link to campaign template
-      });
-
-      console.log(`✅ DM template created: ${dmTemplateId}`);
-
-      db.exec("COMMIT");
-
-      return NextResponse.json(
-        successResponse(
-          {
-            campaignTemplateId: campaignTemplate.id,
-            dmTemplateId: dmTemplateId,
-          },
-          "Template saved successfully"
-        )
-      );
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
+    if (campaignError) {
+      throw new Error(`Failed to create campaign template: ${campaignError.message}`);
     }
+
+    console.log(`✅ Campaign template created: ${campaignTemplateId}`);
+
+    // Step 2: Create DM template (design) linked to campaign template
+    const { error: dmError } = await supabase
+      .from('dm_templates')
+      .insert({
+        id: dmTemplateId,
+        campaign_id: dmData.campaignId || null,
+        canvas_session_id: dmData.canvasSessionId || null,
+        name: dmData.name || campaignData.name,
+        canvas_json: dmData.canvasJSON,
+        background_image: dmData.backgroundImage,
+        canvas_width: dmData.canvasWidth,
+        canvas_height: dmData.canvasHeight,
+        preview_image: dmData.previewImage || null,
+        variable_mappings: dmData.variableMappings || null,
+        campaign_template_id: campaignTemplateId,
+        created_at: now,
+        updated_at: now,
+      });
+
+    if (dmError) {
+      // Rollback campaign template
+      await supabase.from('campaign_templates').delete().eq('id', campaignTemplateId);
+      throw new Error(`Failed to create DM template: ${dmError.message}`);
+    }
+
+    console.log(`✅ DM template created: ${dmTemplateId}`);
+
+    return NextResponse.json(
+      successResponse(
+        {
+          campaignTemplateId: campaignTemplateId,
+          dmTemplateId: dmTemplateId,
+        },
+        "Template saved successfully"
+      )
+    );
   } catch (error) {
     console.error("Error creating full template:", error);
     return NextResponse.json(

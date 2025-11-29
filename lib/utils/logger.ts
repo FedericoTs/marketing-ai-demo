@@ -34,7 +34,7 @@ export interface LogContext {
   action?: string;
   userId?: string;
   organizationId?: string;
-  duration?: number;
+  duration?: number | string;
   metadata?: Record<string, any>;
 }
 

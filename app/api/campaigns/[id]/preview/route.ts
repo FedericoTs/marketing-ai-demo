@@ -140,7 +140,7 @@ export async function GET(
             preview.pdfSize = fileData[0].metadata?.size || 0
 
             // Validate file size (should be > 10KB for a valid PDF)
-            if (preview.pdfSize < 10000) {
+            if (preview.pdfSize !== undefined && preview.pdfSize < 10000) {
               preview.status = 'error'
               preview.validationErrors?.push('PDF file too small (may be corrupted)')
               validation.warnings.push(`${recipient.name}: Unusually small PDF (${preview.pdfSize} bytes)`)

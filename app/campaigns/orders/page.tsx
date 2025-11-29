@@ -440,7 +440,7 @@ export default function OrdersPage() {
         <RerunOrderDialog
           open={showRerunDialog}
           onOpenChange={setShowRerunDialog}
-          order={selectedOrderForRerun}
+          order={selectedOrderForRerun as unknown as CampaignOrder}
           onSuccess={handleRerunSuccess}
         />
       )}

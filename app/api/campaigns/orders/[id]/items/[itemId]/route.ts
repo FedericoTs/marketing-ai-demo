@@ -6,7 +6,7 @@ import {
   getOrderItems
 } from '@/lib/database/order-queries';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
-import { getDatabase } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 /**
  * PATCH /api/campaigns/orders/[id]/items/[itemId]
@@ -45,13 +45,16 @@ export async function PATCH(
       );
     }
 
-    // Verify item belongs to this order
-    const db = createServiceClient();
-    const item = db.prepare(`
-      SELECT * FROM campaign_order_items WHERE id = ? AND order_id = ?
-    `).get(itemId, orderId) as any;
+    // Verify item belongs to this order using Supabase
+    const supabase = createServiceClient();
+    const { data: item, error: itemError } = await supabase
+      .from('campaign_order_items')
+      .select('*')
+      .eq('id', itemId)
+      .eq('order_id', orderId)
+      .single();
 
-    if (!item) {
+    if (itemError || !item) {
       console.log('❌ [Order Item API] Item not found:', itemId);
       return NextResponse.json(
         errorResponse('Item not found in this order', 'ITEM_NOT_FOUND'),
@@ -143,13 +146,16 @@ export async function DELETE(
       );
     }
 
-    // Verify item belongs to this order
-    const db = createServiceClient();
-    const item = db.prepare(`
-      SELECT * FROM campaign_order_items WHERE id = ? AND order_id = ?
-    `).get(itemId, orderId) as any;
+    // Verify item belongs to this order using Supabase
+    const supabase = createServiceClient();
+    const { data: item, error: itemError } = await supabase
+      .from('campaign_order_items')
+      .select('*')
+      .eq('id', itemId)
+      .eq('order_id', orderId)
+      .single();
 
-    if (!item) {
+    if (itemError || !item) {
       console.log('❌ [Order Item API] Item not found:', itemId);
       return NextResponse.json(
         errorResponse('Item not found in this order', 'ITEM_NOT_FOUND'),

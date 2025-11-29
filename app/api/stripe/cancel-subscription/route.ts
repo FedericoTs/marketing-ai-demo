@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripeClient, isStripeConfigured } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/server';
+import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,10 +90,16 @@ export async function POST(request: NextRequest) {
       `[Cancel Subscription] Cancelling subscription ${org.stripe_subscription_id} for org ${org.name} (immediate: ${immediate})`
     );
 
-    const subscription = await stripe.subscriptions.update(org.stripe_subscription_id, {
-      cancel_at_period_end: !immediate, // If immediate=false, set cancel_at_period_end=true
-      ...(immediate && { cancel_at: 'now' }), // If immediate=true, cancel now
-    });
+    let subscription: Stripe.Subscription;
+    if (immediate) {
+      // Cancel immediately - use delete/cancel method
+      subscription = await stripe.subscriptions.cancel(org.stripe_subscription_id);
+    } else {
+      // Cancel at period end - use update method
+      subscription = await stripe.subscriptions.update(org.stripe_subscription_id, {
+        cancel_at_period_end: true,
+      });
+    }
 
     console.log(
       `[Cancel Subscription] ✅ Subscription ${immediate ? 'cancelled immediately' : 'will cancel at period end'}: ${subscription.id}`
@@ -101,13 +108,16 @@ export async function POST(request: NextRequest) {
     // Note: Webhook will handle updating billing_status in database
     // We return the current subscription state for immediate UI update
 
+    // Access current_period_end from the subscription object (exists at runtime)
+    const subData = subscription as Stripe.Subscription & { current_period_end?: number };
+
     return NextResponse.json({
       success: true,
       subscription: {
         id: subscription.id,
         status: subscription.status,
         cancel_at_period_end: subscription.cancel_at_period_end,
-        current_period_end: subscription.current_period_end,
+        current_period_end: subData.current_period_end,
         cancelled_at: subscription.canceled_at,
       },
       message: immediate

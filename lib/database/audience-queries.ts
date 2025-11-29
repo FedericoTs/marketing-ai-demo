@@ -64,7 +64,7 @@ export async function getOrganizationAudiences(
   const supabase = createUserClient();
 
   const { data, error } = await supabase
-    .from('audience_filters')
+    .from('audience_filters' as any)
     .select('*')
     .eq('organization_id', organizationId)
     .is('deleted_at', null)
@@ -88,7 +88,7 @@ export async function getAudienceById(
   const supabase = createUserClient();
 
   const { data, error } = await supabase
-    .from('audience_filters')
+    .from('audience_filters' as any)
     .select('*')
     .eq('id', audienceId)
     .is('deleted_at', null)
@@ -112,8 +112,8 @@ export async function createAudience(
 ): Promise<SavedAudience> {
   const supabase = createUserClient();
 
-  const { data, error } = await supabase
-    .from('audience_filters')
+  const { data, error } = await (supabase
+    .from('audience_filters' as any)
     .insert({
       organization_id: input.organizationId,
       created_by: input.createdBy,
@@ -125,9 +125,9 @@ export async function createAudience(
       last_count_updated_at: input.lastCount ? new Date().toISOString() : null,
       last_estimated_cost: input.lastEstimatedCost,
       last_user_charge: input.lastUserCharge,
-    })
+    } as any)
     .select()
-    .single();
+    .single() as any);
 
   if (error) {
     console.error('Error creating audience:', error);
@@ -163,13 +163,13 @@ export async function updateAudience(
     updateData.last_user_charge = updates.lastUserCharge;
   }
 
-  const { data, error } = await supabase
-    .from('audience_filters')
+  const { data, error } = await ((supabase
+    .from('audience_filters' as any) as any)
     .update(updateData)
     .eq('id', audienceId)
     .is('deleted_at', null)
     .select()
-    .single();
+    .single());
 
   if (error) {
     console.error('Error updating audience:', error);
@@ -186,11 +186,11 @@ export async function updateAudience(
 export async function deleteAudience(audienceId: string): Promise<void> {
   const supabase = createUserClient();
 
-  const { error } = await supabase
-    .from('audience_filters')
+  const { error } = await ((supabase
+    .from('audience_filters' as any) as any)
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', audienceId)
-    .is('deleted_at', null);
+    .is('deleted_at', null));
 
   if (error) {
     console.error('Error deleting audience:', error);
@@ -204,12 +204,12 @@ export async function deleteAudience(audienceId: string): Promise<void> {
 export async function markAudienceUsed(audienceId: string): Promise<void> {
   const supabase = createUserClient();
 
-  const { error } = await supabase
-    .from('audience_filters')
+  const { error } = await ((supabase
+    .from('audience_filters' as any) as any)
     .update({
       last_used_at: new Date().toISOString(),
     })
-    .eq('id', audienceId);
+    .eq('id', audienceId));
 
   if (error) {
     console.error('Error marking audience as used:', error);
@@ -232,11 +232,11 @@ export async function updateAudiencePerformance(
   const supabase = createAdminClient(); // Use admin for atomic updates
 
   // Fetch current values
-  const { data: current } = await supabase
-    .from('audience_filters')
+  const { data: current } = await ((supabase
+    .from('audience_filters' as any) as any)
     .select('total_campaigns_using, total_contacts_purchased, avg_response_rate, avg_conversion_rate')
     .eq('id', audienceId)
-    .single();
+    .single());
 
   if (!current) return;
 
@@ -264,10 +264,10 @@ export async function updateAudiencePerformance(
   }
 
   if (Object.keys(updates).length > 0) {
-    await supabase
-      .from('audience_filters')
+    await ((supabase
+      .from('audience_filters' as any) as any)
       .update(updates)
-      .eq('id', audienceId);
+      .eq('id', audienceId));
   }
 }
 
@@ -280,13 +280,13 @@ export async function searchAudiences(
 ): Promise<SavedAudience[]> {
   const supabase = createUserClient();
 
-  const { data, error } = await supabase
-    .from('audience_filters')
+  const { data, error } = await ((supabase
+    .from('audience_filters' as any) as any)
     .select('*')
     .eq('organization_id', organizationId)
     .is('deleted_at', null)
     .or(`name.ilike.%${query}%,description.ilike.%${query}%,tags.cs.{${query}}`)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }));
 
   if (error) {
     console.error('Error searching audiences:', error);
@@ -306,7 +306,7 @@ export async function getTopPerformingAudiences(
   const supabase = createUserClient();
 
   const { data, error } = await supabase
-    .from('audience_filters')
+    .from('audience_filters' as any)
     .select('*')
     .eq('organization_id', organizationId)
     .is('deleted_at', null)
@@ -336,8 +336,8 @@ export async function createContactPurchase(
 ): Promise<ContactPurchaseRecord> {
   const supabase = createUserClient();
 
-  const { data, error } = await supabase
-    .from('contact_purchases')
+  const { data, error } = await ((supabase
+    .from('contact_purchases' as any) as any)
     .insert({
       organization_id: input.organizationId,
       purchased_by: input.purchasedBy,
@@ -355,7 +355,7 @@ export async function createContactPurchase(
       status: input.status || 'completed',
     })
     .select()
-    .single();
+    .single());
 
   if (error) {
     console.error('Error creating contact purchase:', error);
@@ -374,8 +374,8 @@ export async function getOrganizationPurchases(
 ): Promise<ContactPurchaseRecord[]> {
   const supabase = createUserClient();
 
-  let query = supabase
-    .from('contact_purchases')
+  let query = (supabase
+    .from('contact_purchases' as any) as any)
     .select('*')
     .eq('organization_id', organizationId)
     .order('purchased_at', { ascending: false });
@@ -406,11 +406,11 @@ export async function getPurchaseStats(organizationId: string): Promise<{
 }> {
   const supabase = createUserClient();
 
-  const { data, error } = await supabase
-    .from('contact_purchases')
+  const { data, error } = await ((supabase
+    .from('contact_purchases' as any) as any)
     .select('contact_count, total_cost, total_user_charge')
     .eq('organization_id', organizationId)
-    .eq('status', 'completed');
+    .eq('status', 'completed'));
 
   if (error) {
     console.error('Error fetching purchase stats:', error);

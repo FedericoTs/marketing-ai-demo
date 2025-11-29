@@ -32,7 +32,7 @@ export interface CanvasSessionData {
  * Returns the session ID to use in the URL
  */
 export async function createCanvasSession(
-  data: Omit<CanvasSessionData, 'id' | 'createdAt'>,
+  data: Omit<CanvasSessionData, 'id' | 'createdAt' | 'organizationId'>,
   organizationId: string
 ): Promise<string> {
   const supabase = createServiceClient();

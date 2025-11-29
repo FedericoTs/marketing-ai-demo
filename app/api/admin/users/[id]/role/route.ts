@@ -5,13 +5,13 @@
  * Admin-only endpoint for role management
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, logAdminAction, getCurrentUserId } from '@/lib/auth/admin';
 import { createServiceClient } from '@/lib/supabase/server';
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin access
@@ -25,7 +25,7 @@ export async function PUT(
   }
 
   try {
-    const { id: targetUserId } = params;
+    const { id: targetUserId } = await params;
     const body = await request.json();
     const { platform_role } = body;
 
