@@ -4758,7 +4758,7 @@ Use Supabase Realtime for canvas synchronization.
 **Features Implemented**:
 - ✅ Customer creation on signup (automatic, non-blocking)
 - ✅ Subscription creation ($499/month Professional plan)
-- ✅ Credits system ($499 Month 1, $99 Month 2+)
+- ✅ Credits system ($499/month - Month 1: 499 credits, Month 2+: 99 credits + $400 platform fee)
 - ✅ Webhook handling (5 events: invoice.payment_succeeded, invoice.payment_failed, customer.subscription.*)
 - ✅ Feature gating (frontend + backend middleware)
 - ✅ Checkout session creation

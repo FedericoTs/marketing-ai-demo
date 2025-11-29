@@ -19,9 +19,14 @@ export interface CreditAllocationResult {
 /**
  * Add credits to an organization based on subscription payment
  *
- * Credit allocation logic:
- * - Month 1 (first payment): Grant full payment amount (100% of $499 = $499)
- * - Month 2+ (recurring): Grant capped amount ($99)
+ * BILLING MODEL (Updated Nov 29, 2025):
+ * - Subscription: $499/month (consistent pricing)
+ * - Month 1 (first payment): Grant full payment amount ($499 = 499 credits)
+ * - Month 2+ (recurring): Grant $99 in credits, $400 is platform access fee
+ *
+ * This ensures:
+ * - Month 1: User gets maximum credits to try the platform
+ * - Month 2+: $400 covers platform costs, $99 for mailing credits
  *
  * @param organizationId - UUID of the organization
  * @param amountPaid - Amount paid in cents (e.g., 49900 for $499)
@@ -37,24 +42,30 @@ export async function addCreditsToOrganization(
     const supabase = createServiceClient();
 
     // CREDIT ALLOCATION LOGIC
-    // Month 1: 100% of payment ($499.00)
-    // Month 2+: Capped at $99.00
+    // billingCycleCount = 0: One-time credit purchase → 100% of payment
+    // billingCycleCount = 1: Month 1 subscription → 100% of payment ($499 = 499 credits)
+    // billingCycleCount = 2+: Recurring subscription → $99 credits + $400 platform fee
     const MAX_RECURRING_CREDITS = 9900; // $99.00 in cents
     let creditsToAdd: number;
 
-    if (billingCycleCount === 1) {
-      // First month: Grant full amount
-      creditsToAdd = amountPaid; // $499.00
+    if (billingCycleCount === 0) {
+      // One-time credit purchase: Grant full amount (1:1 dollar to credit)
+      creditsToAdd = amountPaid;
       console.log(
-        `[Credits] Month 1 payment: Granting full amount $${(creditsToAdd / 100).toFixed(2)}`
+        `[Credits] One-Time Purchase: $${(amountPaid / 100).toFixed(2)} → $${(creditsToAdd / 100).toFixed(2)} credits (100%)`
+      );
+    } else if (billingCycleCount === 1) {
+      // First month subscription: Grant full amount ($499 = 499 credits)
+      creditsToAdd = amountPaid;
+      console.log(
+        `[Credits] Month 1 (Welcome Bonus): $${(amountPaid / 100).toFixed(2)} payment → $${(creditsToAdd / 100).toFixed(2)} credits (100%)`
       );
     } else {
-      // Recurring months: Cap at $99
+      // Recurring months: $499 payment = $99 credits + $400 platform fee
       creditsToAdd = Math.min(amountPaid, MAX_RECURRING_CREDITS);
+      const platformFee = (amountPaid - creditsToAdd) / 100;
       console.log(
-        `[Credits] Month ${billingCycleCount} payment: Granting capped amount $${(
-          creditsToAdd / 100
-        ).toFixed(2)}`
+        `[Credits] Month ${billingCycleCount}: $${(amountPaid / 100).toFixed(2)} payment → $${(creditsToAdd / 100).toFixed(2)} credits + $${platformFee.toFixed(2)} platform fee`
       );
     }
 

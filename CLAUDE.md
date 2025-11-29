@@ -128,7 +128,7 @@ All tasks in `DROPLAB_TRANSFORMATION_PLAN.md` use checkboxes for progress tracki
 4. **Payment Required Banner** (Incomplete subscriptions only)
    - Orange gradient alert for incomplete billing
    - Complete payment button → Stripe Checkout
-   - Credits information ($499 Month 1, $99 Month 2+)
+   - Credits information (Month 1: 499 credits, Month 2+: 99 credits + platform access)
 
 5. **Campaign Performance Overview** (4 Cards)
    - **Campaigns Sent**: Count of sent vs total campaigns
@@ -561,7 +561,7 @@ SET tour_version = '0.0',
   - **Billing Tab** (NEW - Phase 9.2.10):
     - **Subscription Status**:
       - Current billing status (Active, Cancelled, Past Due, Incomplete)
-      - Available credits display ($499 Month 1, $99 Month 2+)
+      - Available credits display (Month 1: 499 credits, Month 2+: 99 credits + platform access)
       - Plan details ($499/month Professional)
       - Status badges with color coding
     - **Subscription Management**:

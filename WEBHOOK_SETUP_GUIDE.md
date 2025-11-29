@@ -236,7 +236,7 @@ vercel env add STRIPE_WEBHOOK_SECRET
 # Replace test keys with live keys
 STRIPE_SECRET_KEY=sk_live_... # From Stripe Dashboard
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_... # From Stripe Dashboard
-STRIPE_PRICE_ID=price_... # Create product in LIVE mode
+STRIPE_PRICE_ID=price_1SYbTzRO5P6SOwyWe5qDXgsX # DropLab Pro $499/month
 ```
 
 ### Step 6: Test Production Webhooks
