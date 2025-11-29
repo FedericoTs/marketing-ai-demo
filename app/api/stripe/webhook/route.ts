@@ -176,6 +176,10 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 
 /**
  * Handle customer.subscription.created event
+ *
+ * This is critical for handling subscription replacements (e.g., when an
+ * incomplete_expired subscription is replaced with a new one via Checkout).
+ * We need to update the organization's stripe_subscription_id.
  */
 async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   try {
@@ -183,8 +187,60 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     console.log(`[Webhook] Customer: ${subscription.customer}`);
     console.log(`[Webhook] Status: ${subscription.status}`);
 
-    // Just log for now - subscription is already stored in database
-    // by the createSubscriptionForCustomer function
+    // Get customer ID
+    const customerId =
+      typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
+
+    if (!customerId) {
+      console.error('[Webhook] No customer ID in subscription');
+      return;
+    }
+
+    // Get organization from customer
+    const organizationId = await getOrganizationFromCustomer(customerId);
+
+    if (!organizationId) {
+      console.error('[Webhook] No organization found for customer:', customerId);
+      return;
+    }
+
+    // Get service client for admin access
+    const supabase = createServiceClient();
+
+    // Get current organization subscription ID
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('stripe_subscription_id')
+      .eq('id', organizationId)
+      .single();
+
+    if (orgError) {
+      console.error('[Webhook] Error fetching organization:', orgError);
+      return;
+    }
+
+    // Update stripe_subscription_id if it's different (new subscription replacing old)
+    if (org.stripe_subscription_id !== subscription.id) {
+      console.log(`[Webhook] Updating subscription ID: ${org.stripe_subscription_id} → ${subscription.id}`);
+
+      const { error: updateError } = await supabase
+        .from('organizations')
+        .update({
+          stripe_subscription_id: subscription.id,
+          billing_status: subscription.status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', organizationId);
+
+      if (updateError) {
+        console.error('[Webhook] Failed to update subscription ID:', updateError);
+        return;
+      }
+
+      console.log(`[Webhook] ✅ Updated organization ${organizationId} with new subscription ${subscription.id}`);
+    } else {
+      console.log('[Webhook] Subscription ID unchanged - no update needed');
+    }
   } catch (error) {
     console.error('[Webhook] Error handling subscription created:', error);
   }

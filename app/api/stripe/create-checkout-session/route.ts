@@ -88,7 +88,59 @@ export async function POST(request: NextRequest) {
 
     console.log('[Checkout] Subscription status:', subscription.status);
 
-    // Only create Checkout session if subscription is incomplete
+    // Get app URL from environment
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    // Handle incomplete_expired subscriptions - need to create a fresh subscription
+    if (subscription.status === 'incomplete_expired') {
+      console.log('[Checkout] Subscription expired - creating fresh subscription via Checkout');
+
+      // Get the price ID from environment (same as initial subscription)
+      const priceId = process.env.STRIPE_PRICE_ID;
+
+      if (!priceId) {
+        console.error('[Checkout] STRIPE_PRICE_ID not configured');
+        return NextResponse.json(
+          { error: 'Subscription product not configured. Please contact support.' },
+          { status: 500 }
+        );
+      }
+
+      // Create Checkout session for a NEW subscription (old one is dead)
+      const checkoutSession = await stripe.checkout.sessions.create({
+        customer: org.stripe_customer_id,
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        subscription_data: {
+          metadata: {
+            organization_id: org.id,
+            replaced_subscription: org.stripe_subscription_id, // Track the old subscription
+          },
+        },
+        success_url: `${appUrl}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/dashboard?payment=canceled`,
+        metadata: {
+          organization_id: org.id,
+          type: 'subscription_replacement', // Mark this as a replacement subscription
+        },
+      });
+
+      console.log('[Checkout] ✅ Fresh subscription session created:', checkoutSession.id);
+      console.log('[Checkout] Redirect URL:', checkoutSession.url);
+
+      return NextResponse.json({
+        sessionId: checkoutSession.id,
+        url: checkoutSession.url,
+      });
+    }
+
+    // Only create Checkout session if subscription is incomplete or past_due
     if (subscription.status !== 'incomplete' && subscription.status !== 'past_due') {
       console.log(`[Checkout] Subscription already ${subscription.status} - no payment needed`);
       return NextResponse.json(
@@ -99,9 +151,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Get app URL from environment
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Create Checkout Session for the existing incomplete subscription
     const checkoutSession = await stripe.checkout.sessions.create({
