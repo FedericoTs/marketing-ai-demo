@@ -158,7 +158,7 @@ export default function MarketingHomepage() {
 
       {/* How It Works */}
       <div id="how-it-works">
-        <HowItWorks />
+        <HowItWorks onDemoClick={handleDemoClick} />
       </div>
 
       {/* Testimonials */}

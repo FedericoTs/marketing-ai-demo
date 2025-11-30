@@ -11,6 +11,10 @@
 
 import { Palette, Users, TrendingUp } from 'lucide-react';
 
+interface HowItWorksProps {
+  onDemoClick?: () => void;
+}
+
 const steps = [
   {
     number: '01',
@@ -35,7 +39,7 @@ const steps = [
   },
 ];
 
-export function HowItWorks() {
+export function HowItWorks({ onDemoClick }: HowItWorksProps) {
   return (
     <section className="py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -108,7 +112,10 @@ export function HowItWorks() {
           <p className="text-slate-600 mb-4">
             Ready to see it in action?
           </p>
-          <button className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all">
+          <button
+            onClick={onDemoClick}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
+          >
             Try Interactive Demo
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
