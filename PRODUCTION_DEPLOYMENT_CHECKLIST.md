@@ -130,7 +130,7 @@ NEXT_PUBLIC_APP_URL=https://www.droplab.io
 
 # Supabase (already have these values)
 NEXT_PUBLIC_SUPABASE_URL=https://egccqmlhzqiirovstpal.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=***REMOVED***
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR_SUPABASE_ANON_KEY]
 SUPABASE_SERVICE_ROLE_KEY=[YOUR_SERVICE_ROLE_KEY]
 
 # Stripe (LIVE mode)

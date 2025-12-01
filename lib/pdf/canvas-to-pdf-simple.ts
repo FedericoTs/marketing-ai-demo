@@ -12,33 +12,63 @@ import { jsPDF } from 'jspdf'
 import { getFormat } from '@/lib/design/print-formats'
 import { createServiceClient } from '@/lib/supabase/server'
 
-// Browser pool
+// Shared browser pool for efficient parallel processing
 let browserInstance: Browser | null = null
 let browserRefCount = 0
+let browserMutex: Promise<void> = Promise.resolve()
 
 async function getBrowserInstance(): Promise<Browser> {
-  if (browserInstance) {
-    browserRefCount++
-    return browserInstance
-  }
+  // Use mutex to prevent race conditions during browser creation
+  let resolve: () => void
+  const currentMutex = browserMutex
+  browserMutex = new Promise<void>(r => { resolve = r })
+  await currentMutex
 
-  const puppeteer = await import('puppeteer')
-  browserInstance = await puppeteer.default.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-  })
-  browserRefCount = 1
-  console.log('✅ [PDF] Browser launched')
-  return browserInstance
+  try {
+    if (browserInstance) {
+      browserRefCount++
+      return browserInstance
+    }
+
+    const puppeteer = await import('puppeteer')
+    browserInstance = await puppeteer.default.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    })
+    browserRefCount = 1
+    console.log('✅ [PDF] Browser launched')
+    return browserInstance
+  } finally {
+    resolve!()
+  }
 }
 
 async function releaseBrowserInstance(): Promise<void> {
-  browserRefCount--
-  if (browserRefCount <= 0 && browserInstance) {
-    await browserInstance.close()
-    browserInstance = null
-    browserRefCount = 0
-    console.log('✅ [PDF] Browser closed')
+  // Use mutex for thread-safe release
+  let resolve: () => void
+  const currentMutex = browserMutex
+  browserMutex = new Promise<void>(r => { resolve = r })
+  await currentMutex
+
+  try {
+    browserRefCount--
+    // Only close after a short delay to allow other parallel ops to finish
+    if (browserRefCount <= 0 && browserInstance) {
+      // Wait briefly before closing to prevent race with parallel requests
+      await new Promise(r => setTimeout(r, 100))
+      if (browserRefCount <= 0 && browserInstance) {
+        try {
+          await browserInstance.close()
+          console.log('✅ [PDF] Browser closed')
+        } catch (e) {
+          // Browser may already be closed
+        }
+        browserInstance = null
+        browserRefCount = 0
+      }
+    }
+  } finally {
+    resolve!()
   }
 }
 
@@ -332,7 +362,11 @@ async function renderCanvasToImage(
     const imgBuffer = await canvasEl.screenshot({ type: 'png', omitBackground: false })
     return (imgBuffer as Buffer).toString('base64')
   } finally {
-    await page.close()
+    try {
+      await page.close()
+    } catch (e) {
+      // Ignore page close errors - browser may have been closed during parallel processing
+    }
   }
 }
 
@@ -516,7 +550,11 @@ export async function convertCanvasToPDF(
 
 export async function cleanup(): Promise<void> {
   if (browserInstance) {
-    await browserInstance.close()
+    try {
+      await browserInstance.close()
+    } catch (e) {
+      // Ignore
+    }
     browserInstance = null
     browserRefCount = 0
   }

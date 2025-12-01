@@ -10,6 +10,12 @@
  *
  * Phase 3A: Client-Side MVP (100 recipients max)
  * Uses client-side PDF export for simplicity and speed
+ *
+ * PERFORMANCE OPTIMIZATION (Phase 3B):
+ * - Parallel PDF generation with controlled concurrency
+ * - Vercel: 3 concurrent (memory-safe for 3GB limit)
+ * - Local: 5 concurrent (faster with more memory)
+ * - Expected speedup: 3-5x (100 PDFs: ~7min → ~1.5-2min)
  */
 
 import { nanoid } from 'nanoid'
@@ -29,6 +35,43 @@ import {
   createCampaignRecipient,
   createLandingPage,
 } from '@/lib/database/campaign-supabase-queries'
+
+// ==================== CONCURRENCY CONFIGURATION ====================
+
+/**
+ * PDF generation concurrency limits
+ * - Vercel: 3 concurrent (each PDF uses ~500MB peak, 3GB total limit)
+ * - Local: 5 concurrent (more memory available)
+ */
+const PDF_CONCURRENCY = process.env.VERCEL ? 3 : 5
+
+/**
+ * Process items in parallel with controlled concurrency
+ * Uses chunked batching to avoid memory exhaustion
+ */
+async function processInParallelChunks<T, R>(
+  items: T[],
+  processor: (item: T, index: number) => Promise<R>,
+  concurrency: number,
+  onChunkComplete?: (completed: number, total: number) => void
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = []
+
+  for (let i = 0; i < items.length; i += concurrency) {
+    const chunk = items.slice(i, i + concurrency)
+    const chunkPromises = chunk.map((item, chunkIndex) =>
+      processor(item, i + chunkIndex)
+    )
+
+    const chunkResults = await Promise.allSettled(chunkPromises)
+    results.push(...chunkResults)
+
+    // Report progress after each chunk
+    onChunkComplete?.(Math.min(i + concurrency, items.length), items.length)
+  }
+
+  return results
+}
 
 // ==================== TYPES ====================
 
@@ -284,138 +327,147 @@ export async function processCampaignBatch(
     progress.status = 'processing'
     onProgress?.(progress)
 
-    // ==================== STEP 4: Process Each Recipient ====================
+    // ==================== STEP 4: Process Each Recipient (PARALLEL) ====================
+    // PERFORMANCE: Process recipients in parallel chunks for 3-5x speedup
+    // Vercel: 3 concurrent, Local: 5 concurrent (based on memory limits)
+    console.log(`⚡ [processCampaignBatch] Processing ${recipients.length} recipients with concurrency=${PDF_CONCURRENCY}`)
+
+    // Define the processor function for a single recipient
+    const processRecipient = async (recipient: Recipient, index: number): Promise<{ recipientId: string; recipientName: string }> => {
+      const recipientName = `${recipient.first_name} ${recipient.last_name}`
+      console.log(`  [${index + 1}/${recipients.length}] Processing ${recipientName}...`)
+
+      // Generate unique tracking code
+      const trackingCode = nanoid(12)
+
+      // Generate unique QR code URL for tracking
+      const qrCodeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/lp/campaign/${campaignId}?r=${encodeURIComponent(recipient.id)}&t=${trackingCode}`
+
+      // Prepare recipient data (match database schema exactly)
+      const recipientData = {
+        // Legacy field names (for backwards compatibility)
+        name: recipient.first_name,
+        lastname: recipient.last_name,
+        address: recipient.address_line1 || '',
+        city: recipient.city,
+        zip: recipient.zip_code,
+
+        // Database schema field names (for variable mappings)
+        // Convert null to undefined for type compatibility
+        first_name: recipient.first_name,
+        last_name: recipient.last_name,
+        email: recipient.email ?? undefined,
+        phone: recipient.phone ?? undefined,
+        address_line1: recipient.address_line1 || '',
+        address_line2: recipient.address_line2 ?? undefined,
+        state: recipient.state,
+        zip_code: recipient.zip_code,
+        country: recipient.country,
+      }
+
+      // ==================== PERSONALIZE CANVAS (QR CODES + VARIABLES) ====================
+      // Step 1: Personalize front canvas (replace QR codes with unique tracking codes)
+      let personalizedFrontCanvasJSON = frontCanvasJSON
+      if (frontSurface.variable_mappings && Object.keys(frontSurface.variable_mappings).length > 0) {
+        console.log(`    🎨 Personalizing front canvas for ${recipientName}...`)
+        personalizedFrontCanvasJSON = await personalizeCanvasWithRecipient(
+          frontCanvasJSON,
+          frontSurface.variable_mappings,
+          recipient,
+          campaignId
+        )
+      }
+
+      // Step 2: Personalize back canvas if it exists and has variable mappings
+      let personalizedBackCanvasJSON = backCanvasJSON
+      if (backSurface && backCanvasJSON && backSurface.variable_mappings && Object.keys(backSurface.variable_mappings).length > 0) {
+        console.log(`    🎨 Personalizing back canvas for ${recipientName}...`)
+        personalizedBackCanvasJSON = await personalizeCanvasWithRecipient(
+          backCanvasJSON,
+          backSurface.variable_mappings,
+          recipient,
+          campaignId
+        )
+      }
+
+      // ==================== GENERATE PDF WITH PERSONALIZED CANVASES ====================
+      // Generate personalized PDF (front + back pages with unique QR codes)
+      const pdfResult = await convertCanvasToPDF(
+        personalizedFrontCanvasJSON,  // ✅ Personalized front (unique QR codes)
+        personalizedBackCanvasJSON,   // ✅ Personalized back (unique QR codes if present)
+        recipientData,                // Recipient data for text variable replacement
+        template.format_type,         // Format (e.g., 'postcard_4x6')
+        `${campaign.name}-${recipient.id}`,
+        campaign.variable_mappings_snapshot // User-defined text variable mappings
+      )
+      const personalizedPDFBuffer = pdfResult.buffer
+
+      // Upload PDF to Supabase Storage
+      const pdfUrl = await uploadPersonalizedPDF(campaignId, recipient.id, personalizedPDFBuffer)
+
+      // Save to campaign_recipients table
+      await createCampaignRecipient({
+        campaignId,
+        recipientId: recipient.id,
+        personalizedCanvasJson: personalizedFrontCanvasJSON, // ✅ Store personalized canvas with unique QR
+        trackingCode,
+        qrCodeUrl: qrCodeUrl, // Store QR URL for reference
+        personalizedPdfUrl: pdfUrl,
+        landingPageUrl: `/lp/campaign/${campaignId}?r=${encodeURIComponent(recipient.id)}&t=${trackingCode}`,
+      })
+
+      // Create landing page if configured
+      if (campaign.description && JSON.parse(campaign.description || '{}').landingPageConfig) {
+        const config = JSON.parse(campaign.description).landingPageConfig
+
+        await createLandingPage({
+          campaignId,
+          trackingCode,
+          templateType: config.template_type || 'default',
+          pageConfig: config,
+          recipientData: {
+            firstName: recipient.first_name,
+            lastName: recipient.last_name,
+            city: recipient.city,
+            state: recipient.state,
+            zip: recipient.zip_code,
+            email: recipient.email || undefined,
+            phone: recipient.phone || undefined,
+          },
+        })
+      }
+
+      console.log(`    ✅ Success: ${recipientName}`)
+      return { recipientId: recipient.id, recipientName }
+    }
+
+    // Process all recipients in parallel chunks
+    const results = await processInParallelChunks(
+      recipients,
+      processRecipient,
+      PDF_CONCURRENCY,
+      (completed, total) => {
+        // Update progress after each chunk completes
+        progress.current = completed
+        progress.percentage = Math.round((completed / total) * 100)
+        progress.currentRecipient = `Processing batch... (${completed}/${total})`
+        onProgress?.(progress)
+        console.log(`  📊 Progress: ${completed}/${total} (${progress.percentage}%)`)
+      }
+    )
+
+    // Count successes and failures from results
     let successCount = 0
     let failureCount = 0
 
-    for (let i = 0; i < recipients.length; i++) {
-      const recipient = recipients[i]
-      const recipientName = `${recipient.first_name} ${recipient.last_name}`
-
-      progress.current = i + 1
-      progress.currentRecipient = recipientName
-      progress.percentage = Math.round((progress.current / progress.total) * 100)
-      onProgress?.(progress)
-
-      console.log(`  [${i + 1}/${recipients.length}] Processing ${recipientName}...`)
-
-      try {
-        // Generate unique tracking code
-        const trackingCode = nanoid(12)
-
-        // Generate unique QR code URL for tracking
-        const qrCodeUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/lp/campaign/${campaignId}?r=${encodeURIComponent(recipient.id)}&t=${trackingCode}`
-
-        // Prepare recipient data (match database schema exactly)
-        const recipientData = {
-          // Legacy field names (for backwards compatibility)
-          name: recipient.first_name,
-          lastname: recipient.last_name,
-          address: recipient.address_line1 || '',
-          city: recipient.city,
-          zip: recipient.zip_code,
-
-          // Database schema field names (for variable mappings)
-          // Convert null to undefined for type compatibility
-          first_name: recipient.first_name,
-          last_name: recipient.last_name,
-          email: recipient.email ?? undefined,
-          phone: recipient.phone ?? undefined,
-          address_line1: recipient.address_line1 || '',
-          address_line2: recipient.address_line2 ?? undefined,
-          state: recipient.state,
-          zip_code: recipient.zip_code,
-          country: recipient.country,
-        }
-
-        // ==================== PERSONALIZE CANVAS (QR CODES + VARIABLES) ====================
-        // Step 1: Personalize front canvas (replace QR codes with unique tracking codes)
-        console.log(`    🔍 [DEBUG] Checking personalization for ${recipientName}:`, {
-          hasFrontSurface: !!frontSurface,
-          hasFrontMappings: !!frontSurface.variable_mappings,
-          mappingsType: typeof frontSurface.variable_mappings,
-          mappingsKeys: frontSurface.variable_mappings ? Object.keys(frontSurface.variable_mappings) : 'undefined',
-          mappingsLength: frontSurface.variable_mappings ? Object.keys(frontSurface.variable_mappings).length : 0,
-          mappingsDetail: frontSurface.variable_mappings, // ← Show FULL mappings object
-        })
-
-        let personalizedFrontCanvasJSON = frontCanvasJSON
-        if (frontSurface.variable_mappings && Object.keys(frontSurface.variable_mappings).length > 0) {
-          console.log(`    🎨 Personalizing front canvas for ${recipientName}...`)
-          personalizedFrontCanvasJSON = await personalizeCanvasWithRecipient(
-            frontCanvasJSON,
-            frontSurface.variable_mappings,
-            recipient,
-            campaignId
-          )
-        } else {
-          console.log(`    ⏭️  Skipping personalization for ${recipientName} - no variable mappings`)
-        }
-
-        // Step 2: Personalize back canvas if it exists and has variable mappings
-        let personalizedBackCanvasJSON = backCanvasJSON
-        if (backSurface && backCanvasJSON && backSurface.variable_mappings && Object.keys(backSurface.variable_mappings).length > 0) {
-          console.log(`    🎨 Personalizing back canvas for ${recipientName}...`)
-          personalizedBackCanvasJSON = await personalizeCanvasWithRecipient(
-            backCanvasJSON,
-            backSurface.variable_mappings,
-            recipient,
-            campaignId
-          )
-        }
-
-        // ==================== GENERATE PDF WITH PERSONALIZED CANVASES ====================
-        // Generate personalized PDF (front + back pages with unique QR codes)
-        const pdfResult = await convertCanvasToPDF(
-          personalizedFrontCanvasJSON,  // ✅ Personalized front (unique QR codes)
-          personalizedBackCanvasJSON,   // ✅ Personalized back (unique QR codes if present)
-          recipientData,                // Recipient data for text variable replacement
-          template.format_type,         // Format (e.g., 'postcard_4x6')
-          `${campaign.name}-${recipient.id}`,
-          campaign.variable_mappings_snapshot // User-defined text variable mappings
-        )
-        const personalizedPDFBuffer = pdfResult.buffer
-
-        // Upload PDF to Supabase Storage
-        const pdfUrl = await uploadPersonalizedPDF(campaignId, recipient.id, personalizedPDFBuffer)
-
-        // Save to campaign_recipients table
-        await createCampaignRecipient({
-          campaignId,
-          recipientId: recipient.id,
-          personalizedCanvasJson: personalizedFrontCanvasJSON, // ✅ Store personalized canvas with unique QR
-          trackingCode,
-          qrCodeUrl: qrCodeUrl, // Store QR URL for reference
-          personalizedPdfUrl: pdfUrl,
-          landingPageUrl: `/lp/campaign/${campaignId}?r=${encodeURIComponent(recipient.id)}&t=${trackingCode}`,
-        })
-
-        // Create landing page if configured
-        if (campaign.description && JSON.parse(campaign.description || '{}').landingPageConfig) {
-          const config = JSON.parse(campaign.description).landingPageConfig
-
-          await createLandingPage({
-            campaignId,
-            trackingCode,
-            templateType: config.template_type || 'default',
-            pageConfig: config,
-            recipientData: {
-              firstName: recipient.first_name,
-              lastName: recipient.last_name,
-              city: recipient.city,
-              state: recipient.state,
-              zip: recipient.zip_code,
-              email: recipient.email || undefined,
-              phone: recipient.phone || undefined,
-            },
-          })
-        }
-
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
         successCount++
-        console.log(`    ✅ Success: ${recipientName}`)
-      } catch (error) {
+      } else {
         failureCount++
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        const recipient = recipients[index]
+        const recipientName = `${recipient.first_name} ${recipient.last_name}`
+        const errorMessage = result.reason instanceof Error ? result.reason.message : 'Unknown error'
 
         console.error(`    ❌ Failed: ${recipientName}`, errorMessage)
 
@@ -425,7 +477,7 @@ export async function processCampaignBatch(
           error: errorMessage,
         })
       }
-    }
+    })
 
     // ==================== STEP 5: Update Campaign Status ====================
     const finalStatus = failureCount === 0 ? 'completed' : failureCount === recipients.length ? 'failed' : 'completed'
