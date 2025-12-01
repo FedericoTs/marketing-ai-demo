@@ -14,7 +14,7 @@
 
 import { nanoid } from 'nanoid'
 import { personalizeCanvasWithRecipient } from './personalization-engine'
-import { convertCanvasToPDF } from '@/lib/pdf/canvas-to-pdf-simple'
+import { convertCanvasToPDF } from '@/lib/pdf'
 import { createServiceClient } from '@/lib/supabase/server'
 import type {
   Campaign,
