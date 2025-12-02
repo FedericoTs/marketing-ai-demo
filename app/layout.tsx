@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/sidebar";
 import { SettingsProvider } from "@/lib/contexts/settings-context";
 import { Toaster } from "@/components/ui/sonner";
 import { usePathname } from "next/navigation";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,6 +59,7 @@ export default function RootLayout({
             </div>
           )}
         </SettingsProvider>
+        <Analytics />
       </body>
     </html>
   );
